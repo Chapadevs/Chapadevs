@@ -1,0 +1,214 @@
+.hero-section {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.title {
+  font-family: 'Code Bold', monospace;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+  color: #111827;
+}
+
+.title--hero {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.highlight {
+  color: #10b981;
+  font-weight: 700;
+  position: relative;
+  display: inline-block;
+  animation: highlightGlow 3s ease-in-out infinite;
+}
+
+.highlight:nth-child(1) { animation-delay: 0s; }
+.highlight:nth-child(2) { animation-delay: 0.5s; }
+.highlight:nth-child(3) { animation-delay: 1s; }
+.highlight:nth-child(4) { animation-delay: 1.5s; }
+.highlight:nth-child(5) { animation-delay: 2s; }
+
+.text {
+  font-family: 'Coolvetica', sans-serif;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.text--lead {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 3rem;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.text--lead .highlight {
+  color: #10b981;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
+.text--lead .highlight:hover {
+  transform: scale(1.03);
+  transition: transform 0.3s ease;
+}
+
+.hero-subtitle-creato {
+  font-family: 'Creato Display Medium', serif !important;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.btn {
+  padding: 1.5rem 3rem;
+  border: 2px solid #10b981;
+  border-radius: 0;
+  font-family: 'Creato Display Medium', serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  min-width: 250px;
+}
+
+.btn--primary {
+  background: #FFFFFF;
+  color: #059669;
+  border-color: #059669;
+}
+
+.btn--primary:hover {
+  background: #059669;
+  color: #FFFFFF;
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:focus {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes highlightGlow {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+  }
+}
+
+@media (min-width: 376px) {
+  .title--hero {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero-section {
+    min-height: 75vh;
+    padding: 3rem 0;
+  }
+
+  .title--hero {
+    font-size: 3.5rem;
+  }
+
+  .text--lead {
+    font-size: 1.75rem;
+  }
+
+  .hero-buttons {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-section {
+    min-height: 85vh;
+    padding: 4rem 0;
+  }
+
+  .title--hero {
+    font-size: 4rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .hero-section {
+    padding: 5rem 0;
+  }
+
+  .title--hero {
+    font-size: 4.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 1.5rem;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 1.5rem 2rem;
+    font-size: 1.5rem;
+  }
+}
+

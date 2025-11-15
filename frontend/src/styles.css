@@ -1,0 +1,80 @@
+/* Font Face Declarations */
+@font-face {
+  font-family: "Code Bold";
+  src: url("/assets/fonts/Code-Bold.otf") format("opentype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Coolvetica";
+  src: url("/assets/fonts/Coolvetica Rg.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Creato Display Medium";
+  src: url("/assets/fonts/CreatoDisplay-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* CSS Variables */
+:root {
+  --primary-green: #059669;
+  --primary-green-dark: #047857;
+  --primary-green-light: #10b981;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-light: #6b7280;
+  --background: #ffffff;
+  --background-gray: #f9fafb;
+  --background-light-green: #ecfdf5;
+  --border: #e5e7eb;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* Global Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+body {
+  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: #ffffff;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Code Bold", Arial, Helvetica, sans-serif;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Note: Component-specific styles are imported in their respective component files */
+

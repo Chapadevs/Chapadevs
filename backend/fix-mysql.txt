@@ -1,0 +1,12 @@
+Open Command Prompt as Administrator and run:
+
+cd "C:\Program Files\MySQL\MySQL Server 8.1\bin"
+mysql -u root
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';
+FLUSH PRIVILEGES;
+exit;
+
+Then in .env file, add:
+DB_PASSWORD=root
+
+
