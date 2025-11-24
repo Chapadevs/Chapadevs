@@ -17,8 +17,7 @@ export const getUsers = asyncHandler(async (req, res) => {
 export const getProgrammers = asyncHandler(async (req, res) => {
   const programmers = await User.findAll({
     where: {
-      role: 'programmer',
-      isActive: true
+      role: 'programmer'
     },
     attributes: { exclude: ['password'] }
   })
@@ -52,9 +51,13 @@ export const updateUser = asyncHandler(async (req, res) => {
     user.name = req.body.name || user.name
     user.email = req.body.email || user.email
     user.role = req.body.role || user.role
-    user.isActive = req.body.isActive !== undefined ? req.body.isActive : user.isActive
-    user.skills = req.body.skills !== undefined ? req.body.skills : user.skills
-    user.bio = req.body.bio !== undefined ? req.body.bio : user.bio
+
+    // Update programmer fields if user is a programmer
+    if (user.role === 'programmer') {
+      if (req.body.skills !== undefined) user.skills = req.body.skills
+      if (req.body.bio !== undefined) user.bio = req.body.bio
+      if (req.body.hourlyRate !== undefined) user.hourlyRate = req.body.hourlyRate
+    }
 
     const updatedUser = await user.save()
 
@@ -63,7 +66,9 @@ export const updateUser = asyncHandler(async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
-      isActive: updatedUser.isActive,
+      skills: updatedUser.skills,
+      bio: updatedUser.bio,
+      hourlyRate: updatedUser.hourlyRate,
     })
   } else {
     res.status(404)

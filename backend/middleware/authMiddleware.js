@@ -25,10 +25,6 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: 'User not found' })
       }
 
-      if (!req.user.isActive) {
-        return res.status(401).json({ message: 'User account is deactivated' })
-      }
-
       next()
     } catch (error) {
       console.error('Token verification error:', error)
@@ -64,7 +60,7 @@ export const authorizeProjectAccess = async (req, res, next) => {
     }
 
     // Allow access if:
-    // 1. User is the client who owns the project
+    // 1. User is the owner of the project
     // 2. User is the assigned programmer
     // 3. User is an admin
     if (

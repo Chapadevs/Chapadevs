@@ -6,7 +6,7 @@ import asyncHandler from 'express-async-handler'
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role, company, phone } = req.body
+  const { name, email, password, role } = req.body
 
   // Validation
   if (!name || !email || !password) {
@@ -27,9 +27,13 @@ export const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password,
-    role: role || 'client',
-    company,
-    phone,
+    role: role || 'user',
+    // Initialize programmer fields if role is programmer
+    ...(role === 'programmer' && {
+      skills: [],
+      bio: '',
+      hourlyRate: null
+    })
   })
 
   if (user) {
@@ -94,12 +98,9 @@ export const getMe = asyncHandler(async (req, res) => {
     name: user.name,
     email: user.email,
     role: user.role,
-    company: user.company,
-    phone: user.phone,
-    avatar: user.avatar,
     skills: user.skills,
     bio: user.bio,
-    industry: user.industry,
+    hourlyRate: user.hourlyRate,
     createdAt: user.createdAt,
   })
 })
@@ -111,14 +112,16 @@ export const updateProfile = asyncHandler(async (req, res) => {
   const user = await User.findByPk(req.user.id)
 
   if (user) {
+    // Update basic user fields
     user.name = req.body.name || user.name
     user.email = req.body.email || user.email
-    user.company = req.body.company !== undefined ? req.body.company : user.company
-    user.phone = req.body.phone !== undefined ? req.body.phone : user.phone
-    user.avatar = req.body.avatar !== undefined ? req.body.avatar : user.avatar
-    user.skills = req.body.skills !== undefined ? req.body.skills : user.skills
-    user.bio = req.body.bio !== undefined ? req.body.bio : user.bio
-    user.industry = req.body.industry !== undefined ? req.body.industry : user.industry
+
+    // Update programmer fields if user is a programmer
+    if (user.role === 'programmer') {
+      if (req.body.skills !== undefined) user.skills = req.body.skills
+      if (req.body.bio !== undefined) user.bio = req.body.bio
+      if (req.body.hourlyRate !== undefined) user.hourlyRate = req.body.hourlyRate
+    }
 
     const updatedUser = await user.save()
 
@@ -127,12 +130,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
-      company: updatedUser.company,
-      phone: updatedUser.phone,
-      avatar: updatedUser.avatar,
       skills: updatedUser.skills,
       bio: updatedUser.bio,
-      industry: updatedUser.industry,
+      hourlyRate: updatedUser.hourlyRate,
     })
   } else {
     res.status(404)

@@ -36,40 +36,24 @@ const User = sequelize.define('User', {
     }
   },
   role: {
-    type: DataTypes.ENUM('client', 'programmer', 'admin'),
-    defaultValue: 'client'
+    type: DataTypes.ENUM('user', 'programmer', 'admin'),
+    defaultValue: 'user'
   },
-  company: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  phone: {
-    type: DataTypes.STRING(50),
-    allowNull: true
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  },
-  avatar: {
-    type: DataTypes.STRING(500),
-    allowNull: true,
-    defaultValue: ''
-  },
+  // Programmer-specific fields (nullable, only used when role = 'programmer')
   skills: {
     type: DataTypes.JSON,
     allowNull: true,
-    defaultValue: []
+    defaultValue: null
   },
   bio: {
     type: DataTypes.TEXT,
     allowNull: true,
-    defaultValue: ''
+    defaultValue: null
   },
-  industry: {
-    type: DataTypes.STRING(255),
+  hourlyRate: {
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
-    defaultValue: ''
+    defaultValue: null
   }
 }, {
   tableName: 'users',
@@ -86,7 +70,7 @@ const User = sequelize.define('User', {
         const salt = await bcrypt.genSalt(10)
         user.password = await bcrypt.hash(user.password, salt)
       }
-    }
+    },
   }
 })
 
@@ -100,7 +84,6 @@ User.addHook('afterSync', async () => {
   await sequelize.query(`
     CREATE INDEX IF NOT EXISTS idx_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_role ON users(role);
-    CREATE INDEX IF NOT EXISTS idx_is_active ON users(isActive);
   `).catch(() => {}) // Ignore if indexes already exist
 })
 

@@ -1,17 +1,18 @@
 import Project from '../models/Project.js'
+import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
 
-// @desc    Get available projects (not assigned)
+// @desc    Get available projects (not assigned, status Ready)
 // @route   GET /api/assignments/available
 // @access  Private/Programmer
 export const getAvailableProjects = asyncHandler(async (req, res) => {
   const projects = await Project.findAll({
     where: {
       assignedProgrammerId: null,
-      status: ['pending', 'draft']
+      status: 'Ready'
     },
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] }
     ],
     order: [['createdAt', 'DESC']]
   })
@@ -38,16 +39,34 @@ export const assignProject = asyncHandler(async (req, res) => {
     throw new Error('Project is already assigned')
   }
 
+  if (project.status !== 'Ready') {
+    res.status(400)
+    throw new Error('Project must be in Ready status to be assigned')
+  }
+
   project.assignedProgrammerId = programmerId || req.user.id
-  project.status = 'in-progress'
+  project.status = 'Development'
+  project.startDate = new Date()
 
   const updatedProject = await project.save()
+
+  // Create notification for client
+  await createNotification(
+    project.clientId,
+    'project_assigned',
+    'Project Assigned',
+    `Your project "${project.title}" has been assigned to a programmer and is now in development.`,
+    project.id
+  )
 
   // Reload with associations
   const projectWithAssociations = await Project.findByPk(updatedProject.id, {
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company'] },
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
     ]
   })
 
@@ -72,17 +91,34 @@ export const acceptProject = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to accept this project')
   }
 
+  if (project.status !== 'Ready') {
+    res.status(400)
+    throw new Error('Project must be in Ready status to be accepted')
+  }
+
   project.assignedProgrammerId = req.user.id
-  project.status = 'in-progress'
+  project.status = 'Development'
   project.startDate = new Date()
 
   const updatedProject = await project.save()
 
+  // Create notification for client
+  await createNotification(
+    project.clientId,
+    'project_accepted',
+    'Project Accepted',
+    `A programmer has accepted your project "${project.title}" and development has started.`,
+    project.id
+  )
+
   // Reload with associations
   const projectWithAssociations = await Project.findByPk(updatedProject.id, {
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company'] },
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
     ]
   })
 
@@ -103,7 +139,7 @@ export const rejectProject = asyncHandler(async (req, res) => {
   }
 
   project.assignedProgrammerId = null
-  project.status = 'pending'
+  project.status = 'Ready'
 
   const updatedProject = await project.save()
 
@@ -129,7 +165,7 @@ export const unassignProject = asyncHandler(async (req, res) => {
   }
 
   project.assignedProgrammerId = null
-  project.status = 'pending'
+  project.status = 'Ready'
 
   const updatedProject = await project.save()
 

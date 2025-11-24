@@ -90,6 +90,38 @@ export const AuthProvider = ({ children }) => {
     setError(null)
   }
 
+  const updateProfile = async (userData) => {
+    try {
+      setError(null)
+      setLoading(true)
+      const updatedUser = await authAPI.updateProfile(userData)
+      setUser(updatedUser)
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Profile update failed'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      setError(null)
+      setLoading(true)
+      await authAPI.changePassword(currentPassword, newPassword)
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Password change failed'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const value = {
     user,
     loading,
@@ -97,6 +129,8 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateProfile,
+    changePassword,
     isAuthenticated: !!user,
   }
 

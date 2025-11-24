@@ -10,7 +10,7 @@ export const createProject = asyncHandler(async (req, res) => {
   const projectData = {
     ...req.body,
     clientId: req.user.id,
-    status: 'draft', // New projects start as draft
+    status: 'Holding', // New projects start as Holding
   }
 
   const project = await Project.create(projectData)
@@ -18,8 +18,11 @@ export const createProject = asyncHandler(async (req, res) => {
   // Reload with associations
   const projectWithAssociations = await Project.findByPk(project.id, {
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company'] },
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
     ]
   })
 
@@ -32,15 +35,15 @@ export const createProject = asyncHandler(async (req, res) => {
 export const getProjects = asyncHandler(async (req, res) => {
   let where = {}
 
-  // Clients see only their projects
-  if (req.user.role === 'client') {
+  // Users see only their projects
+  if (req.user.role === 'user') {
     where.clientId = req.user.id
   }
-  // Programmers see projects assigned to them or available projects
+  // Programmers see projects assigned to them or available projects (Ready status)
   else if (req.user.role === 'programmer') {
     where[Op.or] = [
       { assignedProgrammerId: req.user.id },
-      { assignedProgrammerId: null, status: 'pending' },
+      { assignedProgrammerId: null, status: 'Ready' },
     ]
   }
   // Admins see all projects (where remains empty)
@@ -48,8 +51,11 @@ export const getProjects = asyncHandler(async (req, res) => {
   const projects = await Project.findAll({
     where,
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company'] },
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
     ],
     order: [['createdAt', 'DESC']]
   })
@@ -64,7 +70,10 @@ export const getMyProjects = asyncHandler(async (req, res) => {
   const projects = await Project.findAll({
     where: { clientId: req.user.id },
     include: [
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills'] }
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
     ],
     order: [['createdAt', 'DESC']]
   })
@@ -84,7 +93,7 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
   const projects = await Project.findAll({
     where: { assignedProgrammerId: req.user.id },
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company', 'phone'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] }
     ],
     order: [['createdAt', 'DESC']]
   })
@@ -98,8 +107,11 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
 export const getProjectById = asyncHandler(async (req, res) => {
   const project = await Project.findByPk(req.params.id, {
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company', 'phone'] },
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills', 'bio'] },
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      },
       { 
         association: 'notes',
         include: [{ association: 'user', attributes: ['id', 'name', 'email'] }],
@@ -127,13 +139,13 @@ export const updateProject = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  // Clients can only update their own projects if status is draft or pending
-  if (req.user.role === 'client') {
+  // Users can only update their own projects if status is Holding or Ready
+  if (req.user.role === 'user') {
     if (project.clientId !== req.user.id) {
       res.status(403)
       throw new Error('Not authorized to update this project')
     }
-    if (!['draft', 'pending'].includes(project.status)) {
+    if (!['Holding', 'Ready'].includes(project.status)) {
       res.status(403)
       throw new Error('Cannot update project in current status')
     }
@@ -164,8 +176,11 @@ export const updateProject = asyncHandler(async (req, res) => {
   // Reload with associations
   const projectWithAssociations = await Project.findByPk(updatedProject.id, {
     include: [
-      { association: 'client', attributes: ['id', 'name', 'email', 'company'] },
-      { association: 'assignedProgrammer', attributes: ['id', 'name', 'email', 'skills'] }
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
     ]
   })
 
@@ -183,19 +198,58 @@ export const deleteProject = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  // Only clients can delete their own projects, and only if in draft status
-  if (req.user.role === 'client') {
+  // Only users can delete their own projects, and only if in Holding status
+  if (req.user.role === 'user') {
     if (project.clientId !== req.user.id) {
       res.status(403)
       throw new Error('Not authorized to delete this project')
     }
-    if (project.status !== 'draft') {
+    if (project.status !== 'Holding') {
       res.status(403)
-      throw new Error('Can only delete projects in draft status')
+      throw new Error('Can only delete projects in Holding status')
     }
   }
 
   await project.destroy()
 
   res.json({ message: 'Project removed' })
+})
+
+// @desc    Mark project as Ready for assignment
+// @route   PUT /api/projects/:id/ready
+// @access  Private
+export const markProjectReady = asyncHandler(async (req, res) => {
+  const project = await Project.findByPk(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  // Only user or admin can mark project as ready
+  if (req.user.role === 'user' && project.clientId !== req.user.id) {
+    res.status(403)
+    throw new Error('Not authorized to update this project')
+  }
+
+  if (project.status !== 'Holding') {
+    res.status(400)
+    throw new Error('Project must be in Holding status to mark as Ready')
+  }
+
+  project.status = 'Ready'
+  const updatedProject = await project.save()
+
+  // Reload with associations
+  const projectWithAssociations = await Project.findByPk(updatedProject.id, {
+    include: [
+      { association: 'client', attributes: ['id', 'name', 'email'] },
+      { 
+        association: 'assignedProgrammer', 
+        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
+      }
+    ]
+  })
+
+  res.json(projectWithAssociations)
 })

@@ -1,8 +1,14 @@
 // Simple script to create database
 import mysql from 'mysql2/promise'
 import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-dotenv.config()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Load .env from backend directory
+dotenv.config({ path: path.join(__dirname, '.env') })
 
 const createDatabase = async () => {
   try {
@@ -11,10 +17,10 @@ const createDatabase = async () => {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 3306,
       user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
+      password: process.env.DB_PASSWORD || 'root',
       // Try to connect without password if empty
       authPlugins: {
-        mysql_native_password: () => () => Buffer.from(process.env.DB_PASSWORD || '')
+        mysql_native_password: () => () => Buffer.from(process.env.DB_PASSWORD || 'root')
       }
     })
 

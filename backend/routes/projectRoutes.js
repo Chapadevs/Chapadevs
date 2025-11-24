@@ -7,6 +7,7 @@ import {
   deleteProject,
   getMyProjects,
   getAssignedProjects,
+  markProjectReady,
 } from '../controllers/projectController.js'
 import { protect, authorizeProjectAccess } from '../middleware/authMiddleware.js'
 
@@ -24,6 +25,7 @@ router.get('/assigned', getAssignedProjects)
 // General routes
 router.post('/', createProject)
 router.get('/', getProjects)
+router.put('/:id/ready', markProjectReady)
 router
   .route('/:id')
   .get(authorizeProjectAccess, getProjectById)

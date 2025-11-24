@@ -1,11 +1,11 @@
 # Chapadevs CRM Backend API
 
-Backend API for the Chapadevs CRM system built with Node.js, Express, and MongoDB.
+Backend API for the Chapadevs CRM system built with Node.js, Express, and MySQL/Sequelize.
 
 ## Features
 
 - **User Authentication**: JWT-based authentication with role-based access control
-- **User Roles**: Client, Programmer, and Admin
+- **User Roles**: User, Programmer, and Admin
 - **Project Management**: Full CRUD operations for projects
 - **Project Assignment**: Programmers can assign themselves to projects
 - **Role-Based Access**: Different permissions for clients and programmers
@@ -15,26 +15,39 @@ Backend API for the Chapadevs CRM system built with Node.js, Express, and MongoD
 ```
 backend/
 ├── config/
-│   └── database.js          # MongoDB connection
+│   ├── database.js          # MySQL/Sequelize connection
+│   └── associations.js     # Model associations
 ├── controllers/
 │   ├── authController.js    # Authentication logic
 │   ├── userController.js    # User management
 │   ├── projectController.js # Project CRUD
-│   └── assignmentController.js # Project assignment
+│   ├── assignmentController.js # Project assignment
+│   ├── aiPreviewController.js # AI preview generation
+│   ├── notificationController.js # Notifications
+│   ├── supportTicketController.js # Support tickets
+│   └── dashboardController.js # Dashboard data
 ├── middleware/
 │   ├── authMiddleware.js    # JWT verification & authorization
 │   └── errorMiddleware.js   # Error handling
 ├── models/
-│   ├── User.js              # User schema
-│   └── Project.js           # Project schema
+│   ├── User.js              # User model
+│   ├── Project.js           # Project model
+│   ├── ProjectNote.js      # Project notes
+│   ├── AIPreview.js        # AI previews
+│   ├── Notification.js     # Notifications
+│   └── SupportTicket.js    # Support tickets
 ├── routes/
 │   ├── authRoutes.js        # Auth endpoints
 │   ├── userRoutes.js        # User endpoints
 │   ├── projectRoutes.js     # Project endpoints
-│   └── assignmentRoutes.js  # Assignment endpoints
+│   ├── assignmentRoutes.js  # Assignment endpoints
+│   ├── aiPreviewRoutes.js  # AI preview endpoints
+│   ├── notificationRoutes.js # Notification endpoints
+│   ├── supportRoutes.js    # Support ticket endpoints
+│   └── dashboardRoutes.js  # Dashboard endpoints
 ├── utils/
 │   └── generateToken.js     # JWT token generation
-├── .env.example             # Environment variables template
+├── migrations/              # Database migrations
 ├── server.js                # Express server setup
 └── package.json
 ```
@@ -57,14 +70,21 @@ cp .env.example .env
 ```
 
 Edit `.env` with your configuration:
-- `MONGODB_URI`: Your MongoDB connection string
+- `DB_HOST`: MySQL host (default: localhost)
+- `DB_PORT`: MySQL port (default: 3306)
+- `DB_NAME`: Database name (default: chapadevs_crm)
+- `DB_USER`: MySQL username (default: root)
+- `DB_PASSWORD`: MySQL password
 - `JWT_SECRET`: A secure random string for JWT signing
 - `PORT`: Server port (default: 5000)
 - `FRONTEND_URL`: Your React frontend URL
 
-### 3. Start MongoDB
+### 3. Start MySQL
 
-Make sure MongoDB is running on your system or use MongoDB Atlas.
+Make sure MySQL is running on your system. You can create the database using:
+```bash
+npm run create-db
+```
 
 ### 4. Run the Server
 
@@ -126,50 +146,52 @@ Authorization: Bearer <token>
 
 ## User Roles
 
-### Client
+### User
 - Can create and manage their own projects
 - Can view only their projects
-- Can edit projects in draft/pending status
+- Can edit projects in Holding/Ready status
+- Access to AI previews, notifications, and support
 
 ### Programmer
 - Can view available projects
 - Can assign themselves to projects
 - Can view and manage assigned projects
 - Can update project status
+- Has skills, bio, and hourlyRate fields
 
 ### Admin
 - Full access to all resources
 - Can manage users
 - Can view all projects
+- Can respond to support tickets
 
 ## Project Status Flow
 
-1. **draft** - Initial state when client creates project
-2. **pending** - Client submits project for assignment
-3. **in-progress** - Assigned to a programmer
-4. **review** - Ready for client review
-5. **completed** - Project finished
-6. **cancelled** - Project cancelled
+1. **Holding** - Initial state when user creates project
+2. **Ready** - User submits project for assignment
+3. **Development** - Assigned to a programmer
+4. **Completed** - Project finished
+5. **Cancelled** - Project cancelled
 
 ## Database Models
 
 ### User Model
 - name, email, password
-- role (client/programmer/admin)
-- company, phone, avatar
-- skills (for programmers)
-- bio, industry
+- role (user/programmer/admin)
+- skills, bio, hourlyRate (nullable, for programmers only)
 
 ### Project Model
 - title, description
-- client (reference to User)
-- assignedProgrammer (reference to User)
-- status, priority
-- Project details (type, budget, timeline)
-- Features, goals, design styles
-- Notes array for project updates
+- clientId (reference to User)
+- assignedProgrammerId (reference to User)
+- status (Holding/Ready/Development/Completed/Cancelled)
+- priority, projectType, budget, timeline
+- Features, goals, design styles (JSON)
+- Notes (via ProjectNote model)
 
-## Next Steps
-
-See `IMPLEMENTATION_PLAN.md` for the complete roadmap of features to implement.
+### Additional Models
+- **AIPreview**: AI-generated website previews
+- **Notification**: User notifications
+- **SupportTicket**: Support ticket system
+- **ProjectNote**: Project update notes
 

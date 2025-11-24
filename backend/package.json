@@ -8,6 +8,9 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "create-db": "node create-db.js",
+    "migrate:update-project-status": "node migrations/update-project-status.js",
+    "migrate:add-programmer-fields": "node migrations/add-programmer-fields.js",
+    "migrate:fix-role-enum": "node migrations/fix-role-enum.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["crm", "project-management", "express", "nodejs"],
@@ -21,8 +24,6 @@
     "jsonwebtoken": "^9.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express-validator": "^7.0.1",
-    "multer": "^1.4.5-lts.1",
     "express-async-handler": "^1.2.0"
   },
   "devDependencies": {

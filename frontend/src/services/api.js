@@ -69,5 +69,91 @@ export const authAPI = {
   },
 }
 
+// Project API functions
+export const projectAPI = {
+  getAll: async () => {
+    const response = await api.get('/projects')
+    return response.data
+  },
+
+  getMyProjects: async () => {
+    const response = await api.get('/projects/my-projects')
+    return response.data
+  },
+
+  getAssignedProjects: async () => {
+    const response = await api.get('/projects/assigned')
+    return response.data
+  },
+
+  getById: async (id) => {
+    const response = await api.get(`/projects/${id}`)
+    return response.data
+  },
+
+  create: async (projectData) => {
+    const response = await api.post('/projects', projectData)
+    return response.data
+  },
+
+  update: async (id, projectData) => {
+    const response = await api.put(`/projects/${id}`, projectData)
+    return response.data
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/projects/${id}`)
+    return response.data
+  },
+
+  markReady: async (id) => {
+    const response = await api.put(`/projects/${id}/ready`)
+    return response.data
+  },
+}
+
+// Assignment API functions
+export const assignmentAPI = {
+  getAvailable: async () => {
+    const response = await api.get('/assignments/available')
+    return response.data
+  },
+
+  assign: async (projectId, programmerId) => {
+    const response = await api.post(`/assignments/${projectId}/assign`, {
+      programmerId,
+    })
+    return response.data
+  },
+
+  accept: async (projectId) => {
+    const response = await api.post(`/assignments/${projectId}/accept`)
+    return response.data
+  },
+
+  reject: async (projectId) => {
+    const response = await api.post(`/assignments/${projectId}/reject`)
+    return response.data
+  },
+
+  unassign: async (projectId) => {
+    const response = await api.delete(`/assignments/${projectId}/unassign`)
+    return response.data
+  },
+}
+
+// User API functions
+export const userAPI = {
+  getProgrammers: async () => {
+    const response = await api.get('/users/programmers')
+    return response.data
+  },
+
+  updateStatus: async (status) => {
+    const response = await api.put('/users/status', { status })
+    return response.data
+  },
+}
+
 export default api
 

@@ -40,8 +40,8 @@ const Project = sequelize.define('Project', {
     onDelete: 'SET NULL'
   },
   status: {
-    type: DataTypes.ENUM('draft', 'pending', 'in-progress', 'review', 'completed', 'cancelled'),
-    defaultValue: 'draft'
+    type: DataTypes.ENUM('Holding', 'Ready', 'Development', 'Completed', 'Cancelled'),
+    defaultValue: 'Holding'
   },
   priority: {
     type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
