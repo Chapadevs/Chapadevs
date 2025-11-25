@@ -38,7 +38,7 @@ const Header = () => {
         <div className="logo-section">
           <Link to="/">
             <img
-              src="/Chapadevs/assets/logos/chapadevs-logo.png"
+              src="assets/logos/chapadevs-logo.png"
               alt="Chapadevs Logo"
               className="header-logo"
             />
@@ -51,7 +51,7 @@ const Header = () => {
             aria-label="Visit ChaPaDevs LinkedIn page"
           >
             <img
-              src="/Chapadevs/assets/images/linkedin.png"
+              src="assets/images/linkedin.png"
               alt="LinkedIn"
               className="linkedin-logo"
             />

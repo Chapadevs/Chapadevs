@@ -51,7 +51,7 @@ const Login = () => {
       <div className="login-card">
         <Link to="/" className="login-logo-link">
           <img
-            src="/Chapadevs/assets/logos/chapadevs-logo.png"
+            src="assets/logos/chapadevs-logo.png"
             alt="Chapadevs Logo"
             className="login-logo"
           />
