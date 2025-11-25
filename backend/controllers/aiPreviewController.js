@@ -121,3 +121,4 @@ export const deleteAIPreview = asyncHandler(async (req, res) => {
   res.json({ message: 'AI preview deleted successfully' })
 })
 
+

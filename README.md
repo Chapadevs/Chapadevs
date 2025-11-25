@@ -135,6 +135,46 @@ API URL can be configured via `VITE_API_URL` environment variable (defaults to `
 
 See `backend/README.md` for backend environment configuration details.
 
+## Deployment
+
+### Backend - Google Cloud Run
+
+The backend is automatically deployed to Google Cloud Run when changes are pushed to `main` or `dev` branches.
+
+**Required GitHub Secrets:**
+- `GCP_PROJECT_ID`: Your Google Cloud Project ID
+- `GCP_SA_KEY`: Google Cloud Service Account JSON key with Cloud Run permissions
+
+**Required Google Cloud Setup:**
+- Artifact Registry repository named `chapadevs` in `us-central1`
+- Cloud Run service named `chapadevs-backend`
+- Secret named `OPENAI_API_KEY` in Secret Manager
+
+The workflow builds a Docker image and deploys it to Cloud Run with:
+- Memory: 512Mi
+- CPU: 1
+- Port: 8080
+- Auto-scaling: 0-10 instances
+
+### Frontend - GitHub Pages
+
+The frontend is automatically deployed to GitHub Pages when changes are pushed to `main` or `dev` branches.
+
+**Required GitHub Configuration:**
+1. Enable GitHub Pages in repository settings (Settings → Pages)
+2. Set source to "GitHub Actions"
+3. Add a repository variable or secret:
+   - `BACKEND_URL` or `vars.BACKEND_URL`: Your Cloud Run backend URL (e.g., `https://chapadevs-backend-xxxxx.run.app/api`)
+
+**Note:** If your repository name is not `username.github.io`, you may need to set a `base` path in `vite.config.js`:
+
+```js
+export default defineConfig({
+  base: '/Chapadevs/', // Replace with your repository name
+  // ... rest of config
+})
+```
+
 ## Styling
 
 All styles have been converted from SCSS to CSS. Each component has its own CSS file for better organization. The design and styling match the original Angular version exactly.
