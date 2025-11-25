@@ -75,10 +75,13 @@ app.use('/api/support', supportRoutes)
 app.use(notFound)
 app.use(errorHandler)
 
-// Cloud Run sets PORT; locally we use BACKEND_PORT (fallback to PORT)
-const PORT = process.env.BACKEND_PORT || process.env.PORT || 3001
+// Cloud Run sets PORT in the container; locally we can use BACKEND_PORT
+// IMPORTANT: Always prioritize PORT so managed platforms (Cloud Run) work correctly.
+const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
+  console.log(
+    `🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
+  )
 })
 
