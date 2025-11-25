@@ -1,7 +1,6 @@
 import Project from '../models/Project.js'
 import ProjectNote from '../models/ProjectNote.js'
 import asyncHandler from 'express-async-handler'
-import { Op } from 'sequelize'
 
 // @desc    Create a new project
 // @route   POST /api/projects
@@ -9,56 +8,38 @@ import { Op } from 'sequelize'
 export const createProject = asyncHandler(async (req, res) => {
   const projectData = {
     ...req.body,
-    clientId: req.user.id,
-    status: 'Holding', // New projects start as Holding
+    clientId: req.user._id,
+    status: 'Holding',
   }
 
   const project = await Project.create(projectData)
 
-  // Reload with associations
-  const projectWithAssociations = await Project.findByPk(project.id, {
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ]
-  })
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
 
-  res.status(201).json(projectWithAssociations)
+  res.status(201).json(populated)
 })
 
 // @desc    Get all projects (filtered by user role)
 // @route   GET /api/projects
 // @access  Private
 export const getProjects = asyncHandler(async (req, res) => {
-  let where = {}
+  const filter = {}
 
-  // Users see only their projects
   if (req.user.role === 'user') {
-    where.clientId = req.user.id
-  }
-  // Programmers see projects assigned to them or available projects (Ready status)
-  else if (req.user.role === 'programmer') {
-    where[Op.or] = [
-      { assignedProgrammerId: req.user.id },
+    filter.clientId = req.user._id
+  } else if (req.user.role === 'programmer') {
+    filter.$or = [
+      { assignedProgrammerId: req.user._id },
       { assignedProgrammerId: null, status: 'Ready' },
     ]
   }
-  // Admins see all projects (where remains empty)
 
-  const projects = await Project.findAll({
-    where,
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ],
-    order: [['createdAt', 'DESC']]
-  })
+  const projects = await Project.find(filter)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .sort({ createdAt: -1 })
 
   res.json(projects)
 })
@@ -67,16 +48,9 @@ export const getProjects = asyncHandler(async (req, res) => {
 // @route   GET /api/projects/my-projects
 // @access  Private
 export const getMyProjects = asyncHandler(async (req, res) => {
-  const projects = await Project.findAll({
-    where: { clientId: req.user.id },
-    include: [
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ],
-    order: [['createdAt', 'DESC']]
-  })
+  const projects = await Project.find({ clientId: req.user._id })
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .sort({ createdAt: -1 })
 
   res.json(projects)
 })
@@ -90,13 +64,9 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to access assigned projects')
   }
 
-  const projects = await Project.findAll({
-    where: { assignedProgrammerId: req.user.id },
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] }
-    ],
-    order: [['createdAt', 'DESC']]
-  })
+  const projects = await Project.find({ assignedProgrammerId: req.user._id })
+    .populate('clientId', 'name email')
+    .sort({ createdAt: -1 })
 
   res.json(projects)
 })
@@ -105,43 +75,37 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
 // @route   GET /api/projects/:id
 // @access  Private
 export const getProjectById = asyncHandler(async (req, res) => {
-  const project = await Project.findByPk(req.params.id, {
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      },
-      { 
-        association: 'notes',
-        include: [{ association: 'user', attributes: ['id', 'name', 'email'] }],
-        order: [['createdAt', 'DESC']]
-      }
-    ]
-  })
-
-  if (project) {
-    res.json(project)
-  } else {
-    res.status(404)
-    throw new Error('Project not found')
-  }
-})
-
-// @desc    Update project
-// @route   PUT /api/projects/:id
-// @access  Private
-export const updateProject = asyncHandler(async (req, res) => {
-  const project = await Project.findByPk(req.params.id)
+  const project = await Project.findById(req.params.id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .lean()
 
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
   }
 
-  // Users can only update their own projects if status is Holding or Ready
+  const notes = await ProjectNote.find({ projectId: project._id })
+    .populate('userId', 'name email')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  res.json({ ...project, notes })
+})
+
+// @desc    Update project
+// @route   PUT /api/projects/:id
+// @access  Private
+export const updateProject = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
   if (req.user.role === 'user') {
-    if (project.clientId !== req.user.id) {
+    if (project.clientId.toString() !== req.user._id.toString()) {
       res.status(403)
       throw new Error('Not authorized to update this project')
     }
@@ -151,56 +115,34 @@ export const updateProject = asyncHandler(async (req, res) => {
     }
   }
 
-  // Update project fields
   Object.keys(req.body).forEach((key) => {
-    if (req.body[key] !== undefined && key !== 'id' && key !== 'clientId') {
-      // Map camelCase to snake_case for database fields
-      const dbKey = key === 'assignedProgrammerId' ? 'assignedProgrammerId' :
-                   key === 'projectType' ? 'projectType' :
-                   key === 'designStyles' ? 'designStyles' :
-                   key === 'hasBranding' ? 'hasBranding' :
-                   key === 'brandingDetails' ? 'brandingDetails' :
-                   key === 'contentStatus' ? 'contentStatus' :
-                   key === 'referenceWebsites' ? 'referenceWebsites' :
-                   key === 'specialRequirements' ? 'specialRequirements' :
-                   key === 'additionalComments' ? 'additionalComments' :
-                   key === 'startDate' ? 'startDate' :
-                   key === 'dueDate' ? 'dueDate' :
-                   key === 'completedDate' ? 'completedDate' : key
-      project[dbKey] = req.body[key]
+    if (req.body[key] !== undefined && key !== '_id' && key !== 'clientId') {
+      project[key] = req.body[key]
     }
   })
 
-  const updatedProject = await project.save()
+  await project.save()
 
-  // Reload with associations
-  const projectWithAssociations = await Project.findByPk(updatedProject.id, {
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ]
-  })
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
 
-  res.json(projectWithAssociations)
+  res.json(populated)
 })
 
 // @desc    Delete project
 // @route   DELETE /api/projects/:id
 // @access  Private
 export const deleteProject = asyncHandler(async (req, res) => {
-  const project = await Project.findByPk(req.params.id)
+  const project = await Project.findById(req.params.id)
 
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
   }
 
-  // Only users can delete their own projects, and only if in Holding status
   if (req.user.role === 'user') {
-    if (project.clientId !== req.user.id) {
+    if (project.clientId.toString() !== req.user._id.toString()) {
       res.status(403)
       throw new Error('Not authorized to delete this project')
     }
@@ -210,7 +152,7 @@ export const deleteProject = asyncHandler(async (req, res) => {
     }
   }
 
-  await project.destroy()
+  await project.deleteOne()
 
   res.json({ message: 'Project removed' })
 })
@@ -219,15 +161,14 @@ export const deleteProject = asyncHandler(async (req, res) => {
 // @route   PUT /api/projects/:id/ready
 // @access  Private
 export const markProjectReady = asyncHandler(async (req, res) => {
-  const project = await Project.findByPk(req.params.id)
+  const project = await Project.findById(req.params.id)
 
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
   }
 
-  // Only user or admin can mark project as ready
-  if (req.user.role === 'user' && project.clientId !== req.user.id) {
+  if (req.user.role === 'user' && project.clientId.toString() !== req.user._id.toString()) {
     res.status(403)
     throw new Error('Not authorized to update this project')
   }
@@ -238,18 +179,11 @@ export const markProjectReady = asyncHandler(async (req, res) => {
   }
 
   project.status = 'Ready'
-  const updatedProject = await project.save()
+  await project.save()
 
-  // Reload with associations
-  const projectWithAssociations = await Project.findByPk(updatedProject.id, {
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ]
-  })
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
 
-  res.json(projectWithAssociations)
+  res.json(populated)
 })

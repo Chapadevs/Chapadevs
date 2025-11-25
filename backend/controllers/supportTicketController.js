@@ -13,12 +13,12 @@ export const createSupportTicket = asyncHandler(async (req, res) => {
   }
 
   const ticket = await SupportTicket.create({
-    userId: req.user.id,
+    userId: req.user._id,
     subject,
     message,
     category: category || 'general',
     priority: priority || 'medium',
-    status: 'open'
+    status: 'open',
   })
 
   res.status(201).json(ticket)
@@ -28,20 +28,11 @@ export const createSupportTicket = asyncHandler(async (req, res) => {
 // @route   GET /api/support
 // @access  Private
 export const getSupportTickets = asyncHandler(async (req, res) => {
-  // Users see only their tickets, admins see all
-  const where = req.user.role === 'admin' ? {} : { userId: req.user.id }
+  const filter = req.user.role === 'admin' ? {} : { userId: req.user._id }
 
-  const tickets = await SupportTicket.findAll({
-    where,
-    include: [
-      {
-        association: 'user',
-        attributes: ['id', 'name', 'email'],
-        required: false
-      }
-    ],
-    order: [['createdAt', 'DESC']]
-  })
+  const tickets = await SupportTicket.find(filter)
+    .populate('userId', 'name email')
+    .sort({ createdAt: -1 })
 
   res.json(tickets)
 })
@@ -50,23 +41,20 @@ export const getSupportTickets = asyncHandler(async (req, res) => {
 // @route   GET /api/support/:id
 // @access  Private
 export const getSupportTicketById = asyncHandler(async (req, res) => {
-  const ticket = await SupportTicket.findByPk(req.params.id, {
-    include: [
-      {
-        association: 'user',
-        attributes: ['id', 'name', 'email'],
-        required: false
-      }
-    ]
-  })
+  const ticket = await SupportTicket.findById(req.params.id).populate(
+    'userId',
+    'name email'
+  )
 
   if (!ticket) {
     res.status(404)
     throw new Error('Support ticket not found')
   }
 
-  // Verify ownership (users can only see their own, admins can see all)
-  if (ticket.userId !== req.user.id && req.user.role !== 'admin') {
+  if (
+    ticket.userId.toString() !== req.user._id.toString() &&
+    req.user.role !== 'admin'
+  ) {
     res.status(403)
     throw new Error('Not authorized to view this ticket')
   }
@@ -78,20 +66,21 @@ export const getSupportTicketById = asyncHandler(async (req, res) => {
 // @route   PUT /api/support/:id
 // @access  Private
 export const updateSupportTicket = asyncHandler(async (req, res) => {
-  const ticket = await SupportTicket.findByPk(req.params.id)
+  const ticket = await SupportTicket.findById(req.params.id)
 
   if (!ticket) {
     res.status(404)
     throw new Error('Support ticket not found')
   }
 
-  // Users can only update their own tickets (add messages), admins can update any
-  if (ticket.userId !== req.user.id && req.user.role !== 'admin') {
+  if (
+    ticket.userId.toString() !== req.user._id.toString() &&
+    req.user.role !== 'admin'
+  ) {
     res.status(403)
     throw new Error('Not authorized to update this ticket')
   }
 
-  // Users can add messages, admins can respond and change status
   if (req.user.role === 'admin') {
     if (req.body.adminResponse !== undefined) {
       ticket.adminResponse = req.body.adminResponse
@@ -106,7 +95,6 @@ export const updateSupportTicket = asyncHandler(async (req, res) => {
       ticket.priority = req.body.priority
     }
   } else {
-    // Users can add follow-up messages
     if (req.body.message !== undefined) {
       ticket.message += `\n\n--- Follow-up ---\n${req.body.message}`
     }
@@ -121,22 +109,19 @@ export const updateSupportTicket = asyncHandler(async (req, res) => {
 // @route   DELETE /api/support/:id
 // @access  Private/Admin
 export const deleteSupportTicket = asyncHandler(async (req, res) => {
-  const ticket = await SupportTicket.findByPk(req.params.id)
+  const ticket = await SupportTicket.findById(req.params.id)
 
   if (!ticket) {
     res.status(404)
     throw new Error('Support ticket not found')
   }
 
-  // Only admins can delete tickets
   if (req.user.role !== 'admin') {
     res.status(403)
     throw new Error('Not authorized to delete tickets')
   }
 
-  await ticket.destroy()
+  await ticket.deleteOne()
 
   res.json({ message: 'Support ticket deleted successfully' })
 })
-
-
