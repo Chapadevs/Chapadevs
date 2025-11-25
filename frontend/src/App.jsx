@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 import RoleProtectedRoute from './components/ProtectedRoute/RoleProtectedRoute'
@@ -17,7 +17,7 @@ import './styles.css'
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -89,7 +89,7 @@ function App() {
             }
           />
         </Routes>
-      </Router>
+      </BrowserRouter>
     </AuthProvider>
   )
 }

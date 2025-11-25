@@ -102,7 +102,7 @@ const OurBusiness = () => {
             }}
           >
             <div className="image-container mobile-container">
-              <img src="/assets/images/mobile.png" alt="Smartphone showing mobile app interface" className="mobile-image" />
+              <img src="assets/images/mobile.png" alt="Smartphone showing mobile app interface" className="mobile-image" />
             </div>
           </div>
           
@@ -155,7 +155,7 @@ const OurBusiness = () => {
             }}
           >
             <div className="image-container monitor-container">
-              <img src="/assets/images/monitor.png" alt="Monitor showing inventory management system" className="monitor-image" />
+              <img src="assets/images/monitor.png" alt="Monitor showing inventory management system" className="monitor-image" />
             </div>
           </div>
 
@@ -167,7 +167,7 @@ const OurBusiness = () => {
             }}
           >
             <div className="image-container laptop-container">
-              <img src="/assets/images/leptop.png" alt="Laptop showing minimalist web page with circular graphics" className="laptop-image" />
+              <img src="assets/images/leptop.png" alt="Laptop showing minimalist web page with circular graphics" className="laptop-image" />
             </div>
           </div>
           

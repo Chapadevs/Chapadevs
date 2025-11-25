@@ -23,7 +23,7 @@ const Team = () => {
       <div className="team-grid">
         <article className="team-card">
           <img
-            src="/assets/icons/avatars/romano-avatar.png"
+            src="assets/icons/avatars/romano-avatar.png"
             alt="Romano Avatar"
             className="team-avatar"
             loading="lazy"
@@ -44,7 +44,7 @@ const Team = () => {
         </article>
         <article className="team-card">
           <img
-            src="/assets/icons/avatars/erik-avatar.png"
+            src="assets/icons/avatars/erik-avatar.png"
             alt="Erik Avatar"
             className="team-avatar"
             loading="lazy"
@@ -65,7 +65,7 @@ const Team = () => {
         </article>
         <article className="team-card">
           <img
-            src="/assets/icons/avatars/maxel-avatar.png"
+            src="assets/icons/avatars/maxel-avatar.png"
             alt="Maxel Avatar"
             className="team-avatar"
             loading="lazy"
