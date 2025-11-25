@@ -267,7 +267,7 @@ const InquiryForm = () => {
         setStep(0)
         setSubmitMessage('')
         setTouched({})
-      }, 5000)
+      }, 3001)
     } catch (error) {
       console.error('Error sending emails:', error)
       setIsSubmitting(false)

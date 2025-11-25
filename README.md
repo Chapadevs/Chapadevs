@@ -129,7 +129,7 @@ All components have been converted from Angular to React:
 
 EmailJS configuration is in `frontend/src/config/environment.js`. The configuration matches the original Angular environment settings.
 
-API URL can be configured via `BACKEND_URL` environment variable (defaults to `http://localhost:5000/api`).
+API URL can be configured via `BACKEND_URL` environment variable (defaults to `http://localhost:3001/api`).
 
 ### Backend
 

@@ -19,7 +19,7 @@ Create a `.env` file with the following variables:
 MONGO_URI=your-mongodb-atlas-connection-string
 DB_NAME=chapadevs_crm
 JWT_SECRET=your-secret-key
-BACKEND_PORT=5000
+BACKEND_PORT=3001
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 ```
@@ -36,7 +36,7 @@ npm run dev
 npm start
 ```
 
-Server runs on `http://localhost:5000`
+Server runs on `http://localhost:3001`
 
 ## Deployment
 
