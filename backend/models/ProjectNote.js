@@ -1,51 +1,31 @@
-import { DataTypes } from 'sequelize'
-import { sequelize } from '../config/database.js'
+import mongoose from 'mongoose'
 
-const ProjectNote = sequelize.define('ProjectNote', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  projectId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'projects',
-      key: 'id'
+const projectNoteSchema = new mongoose.Schema(
+  {
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Project',
+      required: true,
     },
-    onDelete: 'CASCADE'
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-    onDelete: 'CASCADE'
+    content: {
+      type: String,
+      required: true,
+    },
   },
-  content: {
-    type: DataTypes.TEXT,
-    allowNull: false
+  {
+    timestamps: { createdAt: 'createdAt', updatedAt: false },
   }
-}, {
-  tableName: 'project_notes',
-  timestamps: true,
-  createdAt: 'createdAt',
-  updatedAt: false // Notes don't get updated
-})
+)
 
-// Define associations (will be set up after models are loaded)
+projectNoteSchema.index({ projectId: 1 })
+projectNoteSchema.index({ userId: 1 })
+projectNoteSchema.index({ createdAt: -1 })
 
-// Add indexes
-ProjectNote.addHook('afterSync', async () => {
-  await sequelize.query(`
-    CREATE INDEX IF NOT EXISTS idx_project ON project_notes(projectId);
-    CREATE INDEX IF NOT EXISTS idx_user ON project_notes(userId);
-    CREATE INDEX IF NOT EXISTS idx_created ON project_notes(createdAt);
-  `).catch(() => {})
-})
+const ProjectNote = mongoose.model('ProjectNote', projectNoteSchema)
 
 export default ProjectNote
-

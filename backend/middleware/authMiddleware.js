@@ -17,9 +17,7 @@ export const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
       // Get user from token (excluding password)
-      req.user = await User.findByPk(decoded.id, {
-        attributes: { exclude: ['password'] }
-      })
+      req.user = await User.findById(decoded.id).select('-password')
 
       if (!req.user) {
         return res.status(401).json({ message: 'User not found' })
@@ -53,19 +51,23 @@ export const authorize = (...roles) => {
 export const authorizeProjectAccess = async (req, res, next) => {
   try {
     const Project = (await import('../models/Project.js')).default
-    const project = await Project.findByPk(req.params.id)
+    const project = await Project.findById(req.params.id)
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' })
     }
+
+    const clientId = project.clientId?.toString()
+    const assignedProgrammerId = project.assignedProgrammerId?.toString()
+    const userId = req.user._id.toString()
 
     // Allow access if:
     // 1. User is the owner of the project
     // 2. User is the assigned programmer
     // 3. User is an admin
     if (
-      project.clientId === req.user.id ||
-      (project.assignedProgrammerId && project.assignedProgrammerId === req.user.id) ||
+      clientId === userId ||
+      (assignedProgrammerId && assignedProgrammerId === userId) ||
       req.user.role === 'admin'
     ) {
       req.project = project

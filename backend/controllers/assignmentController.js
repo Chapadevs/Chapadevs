@@ -6,16 +6,12 @@ import asyncHandler from 'express-async-handler'
 // @route   GET /api/assignments/available
 // @access  Private/Programmer
 export const getAvailableProjects = asyncHandler(async (req, res) => {
-  const projects = await Project.findAll({
-    where: {
-      assignedProgrammerId: null,
-      status: 'Ready'
-    },
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] }
-    ],
-    order: [['createdAt', 'DESC']]
+  const projects = await Project.find({
+    assignedProgrammerId: null,
+    status: 'Ready',
   })
+    .populate('clientId', 'name email')
+    .sort({ createdAt: -1 })
 
   res.json(projects)
 })
@@ -27,7 +23,7 @@ export const assignProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params
   const { programmerId } = req.body
 
-  const project = await Project.findByPk(projectId)
+  const project = await Project.findById(projectId)
 
   if (!project) {
     res.status(404)
@@ -44,33 +40,25 @@ export const assignProject = asyncHandler(async (req, res) => {
     throw new Error('Project must be in Ready status to be assigned')
   }
 
-  project.assignedProgrammerId = programmerId || req.user.id
+  project.assignedProgrammerId = programmerId || req.user._id
   project.status = 'Development'
   project.startDate = new Date()
 
-  const updatedProject = await project.save()
+  await project.save()
 
-  // Create notification for client
   await createNotification(
     project.clientId,
     'project_assigned',
     'Project Assigned',
     `Your project "${project.title}" has been assigned to a programmer and is now in development.`,
-    project.id
+    project._id
   )
 
-  // Reload with associations
-  const projectWithAssociations = await Project.findByPk(updatedProject.id, {
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ]
-  })
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
 
-  res.json(projectWithAssociations)
+  res.json(populated)
 })
 
 // @desc    Accept project assignment
@@ -79,14 +67,17 @@ export const assignProject = asyncHandler(async (req, res) => {
 export const acceptProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params
 
-  const project = await Project.findByPk(projectId)
+  const project = await Project.findById(projectId)
 
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
   }
 
-  if (project.assignedProgrammerId && project.assignedProgrammerId !== req.user.id) {
+  if (
+    project.assignedProgrammerId &&
+    project.assignedProgrammerId.toString() !== req.user._id.toString()
+  ) {
     res.status(403)
     throw new Error('Not authorized to accept this project')
   }
@@ -96,33 +87,25 @@ export const acceptProject = asyncHandler(async (req, res) => {
     throw new Error('Project must be in Ready status to be accepted')
   }
 
-  project.assignedProgrammerId = req.user.id
+  project.assignedProgrammerId = req.user._id
   project.status = 'Development'
   project.startDate = new Date()
 
-  const updatedProject = await project.save()
+  await project.save()
 
-  // Create notification for client
   await createNotification(
     project.clientId,
     'project_accepted',
     'Project Accepted',
     `A programmer has accepted your project "${project.title}" and development has started.`,
-    project.id
+    project._id
   )
 
-  // Reload with associations
-  const projectWithAssociations = await Project.findByPk(updatedProject.id, {
-    include: [
-      { association: 'client', attributes: ['id', 'name', 'email'] },
-      { 
-        association: 'assignedProgrammer', 
-        attributes: ['id', 'name', 'email', 'skills', 'bio', 'hourlyRate']
-      }
-    ]
-  })
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
 
-  res.json(projectWithAssociations)
+  res.json(populated)
 })
 
 // @desc    Reject project assignment
@@ -131,7 +114,7 @@ export const acceptProject = asyncHandler(async (req, res) => {
 export const rejectProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params
 
-  const project = await Project.findByPk(projectId)
+  const project = await Project.findById(projectId)
 
   if (!project) {
     res.status(404)
@@ -141,9 +124,9 @@ export const rejectProject = asyncHandler(async (req, res) => {
   project.assignedProgrammerId = null
   project.status = 'Ready'
 
-  const updatedProject = await project.save()
+  await project.save()
 
-  res.json(updatedProject)
+  res.json(project)
 })
 
 // @desc    Unassign project
@@ -152,14 +135,17 @@ export const rejectProject = asyncHandler(async (req, res) => {
 export const unassignProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params
 
-  const project = await Project.findByPk(projectId)
+  const project = await Project.findById(projectId)
 
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
   }
 
-  if (project.assignedProgrammerId && project.assignedProgrammerId !== req.user.id) {
+  if (
+    project.assignedProgrammerId &&
+    project.assignedProgrammerId.toString() !== req.user._id.toString()
+  ) {
     res.status(403)
     throw new Error('Not authorized to unassign this project')
   }
@@ -167,7 +153,7 @@ export const unassignProject = asyncHandler(async (req, res) => {
   project.assignedProgrammerId = null
   project.status = 'Ready'
 
-  const updatedProject = await project.save()
+  await project.save()
 
-  res.json(updatedProject)
+  res.json(project)
 })

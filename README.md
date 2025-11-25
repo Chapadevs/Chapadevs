@@ -85,7 +85,7 @@ npm run preview
 
 ## Backend
 
-The backend is a Node.js + Express API server with MySQL database.
+The backend is a Node.js + Express API server with MongoDB (MongoDB Atlas via Mongoose).
 
 ### Getting Started (Backend)
 
@@ -129,7 +129,7 @@ All components have been converted from Angular to React:
 
 EmailJS configuration is in `frontend/src/config/environment.js`. The configuration matches the original Angular environment settings.
 
-API URL can be configured via `VITE_API_URL` environment variable (defaults to `http://localhost:5000/api`).
+API URL can be configured via `BACKEND_URL` environment variable (defaults to `http://localhost:5000/api`).
 
 ### Backend
 

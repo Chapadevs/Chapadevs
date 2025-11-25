@@ -1,6 +1,6 @@
 # Chapadevs CRM Backend API
 
-Backend API for the Chapadevs CRM system built with Node.js, Express, and MySQL/Sequelize.
+Backend API for the Chapadevs CRM system built with Node.js, Express, and MongoDB (Mongoose).
 
 ## Setup
 
@@ -16,26 +16,15 @@ npm install
 Create a `.env` file with the following variables:
 
 ```env
-DB_HOST=localhost
-DB_PORT=3306
+MONGO_URI=your-mongodb-atlas-connection-string
 DB_NAME=chapadevs_crm
-DB_USER=root
-DB_PASSWORD=your-password
 JWT_SECRET=your-secret-key
-PORT=5000
+BACKEND_PORT=5000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 ```
 
-### 3. Database Setup
-
-Make sure MySQL is running, then create the database:
-
-```bash
-npm run create-db
-```
-
-### 4. Run the Server
+### 3. Run the Server
 
 **Development:**
 ```bash

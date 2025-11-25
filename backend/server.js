@@ -3,21 +3,27 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { existsSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Load environment variables FIRST, before any other imports
-// Explicitly point to the .env file in the backend directory
-dotenv.config({ path: path.join(__dirname, '.env') })
+// We now keep .env inside the backend folder only
+const backendEnvPath = path.join(__dirname, '.env')
 
-// Debug: Log what was loaded (mask password)
+if (existsSync(backendEnvPath)) {
+  dotenv.config({ path: backendEnvPath })
+  console.log('📁 Loaded .env from backend folder')
+} else {
+  console.log('⚠️  No backend/.env file found (using environment variables or defaults)')
+}
+
+// Debug: Log what was loaded (mask secrets)
 console.log('🔍 Environment variables loaded:')
-console.log('  DB_HOST:', process.env.DB_HOST || 'NOT SET')
-console.log('  DB_PORT:', process.env.DB_PORT || 'NOT SET')
-console.log('  DB_NAME:', process.env.DB_NAME || 'NOT SET')
-console.log('  DB_USER:', process.env.DB_USER || 'NOT SET')
-console.log('  DB_PASSWORD:', process.env.DB_PASSWORD ? '***SET***' : 'NOT SET')
+console.log('  BACKEND_PORT:', process.env.BACKEND_PORT || 'NOT SET')
+console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'NOT SET')
+console.log('  MONGO_URI:', process.env.MONGO_URI ? '***SET***' : 'NOT SET')
 console.log('')
 
 import { connectDB } from './config/database.js'
@@ -69,10 +75,13 @@ app.use('/api/support', supportRoutes)
 app.use(notFound)
 app.use(errorHandler)
 
-// Cloud Run sets PORT environment variable, default to 5000 for local development
-const PORT = process.env.PORT || 5000
+// Cloud Run sets PORT in the container; locally we can use BACKEND_PORT
+// IMPORTANT: Always prioritize PORT so managed platforms (Cloud Run) work correctly.
+const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
+  console.log(
+    `🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
+  )
 })
 

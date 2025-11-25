@@ -1,90 +1,72 @@
-import { DataTypes } from 'sequelize'
-import { sequelize } from '../config/database.js'
+import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 
-const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  name: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Please add a name' }
-    }
-  },
-  email: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: { msg: 'Please add a valid email' },
-      notEmpty: { msg: 'Please add an email' }
-    }
-  },
-  password: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    validate: {
-      len: {
-        args: [6, 255],
-        msg: 'Password must be at least 6 characters'
-      },
-      notEmpty: { msg: 'Please add a password' }
-    }
-  },
-  role: {
-    type: DataTypes.ENUM('user', 'programmer', 'admin'),
-    defaultValue: 'user'
-  },
-  // Programmer-specific fields (nullable, only used when role = 'programmer')
-  skills: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: null
-  },
-  bio: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    defaultValue: null
-  },
-  hourlyRate: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: null
-  }
-}, {
-  tableName: 'users',
-  timestamps: true,
-  hooks: {
-    beforeCreate: async (user) => {
-      if (user.password) {
-        const salt = await bcrypt.genSalt(10)
-        user.password = await bcrypt.hash(user.password, salt)
-      }
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, 'Please add a name'],
+      trim: true,
+      maxlength: 255,
     },
-    beforeUpdate: async (user) => {
-      if (user.changed('password')) {
-        const salt = await bcrypt.genSalt(10)
-        user.password = await bcrypt.hash(user.password, salt)
-      }
+    email: {
+      type: String,
+      required: [true, 'Please add an email'],
+      unique: true,
+      trim: true,
+      lowercase: true,
+      maxlength: 255,
     },
+    password: {
+      type: String,
+      required: [true, 'Please add a password'],
+      minlength: [6, 'Password must be at least 6 characters'],
+      select: false, // Exclude password by default
+    },
+    role: {
+      type: String,
+      enum: ['user', 'programmer', 'admin'],
+      default: 'user',
+    },
+    // Programmer-specific fields
+    skills: {
+      type: [String],
+      default: undefined,
+    },
+    bio: {
+      type: String,
+      default: null,
+    },
+    hourlyRate: {
+      type: Number,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
   }
+)
+
+// Indexes
+userSchema.index({ email: 1 })
+userSchema.index({ role: 1 })
+
+// Hash password before save
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    return next()
+  }
+
+  const salt = await bcrypt.genSalt(10)
+  this.password = await bcrypt.hash(this.password, salt)
+  next()
 })
 
 // Instance method to match password
-User.prototype.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password)
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password)
 }
 
-// Add indexes
-User.addHook('afterSync', async () => {
-  await sequelize.query(`
-    CREATE INDEX IF NOT EXISTS idx_email ON users(email);
-    CREATE INDEX IF NOT EXISTS idx_role ON users(role);
-  `).catch(() => {}) // Ignore if indexes already exist
-})
+const User = mongoose.model('User', userSchema)
 
 export default User
