@@ -13,12 +13,13 @@ RUN npm ci --only=production
 # Copia código fonte
 COPY . .
 
-# Expõe porta
-EXPOSE 8080
+# Expõe porta (Cloud Run will set BACKEND_PORT env var, default to 3001)
+EXPOSE 3001
 
 # Define variável de ambiente de produção
 ENV NODE_ENV=production
-ENV PORT=8080
+# BACKEND_PORT will be set by Cloud Run, but default to 3001 if not set
+ENV BACKEND_PORT=3001
 
 # Comando para iniciar
 CMD ["node", "server.js"]

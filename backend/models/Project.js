@@ -1,151 +1,129 @@
-import { DataTypes } from 'sequelize'
-import { sequelize } from '../config/database.js'
+import mongoose from 'mongoose'
 
-const Project = sequelize.define('Project', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  title: {
-    type: DataTypes.STRING(500),
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Please add a project title' }
-    }
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: 'Please add a project description' }
-    }
-  },
-  clientId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
+const projectSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, 'Please add a project title'],
+      maxlength: 500,
+      trim: true,
     },
-    onDelete: 'CASCADE'
-  },
-  assignedProgrammerId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
+    description: {
+      type: String,
+      required: [true, 'Please add a project description'],
     },
-    onDelete: 'SET NULL'
+    clientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    assignedProgrammerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ['Holding', 'Ready', 'Development', 'Completed', 'Cancelled'],
+      default: 'Holding',
+    },
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'urgent'],
+      default: 'medium',
+    },
+    projectType: {
+      type: String,
+      enum: [
+        'New Website Design & Development',
+        'Website Redesign/Refresh',
+        'E-commerce Store',
+        'Landing Page',
+        'Web Application',
+        'Maintenance/Updates to Existing Site',
+        'Other',
+      ],
+      default: null,
+    },
+    budget: {
+      type: String,
+      default: null,
+    },
+    timeline: {
+      type: String,
+      default: null,
+    },
+    goals: {
+      type: [String],
+      default: [],
+    },
+    features: {
+      type: [String],
+      default: [],
+    },
+    designStyles: {
+      type: [String],
+      default: [],
+    },
+    technologies: {
+      type: [String],
+      default: [],
+    },
+    hasBranding: {
+      type: String,
+      enum: ['Yes', 'No', 'Partial'],
+      default: null,
+    },
+    brandingDetails: {
+      type: String,
+      default: null,
+    },
+    contentStatus: {
+      type: String,
+      default: null,
+    },
+    referenceWebsites: {
+      type: String,
+      default: null,
+    },
+    specialRequirements: {
+      type: String,
+      default: null,
+    },
+    additionalComments: {
+      type: String,
+      default: null,
+    },
+    attachments: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    startDate: {
+      type: Date,
+      default: null,
+    },
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    completedDate: {
+      type: Date,
+      default: null,
+    },
   },
-  status: {
-    type: DataTypes.ENUM('Holding', 'Ready', 'Development', 'Completed', 'Cancelled'),
-    defaultValue: 'Holding'
-  },
-  priority: {
-    type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
-    defaultValue: 'medium'
-  },
-  projectType: {
-    type: DataTypes.ENUM(
-      'New Website Design & Development',
-      'Website Redesign/Refresh',
-      'E-commerce Store',
-      'Landing Page',
-      'Web Application',
-      'Maintenance/Updates to Existing Site',
-      'Other'
-    ),
-    allowNull: true
-  },
-  budget: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  timeline: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  goals: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
-  },
-  features: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
-  },
-  designStyles: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
-  },
-  technologies: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
-  },
-  hasBranding: {
-    type: DataTypes.ENUM('Yes', 'No', 'Partial'),
-    allowNull: true
-  },
-  brandingDetails: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  contentStatus: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  referenceWebsites: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  specialRequirements: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  additionalComments: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  attachments: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
-  },
-  startDate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  dueDate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  completedDate: {
-    type: DataTypes.DATE,
-    allowNull: true
+  {
+    timestamps: true,
   }
-}, {
-  tableName: 'projects',
-  timestamps: true
-})
+)
 
-// Define associations (will be set up after User model is loaded)
-// This is done in a separate step to avoid circular dependencies
+// Indexes
+projectSchema.index({ clientId: 1 })
+projectSchema.index({ assignedProgrammerId: 1 })
+projectSchema.index({ status: 1 })
+projectSchema.index({ clientId: 1, status: 1 })
+projectSchema.index({ assignedProgrammerId: 1, status: 1 })
+projectSchema.index({ createdAt: -1 })
 
-// Add indexes
-Project.addHook('afterSync', async () => {
-  await sequelize.query(`
-    CREATE INDEX IF NOT EXISTS idx_client ON projects(clientId);
-    CREATE INDEX IF NOT EXISTS idx_programmer ON projects(assignedProgrammerId);
-    CREATE INDEX IF NOT EXISTS idx_status ON projects(status);
-    CREATE INDEX IF NOT EXISTS idx_client_status ON projects(clientId, status);
-    CREATE INDEX IF NOT EXISTS idx_programmer_status ON projects(assignedProgrammerId, status);
-    CREATE INDEX IF NOT EXISTS idx_created ON projects(createdAt);
-  `).catch(() => {}) // Ignore if indexes already exist
-})
+const Project = mongoose.model('Project', projectSchema)
 
 export default Project
