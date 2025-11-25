@@ -1,24 +1,25 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Backend Dockerfile
+FROM node:20-alpine
 
-# Set working directory
+# Define diretório de trabalho
 WORKDIR /app
 
-# Copy package files
+# Copia package files
 COPY package*.json ./
 
-# Install dependencies
+# Instala dependências
 RUN npm ci --only=production
 
-# Copy application files
+# Copia código fonte
 COPY . .
 
-# Expose port (Cloud Run will set PORT env var)
+# Expõe porta
 EXPOSE 8080
 
-# Set environment to production
+# Define variável de ambiente de produção
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Start the application
+# Comando para iniciar
 CMD ["node", "server.js"]
 
