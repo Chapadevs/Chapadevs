@@ -199,7 +199,7 @@ const CreateProject = () => {
               name="technologies"
               value={formData.technologies}
               onChange={handleChange}
-              placeholder="e.g., React, Node.js, MySQL"
+              placeholder="e.g., React, Node.js, MongoDB"
             />
           </div>
 

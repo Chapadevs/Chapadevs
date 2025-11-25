@@ -1,60 +1,45 @@
-import { DataTypes } from 'sequelize'
-import { sequelize } from '../config/database.js'
+import mongoose from 'mongoose'
 
-const AIPreview = sequelize.define('AIPreview', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
+const aiPreviewSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-    onDelete: 'CASCADE'
-  },
-  projectId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'projects',
-      key: 'id'
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Project',
+      default: null,
     },
-    onDelete: 'SET NULL'
+    prompt: {
+      type: String,
+      required: true,
+    },
+    previewResult: {
+      type: String,
+      default: '',
+    },
+    previewType: {
+      type: String,
+      enum: ['text', 'layout', 'design'],
+      default: 'text',
+    },
+    status: {
+      type: String,
+      enum: ['generating', 'completed', 'failed'],
+      default: 'generating',
+    },
   },
-  prompt: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  previewResult: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  previewType: {
-    type: DataTypes.ENUM('text', 'layout', 'design'),
-    defaultValue: 'text'
-  },
-  status: {
-    type: DataTypes.ENUM('generating', 'completed', 'failed'),
-    defaultValue: 'generating'
+  {
+    timestamps: true,
   }
-}, {
-  tableName: 'ai_previews',
-  timestamps: true
-})
+)
 
-// Add indexes
-AIPreview.addHook('afterSync', async () => {
-  await sequelize.query(`
-    CREATE INDEX IF NOT EXISTS idx_user_id ON ai_previews(userId);
-    CREATE INDEX IF NOT EXISTS idx_project_id ON ai_previews(projectId);
-    CREATE INDEX IF NOT EXISTS idx_created ON ai_previews(createdAt);
-  `).catch(() => {}) // Ignore if indexes already exist
-})
+aiPreviewSchema.index({ userId: 1 })
+aiPreviewSchema.index({ projectId: 1 })
+aiPreviewSchema.index({ createdAt: -1 })
+
+const AIPreview = mongoose.model('AIPreview', aiPreviewSchema)
 
 export default AIPreview
-
-

@@ -8,41 +8,40 @@ import asyncHandler from 'express-async-handler'
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body
 
-  // Validation
   if (!name || !email || !password) {
     res.status(400)
     throw new Error('Please add all required fields')
   }
 
-  // Check if user exists
-  const userExists = await User.findOne({ where: { email } })
+  const userExists = await User.findOne({ email })
 
   if (userExists) {
     res.status(400)
     throw new Error('User already exists')
   }
 
-  // Create user
+  // Normalize legacy role name "client" to "user"
+  const normalizedRole = role === 'client' ? 'user' : role
+
   const user = await User.create({
     name,
     email,
     password,
-    role: role || 'user',
-    // Initialize programmer fields if role is programmer
+    role: normalizedRole || 'user',
     ...(role === 'programmer' && {
       skills: [],
       bio: '',
-      hourlyRate: null
-    })
+      hourlyRate: null,
+    }),
   })
 
   if (user) {
     res.status(201).json({
-      _id: user.id,
+      _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user.id),
+      token: generateToken(user._id),
     })
   } else {
     res.status(400)
@@ -56,25 +55,20 @@ export const registerUser = asyncHandler(async (req, res) => {
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body
 
-  // Validation
   if (!email || !password) {
     res.status(400)
     throw new Error('Please add email and password')
   }
 
-  // Check for user email - include password for comparison
-  const user = await User.findOne({ 
-    where: { email },
-    attributes: { include: ['password'] } // Include password in query
-  })
+  const user = await User.findOne({ email }).select('+password')
 
   if (user && (await user.matchPassword(password))) {
     res.json({
-      _id: user.id,
+      _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user.id),
+      token: generateToken(user._id),
     })
   } else {
     res.status(401)
@@ -86,7 +80,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 export const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findByPk(req.user.id)
+  const user = await User.findById(req.user._id)
 
   if (!user) {
     res.status(404)
@@ -94,7 +88,7 @@ export const getMe = asyncHandler(async (req, res) => {
   }
 
   res.json({
-    _id: user.id,
+    _id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
@@ -109,35 +103,33 @@ export const getMe = asyncHandler(async (req, res) => {
 // @route   PUT /api/auth/profile
 // @access  Private
 export const updateProfile = asyncHandler(async (req, res) => {
-  const user = await User.findByPk(req.user.id)
+  const user = await User.findById(req.user._id)
 
-  if (user) {
-    // Update basic user fields
-    user.name = req.body.name || user.name
-    user.email = req.body.email || user.email
-
-    // Update programmer fields if user is a programmer
-    if (user.role === 'programmer') {
-      if (req.body.skills !== undefined) user.skills = req.body.skills
-      if (req.body.bio !== undefined) user.bio = req.body.bio
-      if (req.body.hourlyRate !== undefined) user.hourlyRate = req.body.hourlyRate
-    }
-
-    const updatedUser = await user.save()
-
-    res.json({
-      _id: updatedUser.id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      skills: updatedUser.skills,
-      bio: updatedUser.bio,
-      hourlyRate: updatedUser.hourlyRate,
-    })
-  } else {
+  if (!user) {
     res.status(404)
     throw new Error('User not found')
   }
+
+  user.name = req.body.name || user.name
+  user.email = req.body.email || user.email
+
+  if (user.role === 'programmer') {
+    if (req.body.skills !== undefined) user.skills = req.body.skills
+    if (req.body.bio !== undefined) user.bio = req.body.bio
+    if (req.body.hourlyRate !== undefined) user.hourlyRate = req.body.hourlyRate
+  }
+
+  const updatedUser = await user.save()
+
+  res.json({
+    _id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    skills: updatedUser.skills,
+    bio: updatedUser.bio,
+    hourlyRate: updatedUser.hourlyRate,
+  })
 })
 
 // @desc    Change password
@@ -151,9 +143,7 @@ export const changePassword = asyncHandler(async (req, res) => {
     throw new Error('Please provide current and new password')
   }
 
-  const user = await User.findByPk(req.user.id, {
-    attributes: { include: ['password'] }
-  })
+  const user = await User.findById(req.user._id).select('+password')
 
   if (user && (await user.matchPassword(currentPassword))) {
     user.password = newPassword

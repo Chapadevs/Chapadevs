@@ -1,63 +1,54 @@
-import { DataTypes } from 'sequelize'
-import { sequelize } from '../config/database.js'
+import mongoose from 'mongoose'
 
-const SupportTicket = sequelize.define('SupportTicket', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
+const supportTicketSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-    onDelete: 'CASCADE'
+    subject: {
+      type: String,
+      required: true,
+      maxlength: 255,
+    },
+    message: {
+      type: String,
+      required: true,
+    },
+    category: {
+      type: String,
+      enum: ['technical', 'billing', 'general', 'feature_request', 'bug'],
+      default: 'general',
+    },
+    status: {
+      type: String,
+      enum: ['open', 'in_progress', 'resolved', 'closed'],
+      default: 'open',
+    },
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high', 'urgent'],
+      default: 'medium',
+    },
+    adminResponse: {
+      type: String,
+      default: null,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
   },
-  subject: {
-    type: DataTypes.STRING(255),
-    allowNull: false
-  },
-  message: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
-  category: {
-    type: DataTypes.ENUM('technical', 'billing', 'general', 'feature_request', 'bug'),
-    defaultValue: 'general'
-  },
-  status: {
-    type: DataTypes.ENUM('open', 'in_progress', 'resolved', 'closed'),
-    defaultValue: 'open'
-  },
-  priority: {
-    type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
-    defaultValue: 'medium'
-  },
-  adminResponse: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  resolvedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
+  {
+    timestamps: true,
   }
-}, {
-  tableName: 'support_tickets',
-  timestamps: true
-})
+)
 
-// Add indexes
-SupportTicket.addHook('afterSync', async () => {
-  await sequelize.query(`
-    CREATE INDEX IF NOT EXISTS idx_user_id ON support_tickets(userId);
-    CREATE INDEX IF NOT EXISTS idx_status ON support_tickets(status);
-    CREATE INDEX IF NOT EXISTS idx_created ON support_tickets(createdAt);
-  `).catch(() => {}) // Ignore if indexes already exist
-})
+supportTicketSchema.index({ userId: 1 })
+supportTicketSchema.index({ status: 1 })
+supportTicketSchema.index({ createdAt: -1 })
+
+const SupportTicket = mongoose.model('SupportTicket', supportTicketSchema)
 
 export default SupportTicket
-
-
