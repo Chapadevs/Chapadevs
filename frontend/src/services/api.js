@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.BACKEND_URL || 'http://localhost:3001/api'
+// IMPORTANT: Vite only exposes env vars that start with VITE_
+// Configure VITE_BACKEND_URL in your GitHub Pages build (e.g. https://chapadevs-backend-647906054947.us-central1.run.app/api)
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
 
 // Create axios instance
 const api = axios.create({
