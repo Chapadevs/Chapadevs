@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // IMPORTANT: this must match the GitHub Pages project path, e.g. https://<user>.github.io/Chapadevs/
-  // If your repo name is different, update '/Chapadevs' accordingly.
-  base: '/Chapadevs/',
+  // Using '/' for custom domain (www.chapadevs.com)
+  // This is required when using a custom domain on GitHub Pages
+  base: '/',
   plugins: [react()],
   server: {
     port: 8080,
