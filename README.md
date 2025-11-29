@@ -37,7 +37,7 @@ Chapadevs/
 
 ## Frontend
 
-The frontend is a React application built with Vite, converted from the original Angular application.
+The frontend is a React application built with Vite, converted from the original Angular application
 
 ### Features
 

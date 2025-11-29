@@ -41,7 +41,10 @@ jobs:
         working-directory: frontend
         env:
           NODE_ENV: production
+          # Vite only exposes env vars prefixed with VITE_
+          # BACKEND_URL is kept for backwards-compat / other tooling, but the frontend uses VITE_BACKEND_URL
           BACKEND_URL: ${{ vars.BACKEND_URL || secrets.BACKEND_URL || 'http://localhost:3001/api' }}
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || secrets.VITE_BACKEND_URL || 'http://localhost:3001/api' }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
