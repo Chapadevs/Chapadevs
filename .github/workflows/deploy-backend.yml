@@ -38,6 +38,10 @@ jobs:
       - name: Configure Docker for GCR
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+      
+      - name: Set GCP Project
+        run: |
+          gcloud config set project ${{ env.PROJECT_ID }}
 
       - name: Build and Push Docker Image
         run: |
@@ -51,19 +55,22 @@ jobs:
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/chapadevs-backend:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
+            --project ${{ env.PROJECT_ID }} \
             --allow-unauthenticated \
             --memory 512Mi \
             --cpu 1 \
             --min-instances 0 \
             --max-instances 10 \
             --port 3001 \
-            --timeout 300
+            --timeout 300 \
+            --set-env-vars FRONTEND_URL=https://chapadevs.com
 
       - name: Get Service URL
         id: get-url
         run: |
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
             --format 'value(status.url)')
           echo "service_url=$SERVICE_URL" >> $GITHUB_OUTPUT
           echo "Backend URL: $SERVICE_URL"

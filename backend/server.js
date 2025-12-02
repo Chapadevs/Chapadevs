@@ -45,10 +45,30 @@ connectDB()
 const app = express()
 
 // Middleware
+// CORS configuration - support multiple origins for production and development
+const allowedOrigins = [
+  'https://chapadevs.com',           // Production custom domain
+  'https://www.chapadevs.com',       // Production custom domain with www
+  'https://chapadevs.github.io',     // GitHub Pages (backward compatibility)
+  'http://localhost:8080'            // Local development
+]
+
+// Add FRONTEND_URL from env if provided (for flexibility)
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedOrigins.push(process.env.FRONTEND_URL)
+}
+
 app.use(cors({
-  // In production, set FRONTEND_URL env (e.g. https://chapadevs.github.io)
-  // Locally, default to Vite dev server
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true
 }))
 app.use(express.json())
