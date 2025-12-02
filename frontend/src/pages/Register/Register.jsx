@@ -74,7 +74,7 @@ const Register = () => {
       <div className="register-card">
         <Link to="/" className="register-logo-link">
           <img
-            src="/assets/logos/chapadevs-logo.png"
+            src="assets/logos/chapadevs-logo.png"
             alt="Chapadevs Logo"
             className="register-logo"
           />

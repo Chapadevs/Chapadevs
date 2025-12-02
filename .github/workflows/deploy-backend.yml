@@ -57,9 +57,7 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --port 3001 \
-            --timeout 300 \
-            --set-env-vars NODE_ENV=production,BACKEND_PORT=3001 \
-            --set-secrets DB_HOST=DB_HOST:latest,DB_PORT=DB_PORT:latest,DB_NAME=DB_NAME:latest,DB_USER=DB_USER:latest,DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,FRONTEND_URL=FRONTEND_URL:latest,OPEN_AI_KEY=OPEN_AI_KEY:latest
+            --timeout 300
 
       - name: Get Service URL
         id: get-url

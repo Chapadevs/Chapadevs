@@ -46,7 +46,9 @@ const app = express()
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  // In production, set FRONTEND_URL env (e.g. https://chapadevs.github.io)
+  // Locally, default to Vite dev server
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
   credentials: true
 }))
 app.use(express.json())
