@@ -63,7 +63,7 @@ jobs:
             --max-instances 10 \
             --port 3001 \
             --timeout 300 \
-            --set-env-vars FRONTEND_URL=https://chapadevs.com
+            --set-env-vars FRONTEND_URL=https://chapadevs.com,MONGO_URI=${{ secrets.MONGO_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},DB_NAME=chapadevs_crm,NODE_ENV=production
 
       - name: Get Service URL
         id: get-url
