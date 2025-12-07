@@ -27,6 +27,16 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
+      - name: Verify GCP Project
+        run: |
+          gcloud config set project ${{ env.PROJECT_ID }}
+          CURRENT_PROJECT=$(gcloud config get-value project)
+          echo "Current GCP Project: $CURRENT_PROJECT"
+          if [ "$CURRENT_PROJECT" != "${{ env.PROJECT_ID }}" ]; then
+            echo "❌ Error: Project mismatch! Expected ${{ env.PROJECT_ID }}, got $CURRENT_PROJECT"
+            exit 1
+          fi
+
       - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       - run: |
@@ -56,6 +66,7 @@ jobs:
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
+            --project ${{ env.PROJECT_ID }} \
             --allow-unauthenticated \
             --memory 512Mi \
             --cpu 1 \
