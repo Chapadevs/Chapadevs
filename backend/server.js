@@ -39,8 +39,11 @@ import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import supportRoutes from './routes/supportRoutes.js'
 
-// Connect to database
-connectDB()
+// Start database connection (non-blocking - don't wait for it)
+// Server must start listening immediately for Cloud Run health checks
+connectDB().catch(err => {
+  console.error('⚠️  Initial DB connection failed, but server will start:', err.message)
+})
 
 const app = express()
 
