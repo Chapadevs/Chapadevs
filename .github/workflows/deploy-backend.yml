@@ -6,18 +6,17 @@ on:
     paths: ['backend/**', '.github/workflows/deploy-backend.yml']
   workflow_dispatch:
 
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1
-  SERVICE_NAME: chapadevs-backend
-  IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }}
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: us-central1
+      SERVICE_NAME: chapadevs-backend
 
     steps:
       - uses: actions/checkout@v4
@@ -32,12 +31,13 @@ jobs:
 
       - run: |
           cd backend
-          docker build -t ${{ env.IMAGE }} .
-          docker push ${{ env.IMAGE }}
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE
 
       - run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.IMAGE }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
