@@ -29,12 +29,8 @@ import userRoutes from './routes/userRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
 
-// Connect to database (non-blocking for Cloud Run)
-// Server must start listening immediately for health checks
-connectDB().catch(err => {
-  console.error('⚠️  Initial DB connection failed, but server will start:', err.message)
-  console.log('🔄 Database connection will be retried when requests come in...')
-})
+// Connect to database
+connectDB()
 
 const app = express()
 

@@ -1,7 +1,6 @@
 import User from '../models/User.js'
 import generateToken from '../utils/generateToken.js'
 import asyncHandler from 'express-async-handler'
-import { ensureConnection } from '../config/database.js'
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -12,13 +11,6 @@ export const registerUser = asyncHandler(async (req, res) => {
   if (!name || !email || !password) {
     res.status(400)
     throw new Error('Please add all required fields')
-  }
-
-  // Ensure database is connected before operations
-  const isConnected = await ensureConnection()
-  if (!isConnected) {
-    res.status(503)
-    throw new Error('Database connection unavailable. Please try again in a moment.')
   }
 
   const userExists = await User.findOne({ email })
@@ -66,13 +58,6 @@ export const loginUser = asyncHandler(async (req, res) => {
   if (!email || !password) {
     res.status(400)
     throw new Error('Please add email and password')
-  }
-
-  // Ensure database is connected before operations
-  const isConnected = await ensureConnection()
-  if (!isConnected) {
-    res.status(503)
-    throw new Error('Database connection unavailable. Please try again in a moment.')
   }
 
   const user = await User.findOne({ email }).select('+password')
