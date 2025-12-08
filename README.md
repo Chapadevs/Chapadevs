@@ -1,6 +1,6 @@
 # Chapadevs Website - Monorepo Structure
 
-This is a monorepo containing both the frontend (React + Vite) and backend (Node.js + Express) applications for the Chapadevs website.
+This is a monorepo containing both the frontend (React + Vite) and backend (Node.js + Express) applications for the Chapadevs website
 
 ## Project Structure
 
