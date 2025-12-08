@@ -1,11 +1,23 @@
 import User from '../models/User.js'
 import generateToken from '../utils/generateToken.js'
 import asyncHandler from 'express-async-handler'
+import mongoose from 'mongoose'
+
+// Helper to check database connection
+const checkDBConnection = () => {
+  if (mongoose.connection.readyState !== 1) {
+    const error = new Error('Database connection unavailable. Please try again later.')
+    error.statusCode = 503
+    throw error
+  }
+}
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
   const { name, email, password, role } = req.body
 
   if (!name || !email || !password) {
@@ -53,6 +65,8 @@ export const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
   const { email, password } = req.body
 
   if (!email || !password) {
@@ -80,6 +94,8 @@ export const loginUser = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 export const getMe = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
   const user = await User.findById(req.user._id)
 
   if (!user) {
@@ -103,6 +119,8 @@ export const getMe = asyncHandler(async (req, res) => {
 // @route   PUT /api/auth/profile
 // @access  Private
 export const updateProfile = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
   const user = await User.findById(req.user._id)
 
   if (!user) {
@@ -136,6 +154,8 @@ export const updateProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/auth/change-password
 // @access  Private
 export const changePassword = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
   const { currentPassword, newPassword } = req.body
 
   if (!currentPassword || !newPassword) {
