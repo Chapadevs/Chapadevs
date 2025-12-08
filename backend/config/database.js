@@ -14,19 +14,24 @@ const connectDB = async () => {
     const uri = process.env.MONGO_URI
 
     if (!uri) {
-      throw new Error('MONGO_URI is not defined in environment variables')
+      console.warn('⚠️ MONGO_URI is not defined in environment variables')
+      return false
     }
 
     const dbName = process.env.DB_NAME || 'chapadevs_crm'
 
     await mongoose.connect(uri, {
       dbName,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     })
 
     console.log('✅ MongoDB connected successfully')
+    return true
   } catch (error) {
     console.error('❌ Error connecting to MongoDB:', error.message)
-    process.exit(1)
+    console.warn('⚠️ Server will continue without database connection')
+    return false
   }
 }
 

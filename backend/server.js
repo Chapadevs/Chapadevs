@@ -29,8 +29,14 @@ import userRoutes from './routes/userRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
 
-// Connect to database
-connectDB()
+// Connect to database (non-blocking - server will start even if DB connection fails)
+connectDB().then((connected) => {
+  if (!connected) {
+    console.warn('⚠️ Server started without database connection. Some features may not work.')
+  }
+}).catch((error) => {
+  console.error('⚠️ Database connection attempt failed:', error.message)
+})
 
 const app = express()
 
@@ -61,8 +67,8 @@ app.use('/api/assignments', assignmentRoutes)
 app.use(notFound)
 app.use(errorHandler)
 
-// Cloud Run sets PORT environment variable, default to 5000 for local development
-const PORT = process.env.PORT || 5000
+// Cloud Run sets PORT environment variable automatically, default to 3001 for local development
+const PORT = process.env.PORT || 3001
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
