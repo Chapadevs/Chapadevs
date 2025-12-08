@@ -45,23 +45,21 @@ jobs:
           docker build -t $IMAGE .
           docker push $IMAGE
 
-      - name: Verify Secrets
-        run: |
-          if [ -z "${{ secrets.MONGO_URI }}" ]; then
-            echo "❌ Error: MONGO_URI secret is not set in GitHub"
-            exit 1
-          fi
-          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
-            echo "❌ Error: JWT_SECRET secret is not set in GitHub"
-            exit 1
-          fi
-          echo "✅ Secrets are set (values are hidden for security)"
-
       - name: Deploy to Cloud Run
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
+          ENV_VARS="FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production"
+          
+          if [ -n "$MONGO_URI" ]; then
+            ENV_VARS="$ENV_VARS,MONGO_URI=$MONGO_URI"
+          fi
+          
+          if [ -n "$JWT_SECRET" ]; then
+            ENV_VARS="$ENV_VARS,JWT_SECRET=$JWT_SECRET"
+          fi
+          
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }} \
             --region ${{ env.REGION }} \
@@ -71,4 +69,4 @@ jobs:
             --memory 512Mi \
             --cpu 1 \
             --port 3001 \
-            --set-env-vars "FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production,MONGO_URI=${MONGO_URI},JWT_SECRET=${JWT_SECRET}"
+            --set-env-vars "$ENV_VARS"
