@@ -246,7 +246,7 @@ input.error, select.error, textarea.error {
   position: relative;
 }
 
-.btn {
+.wizard-navigation .btn {
   background: #ffffff;
   color: #10b981;
   border: 2px solid #10b981;
@@ -259,27 +259,46 @@ input.error, select.error, textarea.error {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   min-width: 130px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn:disabled {
+.wizard-navigation .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-.btn:hover:not(:disabled) {
+.wizard-navigation .btn:hover:not(:disabled) {
   background: #10b981;
   color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.btn-primary {
+.wizard-navigation .btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+}
+
+.wizard-navigation .btn-primary {
   background: #059669;
-  color: #ffffff;
+  color: #ffffff !important;
   border: 2px solid #059669;
 }
 
-.btn-primary:hover:not(:disabled) {
+.wizard-navigation .btn-primary:hover:not(:disabled) {
   background: #0d9488;
   border-color: #0d9488;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+.wizard-navigation .btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
 }
 
 .review-section {
@@ -359,7 +378,7 @@ input.error, select.error, textarea.error {
     padding-top: 0.875rem;
   }
 
-  .btn {
+  .wizard-navigation .btn {
     width: 100%;
   }
 }

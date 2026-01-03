@@ -50,7 +50,10 @@
 .linkedin-link {
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: transform 0.3s ease-in-out;
+  padding: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .linkedin-link:hover {
@@ -71,6 +74,7 @@
 
 .header-navigation {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
 }
@@ -107,6 +111,11 @@
   display: inline-block;
   text-align: center;
   min-width: 90px;
+  max-width: 90px;
+  width: 90px;
+  height: 42px;
+  line-height: 22px;
+  box-sizing: border-box;
 }
 
 .header-btn:hover {
@@ -130,6 +139,35 @@
   transform: none;
 }
 
+.header-btn--login {
+  background: #059669;
+  color: #FFFFFF !important;
+  border-color: #059669;
+  padding: 0.5rem 1rem;
+  font-weight: 800;
+  font-size: 0.85rem;
+  min-width: 90px;
+  max-width: 90px;
+  width: 90px;
+  height: 42px;
+  line-height: 22px;
+  box-sizing: border-box;
+}
+
+.header-btn--login:hover {
+  background: #0d9488;
+  border-color: #0d9488;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+  transform: translateY(-2px);
+}
+
+.header-btn--login:active {
+  background: #047857;
+  border-color: #047857;
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .header-content {
     padding: 0 1rem;
@@ -143,6 +181,11 @@
     height: 60px;
   }
   
+  .linkedin-link {
+    margin-top: 0.35rem;
+    padding: 0.2rem;
+  }
+  
   .linkedin-logo {
     height: 20px;
     width: 20px;
@@ -150,12 +193,36 @@
   
   .header-navigation {
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
   
   .header-btn {
     padding: 0.4rem 0.75rem;
     min-width: 80px;
+    max-width: 80px;
+    width: 80px;
+    height: 38px;
     font-size: 0.75rem;
+    line-height: 20px;
+    box-sizing: border-box;
+  }
+  
+  .header-btn--login {
+    background: #059669;
+    color: #FFFFFF !important;
+    padding: 0.4rem 0.75rem;
+    min-width: 80px;
+    max-width: 80px;
+    width: 80px;
+    height: 38px;
+    font-size: 0.75rem;
+    line-height: 20px;
+    box-sizing: border-box;
+  }
+  
+  .header-btn--login:hover {
+    background: #0d9488;
+    color: #FFFFFF !important;
   }
 }
 
@@ -172,6 +239,11 @@
     height: 50px;
   }
   
+  .linkedin-link {
+    margin-top: 0.3rem;
+    padding: 0.15rem;
+  }
+  
   .linkedin-logo {
     height: 18px;
     width: 18px;
@@ -179,12 +251,36 @@
   
   .header-navigation {
     gap: 0.375rem;
+    flex-wrap: wrap;
   }
   
   .header-btn {
     padding: 0.35rem 0.6rem;
     min-width: 65px;
+    max-width: 65px;
+    width: 65px;
+    height: 34px;
     font-size: 0.65rem;
+    line-height: 18px;
+    box-sizing: border-box;
+  }
+  
+  .header-btn--login {
+    background: #059669;
+    color: #FFFFFF !important;
+    padding: 0.35rem 0.6rem;
+    min-width: 65px;
+    max-width: 65px;
+    width: 65px;
+    height: 34px;
+    font-size: 0.65rem;
+    line-height: 18px;
+    box-sizing: border-box;
+  }
+  
+  .header-btn--login:hover {
+    background: #0d9488;
+    color: #FFFFFF !important;
   }
 }
 
