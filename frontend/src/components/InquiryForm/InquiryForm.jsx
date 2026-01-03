@@ -8,6 +8,7 @@ const InquiryForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitMessage, setSubmitMessage] = useState('')
+  const [validationMessage, setValidationMessage] = useState('')
   const [touched, setTouched] = useState({})
 
   const steps = [
@@ -94,6 +95,14 @@ const InquiryForm = () => {
     setTouched({ ...touched, [fieldName]: true })
   }
 
+  const markFieldsAsTouched = (fieldNames) => {
+    const newTouched = { ...touched }
+    fieldNames.forEach(field => {
+      newTouched[field] = true
+    })
+    setTouched(newTouched)
+  }
+
   const updateField = (fieldName, value) => {
     setFormData({ ...formData, [fieldName]: value })
   }
@@ -128,12 +137,14 @@ const InquiryForm = () => {
   const nextStep = () => {
     if (step < steps.length - 1) {
       setStep(step + 1)
+      setValidationMessage('')
     }
   }
 
   const prevStep = () => {
     if (step > 0) {
       setStep(step - 1)
+      setValidationMessage('')
     }
   }
 
@@ -805,30 +816,46 @@ const InquiryForm = () => {
                 <button
                   className="btn btn-primary"
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault()
+                    console.log('Next button clicked, current step:', step)
+                    console.log('Validation result:', validateStep())
+                    
+                    // Mark all required fields in current step as touched first
+                    if (step === 0) {
+                      markFieldsAsTouched(['from_name', 'from_email', 'contact_method'])
+                    } else if (step === 1) {
+                      markFieldsAsTouched(['project_type', 'project_description', 'goals'])
+                    } else if (step === 2) {
+                      markFieldsAsTouched(['features'])
+                    } else if (step === 3) {
+                      markFieldsAsTouched(['budget', 'timeline'])
+                    } else if (step === 4) {
+                      markFieldsAsTouched(['has_website'])
+                    } else if (step === 5) {
+                      markFieldsAsTouched(['branding', 'content_status'])
+                    }
+                    
+                    // Then validate and move to next step if valid
                     if (validateStep()) {
+                      setValidationMessage('')
                       nextStep()
                     } else {
-                      // Mark all fields in current step as touched
-                      if (step === 0) {
-                        onFieldTouch('from_name')
-                        onFieldTouch('from_email')
-                        onFieldTouch('contact_method')
-                      } else if (step === 1) {
-                        onFieldTouch('project_type')
-                        onFieldTouch('project_description')
-                        onFieldTouch('goals')
-                      } else if (step === 2) {
-                        onFieldTouch('features')
-                      } else if (step === 3) {
-                        onFieldTouch('budget')
-                        onFieldTouch('timeline')
-                      } else if (step === 4) {
-                        onFieldTouch('has_website')
-                      } else if (step === 5) {
-                        onFieldTouch('branding')
-                        onFieldTouch('content_status')
-                      }
+                      // Show validation error message
+                      setValidationMessage('Please fill in all required fields before continuing.')
+                      
+                      // Scroll to first error after a short delay to ensure DOM is updated
+                      setTimeout(() => {
+                        const errorElement = document.querySelector('.error')
+                        if (errorElement) {
+                          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }
+                      }, 100)
+                      
+                      // Clear validation message after 5 seconds
+                      setTimeout(() => {
+                        setValidationMessage('')
+                      }, 5000)
                     }
                   }}
                 >
@@ -844,6 +871,12 @@ const InquiryForm = () => {
                 </button>
               )}
             </div>
+
+            {validationMessage && (
+              <div className="submit-message error" style={{ marginTop: '1rem' }}>
+                {validationMessage}
+              </div>
+            )}
 
             {submitMessage && (
               <div

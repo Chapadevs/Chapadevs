@@ -7,7 +7,8 @@ export const notFound = (req, res, next) => {
 
 // Error handler middleware
 export const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode
+  // Use error's statusCode if set, otherwise use response status, default to 500
+  const statusCode = err.statusCode || (res.statusCode !== 200 ? res.statusCode : 500)
   res.status(statusCode)
 
   res.json({
