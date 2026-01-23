@@ -157,5 +157,26 @@ export const userAPI = {
   },
 }
 
+// AI Preview API functions
+export const generateAIPreview = async (data) => {
+  const response = await api.post('/ai-previews', data)
+  return response.data
+}
+
+export const getAIPreviews = async () => {
+  const response = await api.get('/ai-previews')
+  return response.data
+}
+
+export const getAIPreviewById = async (id) => {
+  const response = await api.get(`/ai-previews/${id}`)
+  return response.data
+}
+
+export const deleteAIPreview = async (id) => {
+  const response = await api.delete(`/ai-previews/${id}`)
+  return response.data
+}
+
 export default api
 

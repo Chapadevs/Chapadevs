@@ -28,6 +28,7 @@ import authRoutes from './routes/authRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
+import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
 
 // Connect to database (non-blocking - server will start even if DB connection fails)
 connectDB().then((connected) => {
@@ -62,6 +63,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/assignments', assignmentRoutes)
+app.use('/api/ai-previews', aiPreviewRoutes)
 
 // Error handling middleware (must be last)
 app.use(notFound)

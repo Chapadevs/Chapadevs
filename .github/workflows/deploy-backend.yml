@@ -50,7 +50,7 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          ENV_VARS="FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production"
+          ENV_VARS="FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }}"
           
           if [ -n "$MONGO_URI" ]; then
             ENV_VARS="$ENV_VARS,MONGO_URI=$MONGO_URI"
@@ -67,6 +67,11 @@ jobs:
             --project ${{ env.PROJECT_ID }} \
             --allow-unauthenticated \
             --memory 512Mi \
-            --cpu 1 \
+            --cpu 0.5 \
+            --min-instances 0 \
+            --max-instances 10 \
+            --concurrency 80 \
+            --timeout 60 \
+            --cpu-throttling \
             --port 3001 \
             --update-env-vars "$ENV_VARS"

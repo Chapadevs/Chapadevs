@@ -2,6 +2,7 @@ import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
 import Header from '../../components/Header/Header'
 import UserStatus from '../../components/UserStatus/UserStatus'
+import AIPreviewGenerator from '../../components/AIPreviewGenerator/AIPreviewGenerator'
 import './Dashboard.css'
 
 const Dashboard = () => {
@@ -42,18 +43,22 @@ const Dashboard = () => {
       case 'client':
       default:
         return (
-          <div className="role-section">
-            <h3>Client Dashboard</h3>
-            <p>Track your projects and inquiries</p>
-            <div className="dashboard-actions">
-              <Link to="/projects" className="dashboard-link">
-                My Projects
-              </Link>
-              <Link to="/projects/create" className="dashboard-link">
-                Create New Project
-              </Link>
+          <>
+            <div className="role-section">
+              <h3>Client Dashboard</h3>
+              <p>Track your projects and inquiries</p>
+              <div className="dashboard-actions">
+                <Link to="/projects" className="dashboard-link">
+                  My Projects
+                </Link>
+                <Link to="/projects/create" className="dashboard-link">
+                  Create New Project
+                </Link>
+              </div>
             </div>
-          </div>
+            
+            <AIPreviewGenerator />
+          </>
         )
     }
   }
