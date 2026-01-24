@@ -470,8 +470,8 @@ npm start
                   template="react"
                   theme="light"
                   files={{
-                    '/App.js': websitePreview,
-                    '/index.html': `<!DOCTYPE html>
+                    '/src/App.js': websitePreview,
+                    '/public/index.html': `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -483,12 +483,18 @@ npm start
   <div id="root"></div>
 </body>
 </html>`,
-                    '/styles.css': `/* Custom styles if needed */
+                    '/src/styles.css': `/* Custom styles */
 body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }`
+                  }}
+                  customSetup={{
+                    dependencies: {
+                      'react': '18.2.0',
+                      'react-dom': '18.2.0'
+                    }
                   }}
                   options={{
                     showNavigator: false,
@@ -499,13 +505,6 @@ body {
                     editorWidthPercentage: 50,
                     showTabs: true,
                     closableTabs: false,
-                  }}
-                  customSetup={{
-                    dependencies: {
-                      'react': '^18.2.0',
-                      'react-dom': '^18.2.0'
-                    },
-                    entry: '/App.js'
                   }}
                 />
               </div>
