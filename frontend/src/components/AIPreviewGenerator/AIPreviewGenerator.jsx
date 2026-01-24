@@ -470,11 +470,30 @@ npm start
                   template="react"
                   theme="light"
                   files={{
-                    '/src/App.js': websitePreview,
+                    // Override the default App.js - normalize component name to App
+                    '/src/App.js': (() => {
+                      let code = websitePreview;
+                      // Remove any markdown code blocks if present
+                      code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
+                      // Replace all variations of GeneratedComponent with App
+                      code = code.replace(/const GeneratedComponent\s*=/g, 'function App');
+                      code = code.replace(/export default GeneratedComponent;?/g, 'export default App;');
+                      code = code.replace(/export default function GeneratedComponent\(\)/g, 'export default function App()');
+                      code = code.replace(/function GeneratedComponent\(\)/g, 'function App()');
+                      // Final pass: replace any remaining GeneratedComponent references
+                      code = code.replace(/GeneratedComponent/g, 'App');
+                      // Ensure export is correct
+                      if (!code.includes('export default App')) {
+                        code = code.replace(/export default \w+;?/g, 'export default App;');
+                      }
+                      console.log('Normalized App.js:', code.substring(0, 200));
+                      return code;
+                    })(),
+                    // Override default index.js to ensure it imports our App
                     '/src/index.js': `import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import App from "./App";
+import App from "./App.js";
 
 const root = createRoot(document.getElementById("root"));
 root.render(
@@ -482,7 +501,8 @@ root.render(
     <App />
   </StrictMode>
 );`,
-                    '/public/index.html': `<!DOCTYPE html>
+                    // Override default index.html to include Tailwind
+                    '/index.html': `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -505,7 +525,7 @@ body {
                     dependencies: {
                       'react': '18.2.0',
                       'react-dom': '18.2.0'
-                    }
+                    },
                   }}
                   options={{
                     showNavigator: false,
