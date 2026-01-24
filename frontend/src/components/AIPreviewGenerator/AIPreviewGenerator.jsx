@@ -500,148 +500,72 @@ npm start
               </div>
 
               <div className="sandpack-container">
-                {sandpackError ? (
-                  <div className="sandpack-fallback" style={{ 
-                    padding: '20px', 
-                    border: '1px solid #e5e7eb', 
+                <iframe
+                  title="Component Preview"
+                  style={{
+                    width: '100%',
+                    height: '600px',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    backgroundColor: '#f9fafb'
-                  }}>
-                    <div style={{ marginBottom: '16px' }}>
-                      <h4 style={{ marginBottom: '8px', color: '#374151' }}>Preview Temporarily Unavailable</h4>
-                      <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '16px' }}>
-                        The live preview is experiencing network issues. You can still view and copy the code below.
-                      </p>
-                      <button 
-                        onClick={() => setSandpackError(false)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#6366f1',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '14px'
-                        }}
-                      >
-                        Try Again
-                      </button>
-                    </div>
-                    <div style={{ 
-                      backgroundColor: '#1f2937', 
-                      color: '#f3f4f6', 
-                      padding: '16px', 
-                      borderRadius: '6px',
-                      fontFamily: 'monospace',
-                      fontSize: '13px',
-                      overflow: 'auto',
-                      maxHeight: '400px'
-                    }}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                        {(() => {
-                          let code = websitePreview;
-                          code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
-                          code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
-                          code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
-                          code = code.replace(/const GeneratedComponent\s*=/g, 'function App');
-                          code = code.replace(/export default GeneratedComponent;?/g, 'export default App;');
-                          code = code.replace(/export default function GeneratedComponent\(\)/g, 'export default function App()');
-                          code = code.replace(/function GeneratedComponent\(\)/g, 'function App()');
-                          code = code.replace(/GeneratedComponent/g, 'App');
-                          if (!code.includes('export default App')) {
-                            code = code.replace(/export default \w+;?/g, 'export default App;');
-                          }
-                          return code;
-                        })()}
-                      </pre>
-                    </div>
-                  </div>
-                ) : (
-                  <Sandpack
-                      template="react"
-                      theme="light"
-                      key={websitePreview?.substring(0, 50)} // Force re-render when code changes
-                      options={{
-                        showNavigator: false,
-                        showLineNumbers: true,
-                        showInlineErrors: true,
-                        wrapContent: true,
-                        editorHeight: 600,
-                        editorWidthPercentage: 50,
-                        showTabs: true,
-                        closableTabs: false,
-                      }}
-                      files={{
-                    // Override the default App.js - normalize component name to App and fix syntax
-                    '/src/App.js': (() => {
-                      let code = websitePreview;
-                      // Remove any markdown code blocks if present
-                      code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
-                      
-                      // Fix syntax errors FIRST: function App () => should be function App()
-                      code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
-                      code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
-                      
-                      // Replace all variations of GeneratedComponent with App
-                      code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
-                      code = code.replace(/const GeneratedComponent\s*=/g, 'function App');
-                      code = code.replace(/export default GeneratedComponent;?/g, 'export default App;');
-                      code = code.replace(/export default function GeneratedComponent\(\)/g, 'export default function App()');
-                      code = code.replace(/function GeneratedComponent\(\)/g, 'function App()');
-                      
-                      // Final pass: replace any remaining GeneratedComponent references
-                      code = code.replace(/GeneratedComponent/g, 'App');
-                      
-                      // Ensure export is correct
-                      if (!code.includes('export default App')) {
-                        code = code.replace(/export default \w+;?/g, 'export default App;');
-                      }
-                      
-                      // Final syntax check: ensure function syntax is correct
-                      code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
-                      
-                      return code;
-                    })(),
-                    // Override default index.js to ensure it imports our App
-                    '/src/index.js': `import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "./styles.css";
-import App from "./App.js";
-
-const root = createRoot(document.getElementById("root"));
-root.render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);`,
-                    // Override default index.html to include Tailwind
-                    '/index.html': `<!DOCTYPE html>
+                    backgroundColor: 'white'
+                  }}
+                  sandbox="allow-scripts allow-same-origin"
+                  srcDoc={(() => {
+                    // Normalize the code
+                    let code = websitePreview;
+                    code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
+                    code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
+                    code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
+                    code = code.replace(/const GeneratedComponent\s*=/g, 'function App');
+                    code = code.replace(/export default GeneratedComponent;?/g, 'export default App;');
+                    code = code.replace(/export default function GeneratedComponent\(\)/g, 'export default function App()');
+                    code = code.replace(/function GeneratedComponent\(\)/g, 'function App()');
+                    code = code.replace(/GeneratedComponent/g, 'App');
+                    if (!code.includes('export default App')) {
+                      code = code.replace(/export default \w+;?/g, 'export default App;');
+                    }
+                    
+                    // Extract component code (remove imports and export, we'll handle those)
+                    const componentMatch = code.match(/(?:function|const)\s+App\s*[=\(].*?export default App/s);
+                    let componentCode = code;
+                    if (componentMatch) {
+                      componentCode = componentMatch[0].replace(/export default App;?/g, '');
+                    }
+                    
+                    // Create HTML with React from CDN and Babel standalone for JSX
+                    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generated Component</title>
+  <title>Component Preview</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    
+    ${componentCode}
+    
+    const AppComponent = App;
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(AppComponent));
+  </script>
 </body>
-</html>`,
-                    '/src/styles.css': `/* Custom styles */
-body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-}`
-                  }}
-                  customSetup={{
-                    dependencies: {
-                      'react': '18.2.0',
-                      'react-dom': '18.2.0'
-                    }
-                  }}
+</html>`;
+                  })()}
                 />
-                )}
               </div>
             </div>
           )}
