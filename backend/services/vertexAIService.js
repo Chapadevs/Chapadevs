@@ -604,7 +604,8 @@ COLOR IMPLEMENTATION:
 
 CODE FORMAT:
 - Start with: import { useState } from 'react'; (or import React, { useState } from 'react';)
-- Component name MUST be: App (not GeneratedComponent)
+- Component MUST be: function App() { ... } OR const App = () => { ... }
+- DO NOT mix function keyword with arrow syntax (WRONG: function App() =>, CORRECT: function App() {)
 - End with: export default App;
 - NO markdown code blocks (no \`\`\`jsx or \`\`\`)
 - NO comments explaining the code
@@ -615,10 +616,17 @@ CODE FORMAT:
 
 CRITICAL FOR SANDPACK:
 - Component MUST be named: App
+- Use CORRECT syntax: function App() { ... } OR const App = () => { ... }
+- DO NOT use: function App() => (this is INVALID syntax)
 - Export MUST be: export default App;
 - Sandpack React template expects: /src/App.js with export default App
 - Use standard React 18 functional component syntax
 - All imports must be valid React 18 imports
+
+SYNTAX EXAMPLES:
+✅ CORRECT: function App() { return <div>...</div>; }
+✅ CORRECT: const App = () => { return <div>...</div>; }
+❌ WRONG: function App() => { return <div>...</div>; }
 
 Generate the complete component NOW:`;
   }
