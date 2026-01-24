@@ -472,7 +472,20 @@ npm start
                   theme="light"
                   files={{
                     '/App.js': websitePreview,
-                    '/styles.css': `body {
+                    '/index.html': `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Component</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>`,
+                    '/styles.css': `/* Custom styles if needed */
+body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -492,7 +505,8 @@ npm start
                     dependencies: {
                       'react': '^18.2.0',
                       'react-dom': '^18.2.0'
-                    }
+                    },
+                    entry: '/App.js'
                   }}
                 />
               </div>

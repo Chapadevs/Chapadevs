@@ -461,77 +461,157 @@ Generate the response now:`;
   buildWebsitePrompt(prompt, userInputs) {
     const projectType = userInputs.projectType || 'Website';
     
-    // Extract color/style preferences from prompt
-    const colorMatch = prompt.match(/(colorful|color|blue|red|green|purple|pink|yellow|orange|black|white|dark|light|vibrant|pastel|neon|minimal|modern|classic|professional|playful)/gi);
-    const styleMatch = prompt.match(/(modern|minimal|clean|bold|elegant|fun|professional|creative|simple|complex|luxury|casual)/gi);
+    // Better extraction of color preferences
+    const colorKeywords = ['colorful', 'color', 'blue', 'red', 'green', 'purple', 'pink', 'yellow', 'orange', 'cyan', 'teal', 'indigo', 'violet', 'rose', 'amber', 'emerald', 'sky', 'fuchsia'];
+    const foundColors = [];
+    const lowerPrompt = prompt.toLowerCase();
     
-    const colors = colorMatch ? colorMatch.slice(0, 3).join(', ') : 'purple, indigo';
-    const style = styleMatch ? styleMatch[0] : 'modern';
+    for (const color of colorKeywords) {
+      if (lowerPrompt.includes(color)) {
+        foundColors.push(color);
+      }
+    }
     
-    // Extract business type and features
-    const businessType = prompt.toLowerCase().includes('ecommerce') || prompt.toLowerCase().includes('store') || prompt.toLowerCase().includes('selling') 
+    // Determine color scheme
+    let colorScheme = 'purple-600, indigo-600';
+    if (foundColors.includes('colorful')) {
+      colorScheme = 'pink-500, orange-500, yellow-400, cyan-400';
+    } else if (foundColors.length > 0) {
+      const primaryColor = foundColors[0];
+      const colorMap = {
+        'blue': 'blue-600',
+        'red': 'red-600',
+        'green': 'green-600',
+        'purple': 'purple-600',
+        'pink': 'pink-500',
+        'yellow': 'yellow-500',
+        'orange': 'orange-500',
+        'cyan': 'cyan-500',
+        'teal': 'teal-600',
+        'indigo': 'indigo-600',
+        'violet': 'violet-600',
+        'rose': 'rose-500',
+        'amber': 'amber-500',
+        'emerald': 'emerald-600',
+        'sky': 'sky-500',
+        'fuchsia': 'fuchsia-500'
+      };
+      const tailwindColor = colorMap[primaryColor] || 'purple-600';
+      colorScheme = `${tailwindColor}, ${tailwindColor.replace('-600', '-500').replace('-500', '-400')}`;
+    }
+    
+    // Extract style
+    const styleKeywords = ['modern', 'minimal', 'clean', 'bold', 'elegant', 'fun', 'professional', 'creative', 'playful', 'vibrant'];
+    let style = 'modern';
+    for (const keyword of styleKeywords) {
+      if (lowerPrompt.includes(keyword)) {
+        style = keyword;
+        break;
+      }
+    }
+    
+    // Extract business name/product (better extraction)
+    let businessName = prompt;
+    // Remove common phrases
+    businessName = businessName.replace(/i need (an|a) /gi, '');
+    businessName = businessName.replace(/for (selling|creating|building|making) /gi, '');
+    businessName = businessName.replace(/website|web app|application|store|ecommerce|e-commerce/gi, '');
+    // Take first meaningful phrase (up to 5 words)
+    const words = businessName.trim().split(/\s+/).slice(0, 5);
+    businessName = words.join(' ').trim();
+    if (businessName.length > 50) {
+      businessName = businessName.substring(0, 50);
+    }
+    if (!businessName || businessName.length < 3) {
+      businessName = 'Your Business';
+    }
+    
+    // Determine business type
+    const businessType = lowerPrompt.includes('ecommerce') || lowerPrompt.includes('store') || lowerPrompt.includes('selling') || lowerPrompt.includes('shop')
       ? 'e-commerce' 
-      : prompt.toLowerCase().includes('portfolio') 
-      ? 'portfolio' 
-      : prompt.toLowerCase().includes('blog')
+      : lowerPrompt.includes('portfolio')
+      ? 'portfolio'
+      : lowerPrompt.includes('blog')
       ? 'blog'
       : 'business';
     
-    return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED React component based on the user's specific requirements.
+    // Create feature suggestions based on business type
+    let featureSuggestions = '';
+    if (businessType === 'e-commerce') {
+      featureSuggestions = 'Features should include: Product Catalog, Shopping Cart, Secure Checkout, Customer Reviews, Order Tracking, Payment Options';
+    } else if (businessType === 'portfolio') {
+      featureSuggestions = 'Features should include: Project Showcase, Skills Display, Contact Form, Resume/CV Section, Testimonials';
+    } else {
+      featureSuggestions = 'Features should include: Services Offered, About Section, Contact Information, Testimonials, Call-to-Action';
+    }
+    
+    return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED, PRODUCTION-READY React component.
 
 PROJECT DETAILS:
 - Type: ${projectType}
-- Description: ${prompt}
+- Full Description: "${prompt}"
+- Business Name/Product: "${businessName}"
 - Business Type: ${businessType}
-- Color Preferences: ${colors}
+- Color Scheme: ${colorScheme} (use Tailwind classes like bg-${colorScheme.split(',')[0].trim()}, text-${colorScheme.split(',')[0].trim()})
 - Style: ${style}
 - Budget: ${userInputs.budget || 'Not specified'}
 
 CRITICAL REQUIREMENTS:
-1. PERSONALIZE EVERYTHING - Use the actual project description, not generic placeholders
-2. Extract business name/product from description and use it in titles, headings, and content
-3. Create relevant features based on the project type (e.g., e-commerce needs product showcase, cart, checkout mentions)
-4. Use the specified color palette (${colors}) throughout the design
-5. Match the style preference (${style})
-6. Include realistic, relevant content - NO "Lorem Ipsum" or generic text
-7. Make it look professional and production-ready
+1. USE THE EXACT BUSINESS NAME "${businessName}" in the hero title, not truncated or generic text
+2. Create a COMPLETE, PROFESSIONAL landing page with at least 4 sections
+3. Use the color scheme: ${colorScheme} - apply these colors throughout (gradients, buttons, accents)
+4. Style should be ${style} - if playful/fun, use rounded corners, animations, bright colors. If professional, use clean lines, muted tones.
+5. Generate REAL, SPECIFIC content - NO placeholders, NO "Lorem Ipsum", NO truncated text
+6. For e-commerce: Include product categories, shopping features, pricing sections
+7. Make it visually stunning with proper spacing, shadows, hover effects
 
 TECHNICAL REQUIREMENTS:
-- React 18 functional component with hooks
-- Tailwind CSS for ALL styling (no external CSS files)
-- Fully responsive (mobile-first: sm:, md:, lg: breakpoints)
-- Interactive elements (hover effects, state management)
-- Proper semantic HTML
-- Accessible (alt tags, ARIA labels where needed)
-- Clean, production-ready code
+- React 18 functional component with useState hooks
+- Use Tailwind CSS classes ONLY (Tailwind CDN will be loaded separately)
+- All Tailwind classes must be valid (use bg-gradient-to-r, from-COLOR, to-COLOR for gradients)
+- Fully responsive with sm:, md:, lg: breakpoints
+- Interactive hover effects and transitions
+- Proper semantic HTML structure
+- Clean, well-formatted code
 
-COMPONENT STRUCTURE (generate ALL of these):
-1. Hero Section - Personalized title from description, relevant CTA button
-2. Features Section - 4-6 features SPECIFIC to this project type
-3. About/Info Section - Relevant to the business
-4. Call-to-Action Section
-5. Footer - With actual business name from description
+COMPONENT MUST INCLUDE:
+1. Hero Section:
+   - Title: Use "${businessName}" or a complete, professional business name extracted from description
+   - Subtitle: Complete sentence describing the business (not truncated)
+   - CTA Button with hover effects
+   - Use gradient background with colors: ${colorScheme}
 
-COLOR SCHEME:
-- Primary colors: ${colors}
-- Style: ${style}
-- Create a cohesive, professional color palette using these preferences
+2. Features Section (4-6 features):
+   ${featureSuggestions}
+   - Each feature card with icon, title, description
+   - Hover effects with transform and shadow
+   - Grid layout (responsive: 1 col mobile, 2 tablet, 3 desktop)
 
-CONTENT REQUIREMENTS:
-- Extract business/product name from: "${prompt}"
-- Use it in: page title, hero heading, footer
-- Create feature titles and descriptions relevant to ${businessType}
-- Make all text specific to this project, not generic
+3. Additional Section (choose based on business type):
+   - E-commerce: Product showcase or categories
+   - Portfolio: Project gallery or skills
+   - Business: Services or testimonials
+
+4. Footer:
+   - Copyright with business name: "${businessName}"
+   - Links or contact info
+
+COLOR IMPLEMENTATION:
+- Use Tailwind color classes: bg-${colorScheme.split(',')[0].trim().split('-')[0]}-${colorScheme.split(',')[0].trim().split('-')[1] || '600'}
+- For gradients: bg-gradient-to-r from-COLOR to-COLOR
+- If colorful requested: Use multiple colors (pink, orange, yellow, cyan)
+- Ensure good contrast for readability
 
 CODE FORMAT:
-- Start with: import React, { useState } from 'react';
-- End with: export default GeneratedComponent;
-- NO markdown code blocks (no \`\`\`jsx or \`\`\`)
-- NO explanations or comments outside the code
-- Return ONLY the React component code
-- Make it copy-paste ready
+- Start: import React, { useState } from 'react';
+- End: export default GeneratedComponent;
+- NO markdown code blocks (no \`\`\`jsx)
+- NO comments explaining the code
+- Return ONLY the complete React component
+- All text must be complete sentences, not truncated
+- Use proper Tailwind classes (verify they exist)
 
-Generate a complete, personalized React component NOW:`;
+Generate the complete component NOW:`;
   }
 
   hashString(str) {
