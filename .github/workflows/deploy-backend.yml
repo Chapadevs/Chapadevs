@@ -45,11 +45,39 @@ jobs:
           docker build -t $IMAGE .
           docker push $IMAGE
 
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Get Service Account Email and Grant Permissions
+        id: setup-sa
+        run: |
+          # Extract service account email from the JSON key
+          SA_EMAIL=$(echo '${{ secrets.GCP_SA_KEY }}' | jq -r '.client_email')
+          echo "Service Account: $SA_EMAIL"
+          echo "sa_email=$SA_EMAIL" >> $GITHUB_OUTPUT
+          
+          # Grant Vertex AI User role
+          echo "Granting Vertex AI User role to $SA_EMAIL"
+          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
+            --member="serviceAccount:$SA_EMAIL" \
+            --role="roles/aiplatform.user" \
+            --condition=None || echo "Role may already be assigned or error occurred"
+
+      - name: Enable Vertex AI API
+        run: |
+          gcloud services enable aiplatform.googleapis.com --project=${{ env.PROJECT_ID }} || echo "API may already be enabled"
+
       - name: Deploy to Cloud Run
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SA_EMAIL: ${{ steps.setup-sa.outputs.sa_email }}
         run: |
+          # Use the service account email from previous step
+          echo "Deploying with service account: $SA_EMAIL"
+          
           ENV_VARS="FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }}"
           
           if [ -n "$MONGO_URI" ]; then
@@ -65,6 +93,7 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --project ${{ env.PROJECT_ID }} \
+            --service-account="$SA_EMAIL" \
             --allow-unauthenticated \
             --memory 512Mi \
             --cpu 0.5 \

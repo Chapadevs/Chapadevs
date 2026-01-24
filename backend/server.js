@@ -49,7 +49,14 @@ app.use(cors({
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-// Health check route
+// Health check routes (Cloud Run checks root /health)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString()
+  })
+})
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -72,7 +79,39 @@ app.use(errorHandler)
 // Cloud Run sets PORT environment variable automatically, default to 3001 for local development
 const PORT = process.env.PORT || 3001
 
-app.listen(PORT, '0.0.0.0', () => {
+// Start server with error handling
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
+  console.log(`📡 Health check available at http://0.0.0.0:${PORT}/health`)
+  console.log(`📡 API health check at http://0.0.0.0:${PORT}/api/health`)
+})
+
+// Handle server errors
+server.on('error', (error) => {
+  console.error('❌ Server error:', error)
+  if (error.code === 'EADDRINUSE') {
+    console.error(`   Port ${PORT} is already in use`)
+  }
+  process.exit(1)
+})
+
+// Graceful shutdown for Cloud Run
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...')
+  server.close(() => {
+    console.log('Server closed')
+    process.exit(0)
+  })
+})
+
+// Handle uncaught errors to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error)
+  // Don't exit - let the server keep running
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason)
+  // Don't exit - let the server keep running
 })
 

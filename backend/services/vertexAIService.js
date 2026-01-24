@@ -3,31 +3,77 @@ import NodeCache from 'node-cache';
 
 class VertexAIService {
   constructor() {
-    this.vertex = new VertexAI({
-      project: process.env.GCP_PROJECT_ID,
-      location: 'us-central1'
-    });
-
-    // Use Gemini Pro (widely available model)
-    this.model = this.vertex.getGenerativeModel({
-      model: 'gemini-pro',
-      generationConfig: {
-        maxOutputTokens: 2048,  // Limit tokens to control costs
-        temperature: 0.7,
-        topP: 0.95,
-      },
-    });
-
-    // In-memory cache to reduce API calls
+    // Initialize cache first (always works)
     this.cache = new NodeCache({ 
       stdTTL: 3600,  // 1 hour cache
       checkperiod: 600 
     });
 
     this.lastApiCall = 0;
+    this.vertex = null;
+    this.model = null;
+    this.initialized = false;
+    
+    // Try to initialize Vertex AI, but don't crash if it fails
+    // This allows the server to start even if Vertex AI auth fails
+    this.initializeVertexAI();
+  }
+  
+  initializeVertexAI() {
+    try {
+      if (!process.env.GCP_PROJECT_ID) {
+        console.warn('⚠️ GCP_PROJECT_ID not set. Vertex AI features disabled.');
+        return;
+      }
+      
+      console.log(`🔧 Initializing Vertex AI for project: ${process.env.GCP_PROJECT_ID}`);
+      
+      // In Cloud Run, authentication happens automatically via the service account
+      // No need to set credentials explicitly - Cloud Run provides them
+      this.vertex = new VertexAI({
+        project: process.env.GCP_PROJECT_ID,
+        location: 'us-central1'
+      });
+
+      // Use Gemini 1.5 Flash (cheaper and better for code generation)
+      this.model = this.vertex.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        generationConfig: {
+          maxOutputTokens: 8192,  // Increased for better quality code
+          temperature: 0.8,  // Slightly higher for more creativity
+          topP: 0.95,
+        },
+      });
+      
+      this.initialized = true;
+      console.log('✅ Vertex AI initialized successfully with gemini-1.5-flash');
+      console.log('   Model ready for code generation');
+    } catch (error) {
+      console.error('❌ Vertex AI initialization failed:', error.message);
+      console.error('   Error code:', error.code);
+      console.error('   Error details:', error);
+      
+      if (error.message?.includes('authentication') || error.message?.includes('permission')) {
+        console.error('   🔑 Authentication issue detected');
+        console.error('   Solution: Ensure Cloud Run service account has "Vertex AI User" role');
+        console.error('   Run: gcloud projects add-iam-policy-binding PROJECT_ID \\');
+        console.error('        --member="serviceAccount:SERVICE_ACCOUNT_EMAIL" \\');
+        console.error('        --role="roles/aiplatform.user"');
+      }
+      
+      console.warn('   ⚠️ AI features will be disabled. Server will still start.');
+      console.warn('   ⚠️ Using mock data for AI previews until authentication is fixed.');
+      this.initialized = false;
+      // Don't throw - let server start anyway
+    }
   }
 
   async generateProjectAnalysis(prompt, userInputs) {
+    if (!this.initialized || !this.model) {
+      console.warn('⚠️ Vertex AI not initialized, using mock data');
+      return this.generateMockAnalysis(prompt, userInputs);
+    }
+    
     // Create cache key
     const cacheKey = `project_${this.hashString(prompt + JSON.stringify(userInputs))}`;
     
@@ -53,19 +99,20 @@ class VertexAIService {
       
       return { result, fromCache: false };
     } catch (error) {
-      console.error('Vertex AI Error:', error);
+      console.error('Vertex AI Error:', error.message);
       
-      // In development, fall back to mock data if model not available
-      if (process.env.NODE_ENV === 'development' && error.message?.includes('404')) {
-        console.warn('⚠️  Model not available - using MOCK data for development');
-        return this.generateMockAnalysis(prompt, userInputs);
-      }
-      
-      throw new Error('AI generation failed. Please try again.');
+      // Fall back to mock data if API call fails
+      console.warn('⚠️  API call failed - using MOCK data');
+      return this.generateMockAnalysis(prompt, userInputs);
     }
   }
 
   async generateWebsitePreview(prompt, userInputs) {
+    if (!this.initialized || !this.model) {
+      console.warn('⚠️ Vertex AI not initialized, using mock website');
+      return this.generateMockWebsite(prompt, userInputs);
+    }
+    
     // Create cache key for HTML
     const cacheKey = `website_${this.hashString(prompt + JSON.stringify(userInputs))}`;
     
@@ -99,15 +146,13 @@ class VertexAIService {
       
       return { htmlCode: cleanHtml, fromCache: false };
     } catch (error) {
-      console.error('Vertex AI Website Generation Error:', error);
+      console.error('❌ Vertex AI Website Generation Error:', error.message);
+      console.error('   Error details:', error);
       
-      // In development, fall back to mock HTML if model not available
-      if (process.env.NODE_ENV === 'development' && error.message?.includes('404')) {
-        console.warn('⚠️  Model not available - using MOCK HTML for development');
-        return this.generateMockWebsite(prompt, userInputs);
-      }
-      
-      throw new Error('Website preview generation failed. Please try again.');
+      // Fall back to mock HTML if API call fails
+      console.warn('⚠️  API call failed - using MOCK HTML');
+      console.warn('   This means Vertex AI is not properly configured.');
+      return this.generateMockWebsite(prompt, userInputs);
     }
   }
 
@@ -416,48 +461,77 @@ Generate the response now:`;
   buildWebsitePrompt(prompt, userInputs) {
     const projectType = userInputs.projectType || 'Website';
     
-    return `You are an expert React developer. Generate a production-ready React component.
+    // Extract color/style preferences from prompt
+    const colorMatch = prompt.match(/(colorful|color|blue|red|green|purple|pink|yellow|orange|black|white|dark|light|vibrant|pastel|neon|minimal|modern|classic|professional|playful)/gi);
+    const styleMatch = prompt.match(/(modern|minimal|clean|bold|elegant|fun|professional|creative|simple|complex|luxury|casual)/gi);
+    
+    const colors = colorMatch ? colorMatch.slice(0, 3).join(', ') : 'purple, indigo';
+    const style = styleMatch ? styleMatch[0] : 'modern';
+    
+    // Extract business type and features
+    const businessType = prompt.toLowerCase().includes('ecommerce') || prompt.toLowerCase().includes('store') || prompt.toLowerCase().includes('selling') 
+      ? 'e-commerce' 
+      : prompt.toLowerCase().includes('portfolio') 
+      ? 'portfolio' 
+      : prompt.toLowerCase().includes('blog')
+      ? 'blog'
+      : 'business';
+    
+    return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED React component based on the user's specific requirements.
 
-PROJECT: ${projectType}
-DESCRIPTION: ${prompt}
-BUDGET: ${userInputs.budget || 'Not specified'}
+PROJECT DETAILS:
+- Type: ${projectType}
+- Description: ${prompt}
+- Business Type: ${businessType}
+- Color Preferences: ${colors}
+- Style: ${style}
+- Budget: ${userInputs.budget || 'Not specified'}
 
-REQUIREMENTS:
-- Modern React 18 functional component with hooks
-- Use inline Tailwind CSS classes for styling
-- Fully functional with real interactions (buttons, forms, etc.)
-- Include realistic sample data (not Lorem Ipsum)
-- Responsive design - mobile-first approach
-- Include proper state management with useState if needed
-- Add event handlers for interactivity
-- Clean, well-commented code
-- Export default the main component
+CRITICAL REQUIREMENTS:
+1. PERSONALIZE EVERYTHING - Use the actual project description, not generic placeholders
+2. Extract business name/product from description and use it in titles, headings, and content
+3. Create relevant features based on the project type (e.g., e-commerce needs product showcase, cart, checkout mentions)
+4. Use the specified color palette (${colors}) throughout the design
+5. Match the style preference (${style})
+6. Include realistic, relevant content - NO "Lorem Ipsum" or generic text
+7. Make it look professional and production-ready
 
-COMPONENT STRUCTURE:
-1. Import React and useState (if needed)
-2. Define functional component with clear name
-3. Include state for interactive elements
-4. Add event handler functions
-5. Return JSX with Tailwind CSS classes
-6. Export default component
+TECHNICAL REQUIREMENTS:
+- React 18 functional component with hooks
+- Tailwind CSS for ALL styling (no external CSS files)
+- Fully responsive (mobile-first: sm:, md:, lg: breakpoints)
+- Interactive elements (hover effects, state management)
+- Proper semantic HTML
+- Accessible (alt tags, ARIA labels where needed)
+- Clean, production-ready code
 
-STYLING GUIDELINES:
-- Use Tailwind utility classes (bg-blue-500, text-white, px-4, py-2, etc.)
-- Modern color palette (blues, purples, grays)
-- Proper spacing and padding
-- Hover effects and transitions
-- Shadow effects for depth
-- Responsive classes (sm:, md:, lg:)
+COMPONENT STRUCTURE (generate ALL of these):
+1. Hero Section - Personalized title from description, relevant CTA button
+2. Features Section - 4-6 features SPECIFIC to this project type
+3. About/Info Section - Relevant to the business
+4. Call-to-Action Section
+5. Footer - With actual business name from description
 
-IMPORTANT:
-- Return ONLY the React component code
-- No markdown code blocks (no \`\`\`jsx)
-- No explanations before or after
+COLOR SCHEME:
+- Primary colors: ${colors}
+- Style: ${style}
+- Create a cohesive, professional color palette using these preferences
+
+CONTENT REQUIREMENTS:
+- Extract business/product name from: "${prompt}"
+- Use it in: page title, hero heading, footer
+- Create feature titles and descriptions relevant to ${businessType}
+- Make all text specific to this project, not generic
+
+CODE FORMAT:
 - Start with: import React, { useState } from 'react';
-- End with: export default ComponentName;
+- End with: export default GeneratedComponent;
+- NO markdown code blocks (no \`\`\`jsx or \`\`\`)
+- NO explanations or comments outside the code
+- Return ONLY the React component code
 - Make it copy-paste ready
 
-Generate the component now:`;
+Generate a complete, personalized React component NOW:`;
   }
 
   hashString(str) {
