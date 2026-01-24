@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { generateAIPreview } from '../../services/api'
 import { Sandpack } from '@codesandbox/sandpack-react'
+import JSZip from 'jszip'
 import './AIPreviewGenerator.css'
 
 const AIPreviewGenerator = () => {
@@ -87,8 +88,6 @@ const AIPreviewGenerator = () => {
     if (!websitePreview) return
     
     try {
-      // Dynamically import JSZip
-      const JSZip = (await import('jszip')).default
       const zip = new JSZip()
       
       // Add files to zip
