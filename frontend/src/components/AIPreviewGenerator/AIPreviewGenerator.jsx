@@ -471,6 +471,17 @@ npm start
                   theme="light"
                   files={{
                     '/src/App.js': websitePreview,
+                    '/src/index.js': `import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./styles.css";
+import App from "./App";
+
+const root = createRoot(document.getElementById("root"));
+root.render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);`,
                     '/public/index.html': `<!DOCTYPE html>
 <html lang="en">
 <head>

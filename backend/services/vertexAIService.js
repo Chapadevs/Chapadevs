@@ -604,20 +604,21 @@ COLOR IMPLEMENTATION:
 
 CODE FORMAT:
 - Start with: import { useState } from 'react'; (or import React, { useState } from 'react';)
-- End with: export default GeneratedComponent;
-- Component name MUST be: GeneratedComponent
+- Component name MUST be: App (not GeneratedComponent)
+- End with: export default App;
 - NO markdown code blocks (no \`\`\`jsx or \`\`\`)
 - NO comments explaining the code
 - Return ONLY the complete React component code
 - All text must be complete sentences, not truncated
 - Use proper Tailwind classes (verify they exist)
-- Code will run in CodeSandbox/Sandpack environment with React 18
+- Code will run in Sandpack React template
 
-IMPORTANT FOR SANDPACK:
-- Use standard React 18 syntax
-- Component will be imported as: import GeneratedComponent from './App'
-- Sandpack will automatically create the render setup
-- Make sure all imports are valid React 18 imports
+CRITICAL FOR SANDPACK:
+- Component MUST be named: App
+- Export MUST be: export default App;
+- Sandpack React template expects: /src/App.js with export default App
+- Use standard React 18 functional component syntax
+- All imports must be valid React 18 imports
 
 Generate the complete component NOW:`;
   }
