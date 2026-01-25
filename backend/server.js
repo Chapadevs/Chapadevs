@@ -11,13 +11,13 @@ const __dirname = path.dirname(__filename)
 // Explicitly point to the .env file in the backend directory
 dotenv.config({ path: path.join(__dirname, '.env') })
 
-// Debug: Log what was loaded (mask password)
+// Debug: Log what was loaded (mask secrets)
 console.log('🔍 Environment variables loaded:')
-console.log('  DB_HOST:', process.env.DB_HOST || 'NOT SET')
-console.log('  DB_PORT:', process.env.DB_PORT || 'NOT SET')
+console.log('  MONGO_URI:', process.env.MONGO_URI ? '***SET***' : 'NOT SET')
 console.log('  DB_NAME:', process.env.DB_NAME || 'NOT SET')
-console.log('  DB_USER:', process.env.DB_USER || 'NOT SET')
-console.log('  DB_PASSWORD:', process.env.DB_PASSWORD ? '***SET***' : 'NOT SET')
+console.log('  GCP_PROJECT_ID:', process.env.GCP_PROJECT_ID || 'NOT SET')
+console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT SET')
+console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'NOT SET')
 console.log('')
 
 import { connectDB } from './config/database.js'

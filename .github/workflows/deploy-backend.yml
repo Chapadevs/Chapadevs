@@ -69,24 +69,33 @@ jobs:
         run: |
           gcloud services enable aiplatform.googleapis.com --project=${{ env.PROJECT_ID }} || echo "API may already be enabled"
 
+      - name: Check required secrets
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          echo "Checking required secrets (values not revealed)..."
+          MISSING=""
+          [ -z "$MONGO_URI" ] && MISSING="$MISSING MONGO_URI"
+          [ -z "$JWT_SECRET" ] && MISSING="$MISSING JWT_SECRET"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing or empty GitHub Secrets:$MISSING"
+            echo "Add them in repo Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "MONGO_URI and JWT_SECRET are set."
+
       - name: Deploy to Cloud Run
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SA_EMAIL: ${{ steps.setup-sa.outputs.sa_email }}
         run: |
-          # Use the service account email from previous step
           echo "Deploying with service account: $SA_EMAIL"
           
           ENV_VARS="FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }}"
-          
-          if [ -n "$MONGO_URI" ]; then
-            ENV_VARS="$ENV_VARS,MONGO_URI=$MONGO_URI"
-          fi
-          
-          if [ -n "$JWT_SECRET" ]; then
-            ENV_VARS="$ENV_VARS,JWT_SECRET=$JWT_SECRET"
-          fi
+          ENV_VARS="$ENV_VARS,MONGO_URI=$MONGO_URI"
+          ENV_VARS="$ENV_VARS,JWT_SECRET=$JWT_SECRET"
           
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }} \
