@@ -31,9 +31,10 @@ class VertexAIService {
         return;
       }
       
+      const modelId = process.env.VERTEX_AI_MODEL || 'gemini-2.0-flash';
       console.log(`🔧 Initializing Vertex AI for project: ${process.env.GCP_PROJECT_ID}`);
       console.log(`   Location: us-central1`);
-      console.log(`   Model: gemini-1.5-flash`);
+      console.log(`   Model: ${modelId}`);
       
       // In Cloud Run, authentication happens automatically via the service account
       // No need to set credentials explicitly - Cloud Run provides them
@@ -44,31 +45,39 @@ class VertexAIService {
 
       console.log('   ✅ VertexAI instance created');
 
-      // Use Gemini 1.5 Flash (cheaper and better for code generation)
+      // Use Gemini 2.0 Flash (gemini-1.5-flash discontinued; 2.0 is current default)
       this.model = this.vertex.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: modelId,
         generationConfig: {
-          maxOutputTokens: 8192,  // Increased for better quality code
-          temperature: 0.8,  // Slightly higher for more creativity
+          maxOutputTokens: 8192,
+          temperature: 0.8,
           topP: 0.95,
         },
       });
       
       console.log('   ✅ Model instance created');
       
-      // Test the connection with a minimal API call
-      console.log('   Testing API connection...');
+      // Test the connection with a minimal API call (with timeout to avoid hanging)
+      const TEST_TIMEOUT_MS = 25_000;
+      console.log(`   Testing API connection... (timeout ${TEST_TIMEOUT_MS / 1000}s)`);
       try {
-        const testResponse = await this.model.generateContent('Say "test"');
+        const testPromise = this.model.generateContent('Say "test"');
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Test API call timed out after ${TEST_TIMEOUT_MS / 1000}s`)), TEST_TIMEOUT_MS)
+        );
+        const testResponse = await Promise.race([testPromise, timeoutPromise]);
         const testText = testResponse.response.text();
         console.log(`   ✅ Test API call successful: "${testText.trim()}"`);
       } catch (testError) {
         console.error('   ❌ Test API call failed:', testError.message);
+        if (testError.message?.includes('timed out')) {
+          console.error('   💡 Vertex API may be slow or unreachable from Cloud Run. Check VPC/egress if using custom network.');
+        }
         throw testError; // Re-throw to trigger the catch block below
       }
       
       this.initialized = true;
-      console.log('✅✅✅ Vertex AI initialized successfully with gemini-1.5-flash ✅✅✅');
+      console.log(`✅✅✅ Vertex AI initialized successfully with ${modelId} ✅✅✅`);
       console.log('   Model ready for code generation');
     } catch (error) {
       console.error('\n❌❌❌ VERTEX AI INITIALIZATION FAILED ❌❌❌');
@@ -101,7 +110,7 @@ class VertexAIService {
         console.error('   Solutions:');
         console.error('   1. Enable Vertex AI API:');
         console.error('      gcloud services enable aiplatform.googleapis.com --project=chapadevs-468722');
-        console.error('   2. Check if gemini-1.5-flash is available in us-central1');
+        console.error('   2. Try VERTEX_AI_MODEL=gemini-2.0-flash or gemini-1.5-flash-002');
         console.error('   3. Visit: https://console.cloud.google.com/vertex-ai?project=chapadevs-468722');
       }
       
@@ -219,7 +228,7 @@ class VertexAIService {
         console.error('   📊 QUOTA ERROR: Check Vertex AI API quotas in GCP');
       }
       if (error.message?.includes('not found') || error.message?.includes('404')) {
-        console.error('   🔍 MODEL NOT FOUND: Check if gemini-1.5-flash is available in us-central1');
+        console.error('   🔍 MODEL NOT FOUND: Try VERTEX_AI_MODEL=gemini-2.0-flash (or another model ID)');
       }
       
       return this.generateMockWebsite(prompt, userInputs);

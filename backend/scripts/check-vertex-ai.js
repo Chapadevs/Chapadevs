@@ -53,16 +53,17 @@ try {
   
   console.log('   ✅ VertexAI instance created')
   
-  // Try to get a model
+  // Try to get a model (gemini-1.5-flash discontinued; use 2.0)
+  const modelId = process.env.VERTEX_AI_MODEL || 'gemini-2.0-flash'
   const model = vertex.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: modelId,
     generationConfig: {
       maxOutputTokens: 100,
       temperature: 0.7,
     },
   })
   
-  console.log('   ✅ Model instance created (gemini-1.5-flash)')
+  console.log(`   ✅ Model instance created (${modelId})`)
   
   // Try a test API call
   console.log('\n4. Test API Call:')
