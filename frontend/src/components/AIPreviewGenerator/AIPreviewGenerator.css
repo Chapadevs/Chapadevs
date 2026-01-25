@@ -76,6 +76,32 @@
   border-left: 4px solid #c33;
 }
 
+.ai-preview-warning {
+  background: #fff8e6;
+  color: #7d5a00;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ai-preview-warning strong {
+  color: #5a3f00;
+}
+
+.ai-preview-warning code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.ai-preview-warning-inline {
+  margin-bottom: 1rem;
+}
+
 .generate-button {
   background: #00ff87;
   color: #000;

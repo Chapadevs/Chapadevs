@@ -65,6 +65,26 @@ app.get('/api/health', (req, res) => {
   })
 })
 
+// Vertex AI status endpoint - Check if Vertex AI is working
+app.get('/api/vertex-ai/status', async (req, res) => {
+  try {
+    const vertexAIService = (await import('./services/vertexAIService.js')).default
+    const status = vertexAIService.checkVertexAIStatus()
+    res.status(200).json({
+      ...status,
+      warning: !status.initialized ? 'Vertex AI is NOT working - using mock data' : null,
+      message: status.initialized 
+        ? 'Vertex AI is properly configured and ready' 
+        : 'Vertex AI is NOT initialized - all requests will use mock data (no billing charges)'
+    })
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to check Vertex AI status',
+      message: error.message 
+    })
+  }
+})
+
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)

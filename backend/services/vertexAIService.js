@@ -16,10 +16,15 @@ class VertexAIService {
     
     // Try to initialize Vertex AI, but don't crash if it fails
     // This allows the server to start even if Vertex AI auth fails
-    this.initializeVertexAI();
+    // Note: initializeVertexAI is now async, but we call it without await
+    // to avoid blocking server startup. It will initialize in the background.
+    this.initializeVertexAI().catch(err => {
+      // Already handled in initializeVertexAI, just catch to prevent unhandled rejection
+      console.error('Vertex AI initialization promise rejected:', err.message);
+    });
   }
   
-  initializeVertexAI() {
+  async initializeVertexAI() {
     try {
       if (!process.env.GCP_PROJECT_ID) {
         console.warn('⚠️ GCP_PROJECT_ID not set. Vertex AI features disabled.');
@@ -27,6 +32,8 @@ class VertexAIService {
       }
       
       console.log(`🔧 Initializing Vertex AI for project: ${process.env.GCP_PROJECT_ID}`);
+      console.log(`   Location: us-central1`);
+      console.log(`   Model: gemini-1.5-flash`);
       
       // In Cloud Run, authentication happens automatically via the service account
       // No need to set credentials explicitly - Cloud Run provides them
@@ -34,6 +41,8 @@ class VertexAIService {
         project: process.env.GCP_PROJECT_ID,
         location: 'us-central1'
       });
+
+      console.log('   ✅ VertexAI instance created');
 
       // Use Gemini 1.5 Flash (cheaper and better for code generation)
       this.model = this.vertex.getGenerativeModel({
@@ -45,24 +54,67 @@ class VertexAIService {
         },
       });
       
-      this.initialized = true;
-      console.log('✅ Vertex AI initialized successfully with gemini-1.5-flash');
-      console.log('   Model ready for code generation');
-    } catch (error) {
-      console.error('❌ Vertex AI initialization failed:', error.message);
-      console.error('   Error code:', error.code);
-      console.error('   Error details:', error);
+      console.log('   ✅ Model instance created');
       
-      if (error.message?.includes('authentication') || error.message?.includes('permission')) {
-        console.error('   🔑 Authentication issue detected');
-        console.error('   Solution: Ensure Cloud Run service account has "Vertex AI User" role');
-        console.error('   Run: gcloud projects add-iam-policy-binding PROJECT_ID \\');
-        console.error('        --member="serviceAccount:SERVICE_ACCOUNT_EMAIL" \\');
-        console.error('        --role="roles/aiplatform.user"');
+      // Test the connection with a minimal API call
+      console.log('   Testing API connection...');
+      try {
+        const testResponse = await this.model.generateContent('Say "test"');
+        const testText = testResponse.response.text();
+        console.log(`   ✅ Test API call successful: "${testText.trim()}"`);
+      } catch (testError) {
+        console.error('   ❌ Test API call failed:', testError.message);
+        throw testError; // Re-throw to trigger the catch block below
       }
       
-      console.warn('   ⚠️ AI features will be disabled. Server will still start.');
-      console.warn('   ⚠️ Using mock data for AI previews until authentication is fixed.');
+      this.initialized = true;
+      console.log('✅✅✅ Vertex AI initialized successfully with gemini-1.5-flash ✅✅✅');
+      console.log('   Model ready for code generation');
+    } catch (error) {
+      console.error('\n❌❌❌ VERTEX AI INITIALIZATION FAILED ❌❌❌');
+      console.error('   Error message:', error.message);
+      console.error('   Error code:', error.code);
+      console.error('   Error name:', error.name);
+      if (error.details) {
+        console.error('   Error details:', JSON.stringify(error.details, null, 2));
+      }
+      console.error('   Full error:', error);
+      
+      if (error.message?.includes('authentication') || 
+          error.message?.includes('permission') || 
+          error.message?.includes('Permission denied') ||
+          error.code === 403) {
+        console.error('\n   🔑 AUTHENTICATION/PERMISSION ERROR DETECTED');
+        console.error('   Solutions:');
+        console.error('   1. In Cloud Run: Ensure service account has "Vertex AI User" role');
+        console.error('      Run: gcloud projects add-iam-policy-binding chapadevs-468722 \\');
+        console.error('           --member="serviceAccount:SERVICE_ACCOUNT_EMAIL" \\');
+        console.error('           --role="roles/aiplatform.user"');
+        console.error('   2. Check service account in Cloud Run service settings');
+        console.error('   3. Verify GCP_PROJECT_ID is correct:', process.env.GCP_PROJECT_ID);
+      }
+      
+      if (error.message?.includes('not found') || 
+          error.message?.includes('404') || 
+          error.code === 404) {
+        console.error('\n   🔍 API NOT ENABLED OR MODEL NOT FOUND');
+        console.error('   Solutions:');
+        console.error('   1. Enable Vertex AI API:');
+        console.error('      gcloud services enable aiplatform.googleapis.com --project=chapadevs-468722');
+        console.error('   2. Check if gemini-1.5-flash is available in us-central1');
+        console.error('   3. Visit: https://console.cloud.google.com/vertex-ai?project=chapadevs-468722');
+      }
+      
+      if (error.message?.includes('quota') || 
+          error.message?.includes('limit') || 
+          error.code === 429) {
+        console.error('\n   📊 QUOTA/LIMIT ERROR');
+        console.error('   Solution: Check Vertex AI quotas in GCP Console');
+      }
+      
+      console.error('\n   ⚠️ AI features will be disabled. Server will still start.');
+      console.error('   ⚠️ Using mock data for AI previews until authentication is fixed.');
+      console.error('   ⚠️ NO BILLING CHARGES - NO API CALLS WILL BE MADE\n');
       this.initialized = false;
       // Don't throw - let server start anyway
     }
@@ -109,7 +161,10 @@ class VertexAIService {
 
   async generateWebsitePreview(prompt, userInputs) {
     if (!this.initialized || !this.model) {
-      console.warn('⚠️ Vertex AI not initialized, using mock website');
+      console.error('❌❌❌ VERTEX AI NOT INITIALIZED - USING MOCK DATA ❌❌❌');
+      console.error('   This means NO real AI generation is happening!');
+      console.error('   Check Cloud Run logs for initialization errors.');
+      console.error('   No billing charges because no API calls are made.');
       return this.generateMockWebsite(prompt, userInputs);
     }
     
@@ -146,111 +201,118 @@ class VertexAIService {
       
       return { htmlCode: cleanHtml, fromCache: false };
     } catch (error) {
-      console.error('❌ Vertex AI Website Generation Error:', error.message);
-      console.error('   Error details:', error);
+      console.error('❌❌❌ VERTEX AI API CALL FAILED ❌❌❌');
+      console.error('   Error:', error.message);
+      console.error('   Error code:', error.code);
+      console.error('   Full error:', JSON.stringify(error, null, 2));
+      console.error('   ⚠️  FALLING BACK TO MOCK DATA - NO REAL AI GENERATION');
+      console.error('   ⚠️  NO BILLING CHARGES - NO API CALLS MADE');
       
-      // Fall back to mock HTML if API call fails
-      console.warn('⚠️  API call failed - using MOCK HTML');
-      console.warn('   This means Vertex AI is not properly configured.');
+      // Log specific error types
+      if (error.message?.includes('authentication') || error.message?.includes('permission')) {
+        console.error('   🔑 AUTHENTICATION ERROR:');
+        console.error('      - Check service account has "Vertex AI User" role');
+        console.error('      - Verify GCP_PROJECT_ID is correct');
+        console.error('      - Check Cloud Run service account permissions');
+      }
+      if (error.message?.includes('quota') || error.message?.includes('limit')) {
+        console.error('   📊 QUOTA ERROR: Check Vertex AI API quotas in GCP');
+      }
+      if (error.message?.includes('not found') || error.message?.includes('404')) {
+        console.error('   🔍 MODEL NOT FOUND: Check if gemini-1.5-flash is available in us-central1');
+      }
+      
       return this.generateMockWebsite(prompt, userInputs);
     }
   }
 
   generateMockWebsite(prompt, userInputs) {
-    console.log('🎭 Generating MOCK React component');
+    console.log('🎭🎭🎭 GENERATING MOCK DATA - NOT REAL AI 🎭🎭🎭');
+    console.log('   This is a placeholder. Vertex AI is not working.');
     
     const projectType = userInputs.projectType || 'Website';
-    const title = prompt.substring(0, 50) || 'Your Project';
-    
+    const lowerPrompt = (prompt || '').toLowerCase();
+
+    // NEVER use raw prompt as title/subtitle — use a friendly display name or generic text
+    let displayName = 'Your Project';
+    const stripped = prompt
+      .replace(/i need (an?|the) /gi, '')
+      .replace(/i want (an?|the) /gi, '')
+      .replace(/^(build|create|make|design) (me )?(an?|a|the) /gi, '')
+      .replace(/\b(website|web app|site|landing page|store|ecommerce|portfolio|blog)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const words = stripped.split(/\s+/).filter(w => w.length > 1).slice(0, 4);
+    if (words.length >= 1 && stripped.length >= 3) {
+      displayName = words.join(' ');
+      if (displayName.length > 40) displayName = displayName.substring(0, 37) + '...';
+    }
+
+    const subtitle = 'A professional landing page tailored to your needs. Get started today.';
+
+    // Theme variation: dark vs light, and accent color from keywords
+    const isDark = lowerPrompt.includes('dark');
+    const colorKeywords = ['blue', 'red', 'green', 'purple', 'amber', 'teal', 'rose', 'indigo'];
+    let accent = 'purple';
+    for (const c of colorKeywords) {
+      if (lowerPrompt.includes(c)) { accent = c; break; }
+    }
+    const tailwindAccent = accent === 'purple' ? 'purple' : accent;
+
+    const heroBg = isDark
+      ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+      : `bg-gradient-to-r from-${tailwindAccent}-600 to-indigo-600`;
+    const heroText = isDark ? 'text-white' : 'text-white';
+    const sectionBg = isDark ? 'bg-gray-900' : 'bg-gray-50';
+    const sectionTitle = isDark ? 'text-gray-100' : 'text-gray-800';
+    const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
+    const cardTitle = isDark ? `text-${tailwindAccent}-400` : `text-${tailwindAccent}-600`;
+    const cardDesc = isDark ? 'text-gray-400' : 'text-gray-600';
+    const footerBg = isDark ? 'bg-black' : 'bg-gray-800';
+    const btnClass = isDark
+      ? 'bg-white text-gray-900 hover:bg-gray-200'
+      : `bg-white text-${tailwindAccent}-600 hover:bg-gray-100`;
+
     const mockReactComponent = `import React, { useState } from 'react';
 
 const GeneratedComponent = () => {
   const [isHovered, setIsHovered] = useState(null);
 
   const features = [
-    {
-      icon: '🚀',
-      title: 'Modern Design',
-      description: 'Clean, contemporary interface that engages your users and drives conversions.'
-    },
-    {
-      icon: '📱',
-      title: 'Fully Responsive',
-      description: 'Perfect experience on all devices - desktop, tablet, and mobile.'
-    },
-    {
-      icon: '⚡',
-      title: 'Fast Performance',
-      description: 'Optimized for speed with lightning-fast load times.'
-    },
-    {
-      icon: '🔒',
-      title: 'Secure',
-      description: 'Built with security best practices to protect your data.'
-    },
-    {
-      icon: '💼',
-      title: 'Professional',
-      description: 'Enterprise-grade solution that scales with your business.'
-    },
-    {
-      icon: '🎨',
-      title: 'Customizable',
-      description: 'Easily adapt to match your brand and requirements.'
-    }
+    { icon: '🚀', title: 'Modern Design', description: 'Clean, contemporary interface that engages your users and drives conversions.' },
+    { icon: '📱', title: 'Fully Responsive', description: 'Perfect experience on all devices — desktop, tablet, and mobile.' },
+    { icon: '⚡', title: 'Fast Performance', description: 'Optimized for speed with lightning-fast load times.' },
+    { icon: '🔒', title: 'Secure', description: 'Built with security best practices to protect your data.' },
+    { icon: '💼', title: 'Professional', description: 'Enterprise-grade solution that scales with your business.' },
+    { icon: '🎨', title: 'Customizable', description: 'Easily adapt to match your brand and requirements.' }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-20 px-4">
+    <div className="min-h-screen ${sectionBg}">
+      <section className="${heroBg} ${heroText} py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
-            ${title}
-          </h1>
-          <p className="text-lg md:text-xl mb-8 opacity-90">
-            ${projectType} - ${prompt.substring(0, 100)}
-          </p>
-          <button className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            Get Started
-          </button>
+          <div className="inline-block px-4 py-1 rounded-full bg-white/10 text-sm mb-6">Placeholder preview — AI unavailable</div>
+          <h1 className="text-4xl md:text-6xl font-bold mb-4">${displayName.replace(/'/g, "\\'")}</h1>
+          <p className="text-lg md:text-xl mb-8 opacity-90">${subtitle.replace(/'/g, "\\'")}</p>
+          <button className="${btnClass} px-8 py-3 rounded-full font-semibold transform hover:scale-105 transition-all duration-200 shadow-lg">Get Started</button>
         </div>
       </section>
-
-      {/* Features Section */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-5xl font-bold text-center text-gray-800 mb-12">
-            Key Features
-          </h2>
+          <h2 className={"text-3xl md:text-5xl font-bold text-center mb-12 " + "${sectionTitle}"}>Key Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className={\`bg-white p-6 rounded-lg shadow-md transition-all duration-300 \${
-                  isHovered === index ? 'transform -translate-y-2 shadow-xl' : ''
-                }\`}
-                onMouseEnter={() => setIsHovered(index)}
-                onMouseLeave={() => setIsHovered(null)}
-              >
+              <div key={index} className={"${cardBg} p-6 rounded-lg shadow-md transition-all duration-300 " + (isHovered === index ? 'transform -translate-y-2 shadow-xl' : '')} onMouseEnter={() => setIsHovered(index)} onMouseLeave={() => setIsHovered(null)}>
                 <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-purple-600 mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">
-                  {feature.description}
-                </p>
+                <h3 className={"text-xl font-semibold mb-2 " + "${cardTitle}"}>{feature.title}</h3>
+                <p className="${cardDesc}">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8 px-4 text-center">
-        <p className="text-gray-300">
-          &copy; 2024 ${title}. Built with Chapadevs.
-        </p>
+      <footer className="${footerBg} text-white py-8 px-4 text-center">
+        <p className="text-gray-300">&copy; 2024 ${displayName.replace(/'/g, "\\'")}. Built with Chapadevs.</p>
       </footer>
     </div>
   );
@@ -258,8 +320,7 @@ const GeneratedComponent = () => {
 
 export default GeneratedComponent;`;
 
-    this.cache.set(`website_${this.hashString(prompt + JSON.stringify(userInputs))}`, mockReactComponent);
-    
+    // Do NOT cache mock — each request gets a fresh mock; avoids serving stale "same" template
     return {
       htmlCode: mockReactComponent,
       fromCache: false,
@@ -662,6 +723,13 @@ Generate the complete component NOW:`;
       keys: this.cache.keys().length,
       hits: this.cache.getStats().hits,
       misses: this.cache.getStats().misses
+    };
+  }
+
+  checkVertexAIStatus() {
+    return {
+      initialized: this.initialized,
+      ...this.getCacheStats()
     };
   }
 }

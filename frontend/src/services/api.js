@@ -163,6 +163,12 @@ export const generateAIPreview = async (data) => {
   return response.data
 }
 
+/** Check if Vertex AI is working (no auth required). Returns { initialized, warning, message }. */
+export const getVertexAIStatus = async () => {
+  const response = await api.get('/vertex-ai/status')
+  return response.data
+}
+
 export const getAIPreviews = async () => {
   const response = await api.get('/ai-previews')
   return response.data

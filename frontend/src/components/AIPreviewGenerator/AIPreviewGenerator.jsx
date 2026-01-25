@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { generateAIPreview } from '../../services/api'
+import { generateAIPreview, getVertexAIStatus } from '../../services/api'
 import { Sandpack } from '@codesandbox/sandpack-react'
 import JSZip from 'jszip'
 import './AIPreviewGenerator.css'
@@ -15,10 +15,18 @@ const AIPreviewGenerator = () => {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [websitePreview, setWebsitePreview] = useState(null)
+  const [websiteIsMock, setWebsiteIsMock] = useState(false)
+  const [vertexAIReady, setVertexAIReady] = useState(null)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('analysis')
   const [copySuccess, setCopySuccess] = useState(false)
   const [sandpackError, setSandpackError] = useState(false)
+
+  useEffect(() => {
+    getVertexAIStatus()
+      .then((s) => setVertexAIReady(s.initialized === true))
+      .catch(() => setVertexAIReady(false))
+  }, [])
 
   // Monitor for Sandpack network errors in production
   useEffect(() => {
@@ -72,6 +80,7 @@ const AIPreviewGenerator = () => {
     setError('')
     setResult(null)
     setWebsitePreview(null)
+    setWebsiteIsMock(false)
 
     try {
       const response = await generateAIPreview(formData)
@@ -98,6 +107,7 @@ const AIPreviewGenerator = () => {
       // Set website preview if available
       if (response.websitePreview && response.websitePreview.htmlCode) {
         setWebsitePreview(response.websitePreview.htmlCode)
+        setWebsiteIsMock(response.websitePreview.isMock === true || response.websiteIsMock === true)
       }
     } catch (err) {
       setError(err.message || 'Failed to generate AI preview. Please try again.')
@@ -350,6 +360,13 @@ npm start
         </p>
       </div>
 
+      {vertexAIReady === false && (
+        <div className="ai-preview-warning" role="alert">
+          <strong>AI previews are placeholders.</strong> Vertex AI is not configured or unavailable.
+          You will always get the same template — no real AI generation. Configure GCP (Vertex AI, <code>GCP_PROJECT_ID</code>, IAM) to enable real AI website generation.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="generator-form">
         <div className="form-group">
           <label htmlFor="prompt">Project Description *</label>
@@ -479,6 +496,11 @@ npm start
           
           {activeTab === 'preview' && websitePreview && (
             <div className="website-preview-section">
+              {websiteIsMock && (
+                <div className="ai-preview-warning ai-preview-warning-inline" role="alert">
+                  This is a <strong>placeholder template</strong>, not AI‑generated. Vertex AI is unavailable — configure GCP to get real, unique previews.
+                </div>
+              )}
               <div className="preview-header">
                 <h3>React Component Preview</h3>
                 <p className="preview-note">Live editable React component. Edit the code and see changes instantly!</p>

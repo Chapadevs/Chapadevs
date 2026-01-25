@@ -69,14 +69,18 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     // Generate website preview
     let websitePreview = null
     let websiteFromCache = false
+    let websiteIsMock = false
     
     try {
       const websiteResult = await vertexAIService.generateWebsitePreview(prompt, userInputs)
       websitePreview = websiteResult.htmlCode
       websiteFromCache = websiteResult.fromCache
+      websiteIsMock = websiteResult.isMock === true
       
-      // Track API call or cache hit for website
-      if (websiteFromCache) {
+      // Track API call or cache hit for website (mocks are not counted)
+      if (websiteIsMock) {
+        // no track — mock uses no API
+      } else if (websiteFromCache) {
         costMonitor.trackCacheHit()
       } else {
         costMonitor.trackAPICall()
@@ -109,8 +113,9 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       previewType: preview.previewType,
       status: 'completed',
       result: result,
-      websitePreview: websitePreview ? { htmlCode: websitePreview } : null,
+      websitePreview: websitePreview ? { htmlCode: websitePreview, isMock: websiteIsMock } : null,
       fromCache: fromCache && websiteFromCache,
+      websiteIsMock: websiteIsMock,
       tokenUsage: estimatedTokens,
       message: (fromCache && websiteFromCache) ? 'Results retrieved from cache' : 'AI preview generated successfully'
     })
