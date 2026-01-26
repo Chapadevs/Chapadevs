@@ -136,7 +136,18 @@ class VertexAIService {
       // Apply rate limiting
       const result = await this.withRateLimit(async () => {
         const response = await this.model.generateContent(optimizedPrompt);
-        return response.response.text();
+        // Vertex AI SDK v1.0.0: Try different response access patterns
+        if (typeof response.text === 'function') {
+          return response.text();
+        }
+        if (response.response && typeof response.response.text === 'function') {
+          return response.response.text();
+        }
+        // Fallback: access via candidates array
+        if (response.response && response.response.candidates && response.response.candidates[0]) {
+          return response.response.candidates[0].content.parts[0].text;
+        }
+        throw new Error('Unable to extract text from Vertex AI response. Response structure: ' + JSON.stringify(response, null, 2));
       });
       
       // Cache the response
@@ -145,6 +156,10 @@ class VertexAIService {
       return { result, fromCache: false };
     } catch (error) {
       console.error('Vertex AI Error:', error.message);
+      console.error('Error details:', error);
+      if (error.response) {
+        console.error('Response structure:', JSON.stringify(error.response, null, 2));
+      }
       
       // Fall back to mock data if API call fails
       console.warn('⚠️  API call failed - using MOCK data');
@@ -178,7 +193,18 @@ class VertexAIService {
       // Apply rate limiting
       const result = await this.withRateLimit(async () => {
         const response = await this.model.generateContent(htmlPrompt);
-        return response.response.text();
+        // Vertex AI SDK v1.0.0: Try different response access patterns
+        if (typeof response.text === 'function') {
+          return response.text();
+        }
+        if (response.response && typeof response.response.text === 'function') {
+          return response.response.text();
+        }
+        // Fallback: access via candidates array
+        if (response.response && response.response.candidates && response.response.candidates[0]) {
+          return response.response.candidates[0].content.parts[0].text;
+        }
+        throw new Error('Unable to extract text from Vertex AI response. Response structure: ' + JSON.stringify(response, null, 2));
       });
       
       // Clean up the HTML (remove markdown code blocks if present)

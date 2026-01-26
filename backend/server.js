@@ -137,4 +137,3 @@ process.on('unhandledRejection', (reason, promise) => {
 })
 
 start()
-
