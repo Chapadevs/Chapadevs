@@ -57,25 +57,9 @@ class VertexAIService {
       
       console.log('   ✅ Model instance created');
       
-      // Test the connection with a minimal API call (with timeout to avoid hanging)
-      const TEST_TIMEOUT_MS = 25_000;
-      console.log(`   Testing API connection... (timeout ${TEST_TIMEOUT_MS / 1000}s)`);
-      try {
-        const testPromise = this.model.generateContent('Say "test"');
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`Test API call timed out after ${TEST_TIMEOUT_MS / 1000}s`)), TEST_TIMEOUT_MS)
-        );
-        const testResponse = await Promise.race([testPromise, timeoutPromise]);
-        const testText = testResponse.response.text();
-        console.log(`   ✅ Test API call successful: "${testText.trim()}"`);
-      } catch (testError) {
-        console.error('   ❌ Test API call failed:', testError.message);
-        if (testError.message?.includes('timed out')) {
-          console.error('   💡 Vertex API may be slow or unreachable from Cloud Run. Check VPC/egress if using custom network.');
-        }
-        throw testError; // Re-throw to trigger the catch block below
-      }
-      
+      // Mark ready immediately. No blocking test — cold start would timeout and force mock forever.
+      // Real API calls are attempted per-request; generateProjectAnalysis/generateWebsitePreview
+      // already catch errors and fall back to mock.
       this.initialized = true;
       console.log(`✅✅✅ Vertex AI initialized successfully with ${modelId} ✅✅✅`);
       console.log('   Model ready for code generation');
