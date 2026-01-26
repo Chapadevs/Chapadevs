@@ -30,15 +30,6 @@ import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
 import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
 
-// Connect to database (non-blocking - server will start even if DB connection fails)
-connectDB().then((connected) => {
-  if (!connected) {
-    console.warn('⚠️ Server started without database connection. Some features may not work.')
-  }
-}).catch((error) => {
-  console.error('⚠️ Database connection attempt failed:', error.message)
-})
-
 const app = express()
 
 // Middleware
@@ -99,30 +90,40 @@ app.use(errorHandler)
 // Cloud Run sets PORT environment variable automatically, default to 3001 for local development
 const PORT = process.env.PORT || 3001
 
-// Start server with error handling
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
-  console.log(`📡 Health check available at http://0.0.0.0:${PORT}/health`)
-  console.log(`📡 API health check at http://0.0.0.0:${PORT}/api/health`)
-})
-
-// Handle server errors
-server.on('error', (error) => {
-  console.error('❌ Server error:', error)
-  if (error.code === 'EADDRINUSE') {
-    console.error(`   Port ${PORT} is already in use`)
+// Wait for MongoDB before accepting traffic (fixes 503 on login during cold start)
+async function start() {
+  let connected = false
+  try {
+    connected = await connectDB()
+  } catch (error) {
+    console.error('⚠️ Database connection attempt failed:', error.message)
   }
-  process.exit(1)
-})
+  if (!connected) {
+    console.warn('⚠️ Server starting without database connection. Auth/protected routes will return 503.')
+  }
 
-// Graceful shutdown for Cloud Run
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...')
-  server.close(() => {
-    console.log('Server closed')
-    process.exit(0)
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
+    console.log(`📡 Health check available at http://0.0.0.0:${PORT}/health`)
+    console.log(`📡 API health check at http://0.0.0.0:${PORT}/api/health`)
   })
-})
+
+  server.on('error', (error) => {
+    console.error('❌ Server error:', error)
+    if (error.code === 'EADDRINUSE') {
+      console.error(`   Port ${PORT} is already in use`)
+    }
+    process.exit(1)
+  })
+
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...')
+    server.close(() => {
+      console.log('Server closed')
+      process.exit(0)
+    })
+  })
+}
 
 // Handle uncaught errors to prevent crashes
 process.on('uncaughtException', (error) => {
@@ -134,4 +135,6 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason)
   // Don't exit - let the server keep running
 })
+
+start()
 
