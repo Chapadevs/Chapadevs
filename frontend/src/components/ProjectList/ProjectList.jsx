@@ -62,7 +62,7 @@ const ProjectList = () => {
       <div className="project-list-container">
       <div className="project-list-header">
         <h2>Projects</h2>
-        {user?.role === 'client' && (
+        {(user?.role === 'client' || user?.role === 'user') && (
           <Link to="/projects/create" className="btn btn-primary">
             Create New Project
           </Link>
@@ -72,7 +72,7 @@ const ProjectList = () => {
       {projects.length === 0 ? (
         <div className="project-list-empty">
           <p>No projects found.</p>
-          {user?.role === 'client' && (
+          {(user?.role === 'client' || user?.role === 'user') && (
             <Link to="/projects/create" className="btn btn-primary">
               Create Your First Project
             </Link>
@@ -82,8 +82,8 @@ const ProjectList = () => {
         <div className="project-list-grid">
           {projects.map((project) => (
             <Link
-              key={project.id}
-              to={`/projects/${project.id}`}
+              key={project.id || project._id}
+              to={`/projects/${project.id || project._id}`}
               className="project-card"
             >
               <div className="project-card-header">

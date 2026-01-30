@@ -99,10 +99,12 @@ const Assignment = () => {
         </div>
       ) : (
         <div className="assignment-grid">
-          {availableProjects.map((project) => (
-            <div key={project.id} className="assignment-card">
+          {availableProjects.map((project) => {
+            const projectId = project.id || project._id
+            return (
+            <div key={projectId} className="assignment-card">
               <div className="assignment-card-header">
-                <Link to={`/projects/${project.id}`} className="project-link">
+                <Link to={`/projects/${projectId}`} className="project-link">
                   <h3>{project.title}</h3>
                 </Link>
                 <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
@@ -139,11 +141,11 @@ const Assignment = () => {
               <div className="assignment-actions">
                 {user?.role === 'programmer' && (
                   <button
-                    onClick={() => handleAccept(project.id)}
+                    onClick={() => handleAccept(projectId)}
                     className="btn btn-primary"
-                    disabled={assigning[project.id]}
+                    disabled={assigning[projectId]}
                   >
-                    {assigning[project.id] ? 'Accepting...' : 'Accept Project'}
+                    {assigning[projectId] ? 'Accepting...' : 'Accept Project'}
                   </button>
                 )}
 
@@ -153,10 +155,10 @@ const Assignment = () => {
                       className="programmer-select"
                       onChange={(e) => {
                         if (e.target.value) {
-                          handleAssign(project.id, e.target.value)
+                          handleAssign(projectId, e.target.value)
                         }
                       }}
-                      disabled={assigning[project.id]}
+                      disabled={assigning[projectId]}
                     >
                       <option value="">Select Programmer</option>
                       {programmers
@@ -167,21 +169,21 @@ const Assignment = () => {
                           </option>
                         ))}
                     </select>
-                    {assigning[project.id] && (
+                    {assigning[projectId] && (
                       <span className="assigning-indicator">Assigning...</span>
                     )}
                   </div>
                 )}
 
                 <Link
-                  to={`/projects/${project.id}`}
+                  to={`/projects/${projectId}`}
                   className="btn btn-secondary"
                 >
                   View Details
                 </Link>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
       </div>

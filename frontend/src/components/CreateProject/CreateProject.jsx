@@ -54,7 +54,8 @@ const CreateProject = () => {
       }
 
       const project = await projectAPI.create(projectData)
-      navigate(`/projects/${project.id}`)
+      const projectId = project.id || project._id
+      navigate(`/projects/${projectId}`)
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to create project')
     } finally {

@@ -16,8 +16,12 @@ const ProjectDetail = () => {
   const [markingReady, setMarkingReady] = useState(false)
 
   useEffect(() => {
+    if (!id || id === 'undefined') {
+      navigate('/projects', { replace: true })
+      return
+    }
     loadProject()
-  }, [id])
+  }, [id, navigate])
 
   const loadProject = async () => {
     try {
@@ -111,7 +115,7 @@ const ProjectDetail = () => {
             <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
               {project.status}
             </span>
-            <span className="project-id">ID: {project.id}</span>
+            <span className="project-id">ID: {project.id || project._id}</span>
           </div>
         </div>
         <div className="project-actions">

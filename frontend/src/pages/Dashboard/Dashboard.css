@@ -9,54 +9,46 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .dashboard-header h1 {
   font-family: "Code Bold", monospace;
   font-size: 2rem;
   color: var(--text-primary);
+  margin: 0;
 }
 
-.logout-button {
-  background-color: #dc2626;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
+.dashboard-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.logout-button:hover {
-  background-color: #b91c1c;
-  transform: translateY(-1px);
+.dashboard-user-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dashboard-user-sep {
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 .dashboard-content {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.welcome-card {
-  background: var(--background);
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-}
-
-.welcome-card h2 {
-  font-family: "Code Bold", monospace;
-  font-size: 1.5rem;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.welcome-card p {
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
 }
 
 .role-badge {
@@ -66,7 +58,6 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  margin-left: 0.5rem;
 }
 
 .role-badge--admin {
@@ -84,27 +75,34 @@
   color: white;
 }
 
-.quick-actions-card,
-.role-section {
+.dashboard-main-card {
   background: var(--background);
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  margin-top: 1.5rem;
 }
 
-.quick-actions-card h3,
-.role-section h3 {
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.dashboard-main-block h3 {
   font-family: "Code Bold", monospace;
   font-size: 1.25rem;
   color: var(--text-primary);
-  margin-bottom: 1rem;
+  margin: 0 0 0.75rem 0;
 }
 
-.quick-actions-card p,
-.role-section p {
+.dashboard-main-block p {
   color: var(--text-secondary);
-  margin-bottom: 1rem;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+}
+
+.dashboard-main-block .dashboard-actions {
+  margin-bottom: 0;
 }
 
 .dashboard-actions {
@@ -115,11 +113,12 @@
 
 .dashboard-link {
   display: inline-block;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   background-color: var(--primary-green);
   color: white;
   text-decoration: none;
   border-radius: 6px;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s;
   font-family: "Coolvetica", Arial, Helvetica, sans-serif;
@@ -143,12 +142,17 @@
   box-shadow: none;
 }
 
-.ai-usage-card .ai-usage-stats {
-  margin-bottom: 0;
+.ai-usage-stats {
+  margin: 0;
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
-.ai-usage-card .ai-usage-stats strong {
+.ai-usage-stats strong {
   color: var(--text-primary);
+}
+
+.dashboard-content > *:not(:first-child) {
+  margin-top: 1.5rem;
 }
 
