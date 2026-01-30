@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    aiTokenLimitMonthly: {
+      type: Number,
+      default: null,
+    },
   },
   {
     timestamps: true,

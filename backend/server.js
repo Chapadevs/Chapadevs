@@ -3,27 +3,21 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { existsSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Load environment variables FIRST, before any other imports
-// We now keep .env inside the backend folder only
-const backendEnvPath = path.join(__dirname, '.env')
-
-if (existsSync(backendEnvPath)) {
-  dotenv.config({ path: backendEnvPath })
-  console.log('📁 Loaded .env from backend folder')
-} else {
-  console.log('⚠️  No backend/.env file found (using environment variables or defaults)')
-}
+// Explicitly point to the .env file in the backend directory
+dotenv.config({ path: path.join(__dirname, '.env') })
 
 // Debug: Log what was loaded (mask secrets)
 console.log('🔍 Environment variables loaded:')
-console.log('  BACKEND_PORT:', process.env.BACKEND_PORT || 'NOT SET')
-console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'NOT SET')
 console.log('  MONGO_URI:', process.env.MONGO_URI ? '***SET***' : 'NOT SET')
+console.log('  DB_NAME:', process.env.DB_NAME || 'NOT SET')
+console.log('  GCP_PROJECT_ID:', process.env.GCP_PROJECT_ID || 'NOT SET')
+console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '***SET***' : 'NOT SET')
+console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'NOT SET')
 console.log('')
 
 import { connectDB } from './config/database.js'
@@ -34,27 +28,26 @@ import authRoutes from './routes/authRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
-import dashboardRoutes from './routes/dashboardRoutes.js'
 import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
-import notificationRoutes from './routes/notificationRoutes.js'
-import supportRoutes from './routes/supportRoutes.js'
-
-// Connect to database
-connectDB()
 
 const app = express()
 
 // Middleware
 app.use(cors({
-  // In production, set FRONTEND_URL env (e.g. https://chapadevs.github.io)
-  // Locally, default to Vite dev server
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-// Health check route
+// Health check routes (Cloud Run checks root /health)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString()
+  })
+})
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -63,27 +56,82 @@ app.get('/api/health', (req, res) => {
   })
 })
 
+// Vertex AI status endpoint - Check if Vertex AI is working
+app.get('/api/vertex-ai/status', async (req, res) => {
+  try {
+    const vertexAIService = (await import('./services/vertexAIService.js')).default
+    const status = vertexAIService.checkVertexAIStatus()
+    res.status(200).json({
+      ...status,
+      warning: !status.initialized ? 'Vertex AI is NOT working - using mock data' : null,
+      message: status.initialized 
+        ? 'Vertex AI is properly configured and ready' 
+        : 'Vertex AI is NOT initialized - all requests will use mock data (no billing charges)'
+    })
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to check Vertex AI status',
+      message: error.message 
+    })
+  }
+})
+
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/assignments', assignmentRoutes)
-app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/ai-previews', aiPreviewRoutes)
-app.use('/api/notifications', notificationRoutes)
-app.use('/api/support', supportRoutes)
 
 // Error handling middleware (must be last)
 app.use(notFound)
 app.use(errorHandler)
 
-// Cloud Run sets PORT in the container; locally we can use BACKEND_PORT
-// IMPORTANT: Always prioritize PORT so managed platforms (Cloud Run) work correctly.
-const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001
+// Cloud Run sets PORT environment variable automatically, default to 3001 for local development
+const PORT = process.env.PORT || 3001
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(
-    `🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
-  )
+// Wait for MongoDB before accepting traffic (fixes 503 on login during cold start)
+async function start() {
+  let connected = false
+  try {
+    connected = await connectDB()
+  } catch (error) {
+    console.error('⚠️ Database connection attempt failed:', error.message)
+  }
+  if (!connected) {
+    console.warn('⚠️ Server starting without database connection. Auth/protected routes will return 503.')
+  }
+
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
+    console.log(`📡 Health check available at http://0.0.0.0:${PORT}/health`)
+    console.log(`📡 API health check at http://0.0.0.0:${PORT}/api/health`)
+  })
+
+  server.on('error', (error) => {
+    console.error('❌ Server error:', error)
+    if (error.code === 'EADDRINUSE') {
+      console.error(`   Port ${PORT} is already in use`)
+    }
+    process.exit(1)
+  })
+
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...')
+    server.close(() => {
+      console.log('Server closed')
+      process.exit(0)
+    })
+  })
+}// Handle uncaught errors to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error)
+  // Don't exit - let the server keep running
 })
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason)
+  // Don't exit - let the server keep running
+})
+
+start()

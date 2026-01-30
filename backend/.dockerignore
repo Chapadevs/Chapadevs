@@ -10,4 +10,9 @@ README.md
 *.md
 coverage
 .nyc_output
+.DS_Store
+*.log
+*.swp
+*.swo
+*~
 

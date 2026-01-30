@@ -30,6 +30,14 @@ const aiPreviewSchema = new mongoose.Schema(
       enum: ['generating', 'completed', 'failed'],
       default: 'generating',
     },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+    tokenUsage: {
+      type: Number,
+      default: 0
+    },
   },
   {
     timestamps: true,

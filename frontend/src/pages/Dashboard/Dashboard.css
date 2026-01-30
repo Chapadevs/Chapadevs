@@ -143,3 +143,12 @@
   box-shadow: none;
 }
 
+.ai-usage-card .ai-usage-stats {
+  margin-bottom: 0;
+  color: var(--text-secondary);
+}
+
+.ai-usage-card .ai-usage-stats strong {
+  color: var(--text-primary);
+}
+
