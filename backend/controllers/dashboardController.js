@@ -49,6 +49,17 @@ export const getDashboard = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(5)
 
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+  const usageAgg = await AIPreview.aggregate([
+    { $match: { userId, status: 'completed', createdAt: { $gte: monthStart } } },
+    { $group: { _id: null, totalRequests: { $sum: 1 }, totalTokenCount: { $sum: '$tokenUsage' } } },
+  ])
+  const usageSummary = usageAgg[0]
+    ? { period: 'month', totalRequests: usageAgg[0].totalRequests, totalTokenCount: usageAgg[0].totalTokenCount }
+    : { period: 'month', totalRequests: 0, totalTokenCount: 0 }
+
   const openTicketsCount = await SupportTicket.countDocuments({
     userId,
     status: { $in: ['open', 'in_progress'] },
@@ -83,6 +94,7 @@ export const getDashboard = asyncHandler(async (req, res) => {
     },
     aiPreviews: {
       recent: recentAIPreviews,
+      usageSummary,
     },
     support: {
       openTicketsCount,

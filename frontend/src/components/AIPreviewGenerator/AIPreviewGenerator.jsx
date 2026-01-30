@@ -101,7 +101,8 @@ const AIPreviewGenerator = () => {
       setResult({
         ...parsedResult,
         fromCache: response.fromCache,
-        tokenUsage: response.tokenUsage
+        tokenUsage: response.tokenUsage,
+        usage: response.usage ?? null,
       })
 
       // Set website preview if available
@@ -209,7 +210,12 @@ npm start
           <h3>AI Project Analysis</h3>
           <div className="result-badges">
             {result.fromCache && <span className="cache-badge">⚡ From Cache</span>}
-            {result.tokenUsage && <span className="token-badge">~{result.tokenUsage} tokens</span>}
+            {result.tokenUsage != null && (
+              <span className="token-badge">
+                {result.usage?.analysis || result.usage?.website ? '' : '~'}
+                {result.tokenUsage.toLocaleString()} tokens
+              </span>
+            )}
           </div>
         </div>
 

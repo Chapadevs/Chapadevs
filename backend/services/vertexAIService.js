@@ -113,112 +113,103 @@ class VertexAIService {
     }
   }
 
+  extractUsage(response) {
+    const um = response?.response?.usageMetadata || response?.usageMetadata;
+    if (!um) return null;
+    const promptTokenCount = um.promptTokenCount ?? um.prompt_token_count ?? 0;
+    const candidatesTokenCount = um.candidatesTokenCount ?? um.candidates_token_count ?? 0;
+    const totalTokenCount = um.totalTokenCount ?? um.total_token_count ?? (promptTokenCount + candidatesTokenCount);
+    return { promptTokenCount, candidatesTokenCount, totalTokenCount };
+  }
+
+  extractText(response) {
+    if (typeof response?.text === 'function') return response.text();
+    if (typeof response?.text === 'string') return response.text;
+    if (response?.response && typeof response.response.text === 'function') return response.response.text();
+    if (typeof response?.response?.text === 'string') return response.response.text;
+    if (response?.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return response.response.candidates[0].content.parts[0].text;
+    }
+    throw new Error('Unable to extract text from Vertex AI response.');
+  }
+
   async generateProjectAnalysis(prompt, userInputs) {
     if (!this.initialized || !this.model) {
       console.warn('⚠️ Vertex AI not initialized, using mock data');
       return this.generateMockAnalysis(prompt, userInputs);
     }
     
-    // Create cache key
     const cacheKey = `project_${this.hashString(prompt + JSON.stringify(userInputs))}`;
-    
-    // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached) {
       console.log('✅ Cache hit - saving API call');
-      return { result: cached, fromCache: true };
+      return { result: cached, fromCache: true, usage: null };
     }
 
-    // Optimized prompt to get more with fewer tokens
     const optimizedPrompt = this.buildOptimizedPrompt(prompt, userInputs);
 
     try {
-      // Apply rate limiting
-      const result = await this.withRateLimit(async () => {
+      const { result, usage } = await this.withRateLimit(async () => {
         const response = await this.model.generateContent(optimizedPrompt);
-        // Vertex AI SDK v1.0.0: Try different response access patterns
-        if (typeof response.text === 'function') {
-          return response.text();
-        }
-        if (response.response && typeof response.response.text === 'function') {
-          return response.response.text();
-        }
-        // Fallback: access via candidates array
-        if (response.response && response.response.candidates && response.response.candidates[0]) {
-          return response.response.candidates[0].content.parts[0].text;
-        }
-        throw new Error('Unable to extract text from Vertex AI response. Response structure: ' + JSON.stringify(response, null, 2));
+        const text = this.extractText(response);
+        const usage = this.extractUsage(response);
+        return { result: text, usage };
       });
       
-      // Cache the response
       this.cache.set(cacheKey, result);
-      
-      return { result, fromCache: false };
+      return { result, fromCache: false, usage };
     } catch (error) {
       console.error('Vertex AI Error:', error.message);
-      console.error('Error details:', error);
-      if (error.response) {
-        console.error('Response structure:', JSON.stringify(error.response, null, 2));
-      }
-      
-      // Fall back to mock data if API call fails
+      if (error.response) console.error('Response structure:', JSON.stringify(error.response, null, 2));
       console.warn('⚠️  API call failed - using MOCK data');
       return this.generateMockAnalysis(prompt, userInputs);
     }
   }
 
+  fixBrokenImageSrc(html) {
+    const allowlist = ['picsum.photos', 'placehold.co', 'placeholder.com'];
+    const isAllowed = (src) => allowlist.some((h) => (src || '').trim().toLowerCase().includes(h));
+    return html.replace(/<img([^>]*)\ssrc=["']([^"']*)["']([^>]*)>/gi, (match, before, src, after) => {
+      if (isAllowed(src)) return match;
+      const altMatch = /alt=["']([^"']*)["']/i.exec(match);
+      const alt = altMatch ? encodeURIComponent(altMatch[1].slice(0, 30)) : 'Preview';
+      return `<img${before} src="https://placehold.co/400x300?text=${alt}"${after}>`;
+    });
+  }
+
   async generateWebsitePreview(prompt, userInputs) {
     if (!this.initialized || !this.model) {
       console.error('❌❌❌ VERTEX AI NOT INITIALIZED - USING MOCK DATA ❌❌❌');
-      console.error('   This means NO real AI generation is happening!');
-      console.error('   Check Cloud Run logs for initialization errors.');
-      console.error('   No billing charges because no API calls are made.');
       return this.generateMockWebsite(prompt, userInputs);
     }
     
-    // Create cache key for HTML
     const cacheKey = `website_${this.hashString(prompt + JSON.stringify(userInputs))}`;
-    
-    // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached) {
       console.log('✅ Website cache hit - saving API call');
-      return { htmlCode: cached, fromCache: true };
+      return { htmlCode: cached, fromCache: true, usage: null };
     }
 
-    // Build HTML generation prompt
     const htmlPrompt = this.buildWebsitePrompt(prompt, userInputs);
 
     try {
-      // Apply rate limiting
-      const result = await this.withRateLimit(async () => {
+      const { result, usage } = await this.withRateLimit(async () => {
         const response = await this.model.generateContent(htmlPrompt);
-        // Vertex AI SDK v1.0.0: Try different response access patterns
-        if (typeof response.text === 'function') {
-          return response.text();
-        }
-        if (response.response && typeof response.response.text === 'function') {
-          return response.response.text();
-        }
-        // Fallback: access via candidates array
-        if (response.response && response.response.candidates && response.response.candidates[0]) {
-          return response.response.candidates[0].content.parts[0].text;
-        }
-        throw new Error('Unable to extract text from Vertex AI response. Response structure: ' + JSON.stringify(response, null, 2));
+        const text = this.extractText(response);
+        const usage = this.extractUsage(response);
+        return { result: text, usage };
       });
       
-      // Clean up the HTML (remove markdown code blocks if present)
       let cleanHtml = result.trim();
       if (cleanHtml.startsWith('```html')) {
         cleanHtml = cleanHtml.replace(/```html\n?/g, '').replace(/```\n?$/g, '');
       } else if (cleanHtml.startsWith('```')) {
         cleanHtml = cleanHtml.replace(/```\n?/g, '');
       }
+      cleanHtml = this.fixBrokenImageSrc(cleanHtml);
       
-      // Cache the response
       this.cache.set(cacheKey, cleanHtml);
-      
-      return { htmlCode: cleanHtml, fromCache: false };
+      return { htmlCode: cleanHtml, fromCache: false, usage };
     } catch (error) {
       console.error('❌❌❌ VERTEX AI API CALL FAILED ❌❌❌');
       console.error('   Error:', error.message);
@@ -339,11 +330,11 @@ const GeneratedComponent = () => {
 
 export default GeneratedComponent;`;
 
-    // Do NOT cache mock — each request gets a fresh mock; avoids serving stale "same" template
     return {
       htmlCode: mockReactComponent,
       fromCache: false,
-      isMock: true
+      isMock: true,
+      usage: null
     };
   }
 
@@ -475,7 +466,8 @@ export default GeneratedComponent;`;
     return {
       result,
       fromCache: false,
-      isMock: true
+      isMock: true,
+      usage: null
     };
   }
 
@@ -644,6 +636,12 @@ CRITICAL REQUIREMENTS:
 5. Generate REAL, SPECIFIC content - NO placeholders, NO "Lorem Ipsum", NO truncated text
 6. For e-commerce: Include product categories, shopping features, pricing sections
 7. Make it visually stunning with proper spacing, shadows, hover effects
+
+IMAGES (CRITICAL):
+- For product/category cards or any <img>, use ONLY these URLs. No other domains or fake paths.
+- Option A: https://picsum.photos/400/300?random=SEED — use a numeric SEED per item (e.g. 1, 2, 3 or hash of category name).
+- Option B: https://placehold.co/400x300?text=TEXT — URL-encode the category/card title (e.g. "Gothic+Dresses").
+- Never use placeholder filenames, /placeholder, or other image URLs. Invalid src will be replaced automatically.
 
 TECHNICAL REQUIREMENTS:
 - React 18 functional component with useState hooks

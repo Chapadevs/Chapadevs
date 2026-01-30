@@ -1,8 +1,11 @@
 import AIPreview from '../models/AIPreview.js'
 import Project from '../models/Project.js'
+import User from '../models/User.js'
 import asyncHandler from 'express-async-handler'
 import vertexAIService from '../services/vertexAIService.js'
 import costMonitor from '../middleware/costMonitoring.js'
+
+const ESTIMATED_TOKENS_PER_REQUEST = 20000
 
 // @desc    Generate AI preview
 // @route   POST /api/ai-previews
@@ -33,6 +36,26 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     throw new Error(`Rate limit exceeded: Maximum ${rateLimit} AI generations per hour. Please try again later.`)
   }
 
+  const u = await User.findById(req.user._id).select('aiTokenLimitMonthly').lean()
+  const userLimit = u?.aiTokenLimitMonthly ?? null
+  const defaultLimit = process.env.AI_TOKEN_LIMIT_MONTHLY_DEFAULT
+  const limit = userLimit ?? (defaultLimit ? parseInt(defaultLimit, 10) : null)
+  const limitNum = Number.isFinite(limit) ? limit : null
+  if (limitNum != null) {
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+    const agg = await AIPreview.aggregate([
+      { $match: { userId: req.user._id, status: 'completed', createdAt: { $gte: monthStart } } },
+      { $group: { _id: null, total: { $sum: '$tokenUsage' } } },
+    ])
+    const currentUsage = agg[0]?.total ?? 0
+    if (currentUsage + ESTIMATED_TOKENS_PER_REQUEST > limitNum) {
+      res.status(429)
+      throw new Error(`Monthly AI token limit reached (${limitNum} tokens). Used ${currentUsage} this month.`)
+    }
+  }
+
   if (projectId) {
     const project = await Project.findById(projectId)
     if (!project || project.clientId.toString() !== req.user._id.toString()) {
@@ -53,71 +76,69 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
   })
 
   try {
-    // Generate both text analysis and website preview
     const userInputs = { budget, timeline, techStack, projectType }
     
-    // Generate text analysis
-    const { result, fromCache } = await vertexAIService.generateProjectAnalysis(prompt, userInputs)
+    const { result, fromCache, usage: usageAnalysis } = await vertexAIService.generateProjectAnalysis(prompt, userInputs)
 
-    // Track API call or cache hit for text analysis
-    if (fromCache) {
-      costMonitor.trackCacheHit()
-    } else {
-      costMonitor.trackAPICall()
-    }
+    if (fromCache) costMonitor.trackCacheHit()
+    else costMonitor.trackAPICall()
 
-    // Generate website preview
     let websitePreview = null
     let websiteFromCache = false
     let websiteIsMock = false
-    
+    let usageWebsite = null
+
     try {
       const websiteResult = await vertexAIService.generateWebsitePreview(prompt, userInputs)
       websitePreview = websiteResult.htmlCode
       websiteFromCache = websiteResult.fromCache
       websiteIsMock = websiteResult.isMock === true
-      
-      // Track API call or cache hit for website (mocks are not counted)
-      if (websiteIsMock) {
-        // no track — mock uses no API
-      } else if (websiteFromCache) {
-        costMonitor.trackCacheHit()
-      } else {
-        costMonitor.trackAPICall()
-      }
+      usageWebsite = websiteResult.usage ?? null
+
+      if (websiteIsMock) { /* no track */ } else if (websiteFromCache) costMonitor.trackCacheHit()
+      else costMonitor.trackAPICall()
     } catch (websiteError) {
       console.error('Website preview generation failed:', websiteError)
-      // Continue even if website preview fails
     }
 
-    // Estimate tokens (rough approximation: 1 token ≈ 4 characters)
-    const textTokens = Math.ceil(result.length / 4)
-    const websiteTokens = websitePreview ? Math.ceil(websitePreview.length / 4) : 0
-    const estimatedTokens = textTokens + websiteTokens
+    const totalTokenCount = [usageAnalysis, usageWebsite]
+      .filter(Boolean)
+      .reduce((sum, u) => sum + (u.totalTokenCount ?? 0), 0)
+    const estimatedTokens = totalTokenCount > 0
+      ? totalTokenCount
+      : Math.ceil(result.length / 4) + (websitePreview ? Math.ceil(websitePreview.length / 4) : 0)
 
-    // Update preview with result
     preview.previewResult = result
     preview.status = 'completed'
     preview.tokenUsage = estimatedTokens
-    if (websitePreview) {
-      preview.metadata = { 
-        ...preview.metadata, 
-        websitePreviewCode: websitePreview 
-      }
+    preview.metadata = {
+      ...preview.metadata,
+      ...(websitePreview && { websitePreviewCode: websitePreview }),
+      usage: {
+        analysis: usageAnalysis ? { promptTokenCount: usageAnalysis.promptTokenCount, candidatesTokenCount: usageAnalysis.candidatesTokenCount, totalTokenCount: usageAnalysis.totalTokenCount } : null,
+        website: usageWebsite ? { promptTokenCount: usageWebsite.promptTokenCount, candidatesTokenCount: usageWebsite.candidatesTokenCount, totalTokenCount: usageWebsite.totalTokenCount } : null,
+      },
     }
     await preview.save()
+
+    const usagePayload = {
+      analysis: usageAnalysis,
+      website: usageWebsite,
+      totalTokenCount: estimatedTokens,
+    }
 
     res.status(201).json({
       id: preview._id,
       prompt: preview.prompt,
       previewType: preview.previewType,
       status: 'completed',
-      result: result,
+      result,
       websitePreview: websitePreview ? { htmlCode: websitePreview, isMock: websiteIsMock } : null,
       fromCache: fromCache && websiteFromCache,
-      websiteIsMock: websiteIsMock,
+      websiteIsMock,
       tokenUsage: estimatedTokens,
-      message: (fromCache && websiteFromCache) ? 'Results retrieved from cache' : 'AI preview generated successfully'
+      usage: usagePayload,
+      message: (fromCache && websiteFromCache) ? 'Results retrieved from cache' : 'AI preview generated successfully',
     })
 
   } catch (error) {
@@ -131,6 +152,56 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     res.status(500)
     throw new Error(`AI generation failed: ${error.message}`)
   }
+})
+
+// @desc    Get AI usage for current user
+// @route   GET /api/ai-previews/usage
+// @access  Private
+export const getAIPreviewUsage = asyncHandler(async (req, res) => {
+  const period = (req.query.period || 'month').toLowerCase()
+  const isWeek = period === 'week'
+  const start = new Date()
+  if (isWeek) start.setDate(start.getDate() - 7)
+  else start.setDate(1)
+  start.setHours(0, 0, 0, 0)
+
+  const previews = await AIPreview.find({
+    userId: req.user._id,
+    status: 'completed',
+    createdAt: { $gte: start },
+  })
+    .select('tokenUsage metadata.usage createdAt')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  const totalRequests = previews.length
+  const totalTokenCount = previews.reduce((sum, p) => sum + (p.tokenUsage || 0), 0)
+  let totalPromptTokens = 0
+  let totalOutputTokens = 0
+  for (const p of previews) {
+    const u = p.metadata?.usage
+    if (u?.analysis) {
+      totalPromptTokens += u.analysis.promptTokenCount || 0
+      totalOutputTokens += u.analysis.candidatesTokenCount || 0
+    }
+    if (u?.website) {
+      totalPromptTokens += u.website.promptTokenCount || 0
+      totalOutputTokens += u.website.candidatesTokenCount || 0
+    }
+  }
+
+  res.json({
+    period: isWeek ? 'week' : 'month',
+    totalRequests,
+    totalTokenCount,
+    totalPromptTokens,
+    totalOutputTokens,
+    byPreview: previews.map((p) => ({
+      id: p._id,
+      createdAt: p.createdAt,
+      tokenUsage: p.tokenUsage,
+    })),
+  })
 })
 
 // @desc    Get all AI previews for current user
@@ -147,12 +218,12 @@ export const getAIPreviews = asyncHandler(async (req, res) => {
 // @desc    Get AI preview by ID
 // @route   GET /api/ai-previews/:id
 // @access  Private
-export const getAIPreviewById = asyncHandler(async (req, res) => {
-  const preview = await AIPreview.findById(req.params.id).populate(
+export const getAIPreviewById = asyncHandler(async (req, res) => { 
+  const preview = await AIPreview.findById(req.params.id).populate( 
     'projectId',
     'title status'
   )
-
+  
   if (!preview) {
     res.status(404)
     throw new Error('AI preview not found')

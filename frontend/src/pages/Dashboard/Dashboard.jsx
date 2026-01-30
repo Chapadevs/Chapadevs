@@ -1,12 +1,23 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
 import Header from '../../components/Header/Header'
 import UserStatus from '../../components/UserStatus/UserStatus'
 import AIPreviewGenerator from '../../components/AIPreviewGenerator/AIPreviewGenerator'
+import { getAIPreviewUsage } from '../../services/api'
 import './Dashboard.css'
 
 const Dashboard = () => {
   const { user, logout } = useAuth()
+  const [aiUsage, setAiUsage] = useState(null)
+  const showAiUsage = user?.role === 'client' || user?.role === 'user'
+
+  useEffect(() => {
+    if (!showAiUsage) return
+    getAIPreviewUsage('month')
+      .then((data) => setAiUsage(data))
+      .catch(() => setAiUsage(null))
+  }, [showAiUsage])
 
   const renderRoleSpecificContent = () => {
     switch (user?.role) {
@@ -93,6 +104,19 @@ const Dashboard = () => {
               </Link>
             </div>
           </div>
+
+          {showAiUsage && (
+            <div className="ai-usage-card quick-actions-card">
+              <h3>AI Preview Usage</h3>
+              {aiUsage ? (
+                <p className="ai-usage-stats">
+                  This month: <strong>{aiUsage.totalRequests}</strong> request{aiUsage.totalRequests !== 1 ? 's' : ''}, <strong>{aiUsage.totalTokenCount?.toLocaleString() ?? 0}</strong> tokens
+                </p>
+              ) : (
+                <p className="ai-usage-stats">Loading…</p>
+              )}
+            </div>
+          )}
 
           {(user?.role === 'programmer' || user?.role === 'client') && (
             <UserStatus />

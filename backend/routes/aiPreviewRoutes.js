@@ -1,6 +1,7 @@
 import express from 'express'
 import {
   generateAIPreview,
+  getAIPreviewUsage,
   getAIPreviews,
   getAIPreviewById,
   deleteAIPreview
@@ -11,6 +12,8 @@ const router = express.Router()
 
 // All routes are protected
 router.use(protect)
+
+router.get('/usage', getAIPreviewUsage)
 
 router.route('/')
   .post(generateAIPreview)

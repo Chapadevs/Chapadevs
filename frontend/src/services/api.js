@@ -169,6 +169,12 @@ export const getVertexAIStatus = async () => {
   return response.data
 }
 
+/** Get AI usage for current user. Optional query: ?period=week|month. */
+export const getAIPreviewUsage = async (period = 'month') => {
+  const response = await api.get('/ai-previews/usage', { params: { period } })
+  return response.data
+}
+
 export const getAIPreviews = async () => {
   const response = await api.get('/ai-previews')
   return response.data

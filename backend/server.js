@@ -123,9 +123,7 @@ async function start() {
       process.exit(0)
     })
   })
-}
-
-// Handle uncaught errors to prevent crashes
+}// Handle uncaught errors to prevent crashes
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error)
   // Don't exit - let the server keep running
