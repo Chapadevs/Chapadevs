@@ -48,20 +48,24 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <Link to="/" className="login-logo-link">
+      <div className="login-brand">
+        <Link to="/" className="login-brand-link">
           <img
             src="assets/logos/chapadevs-logo.png"
-            alt="Chapadevs Logo"
-            className="login-logo"
+            alt="Chapadevs"
+            className="login-brand-logo"
           />
         </Link>
-        <div className="login-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in to your account</p>
-        </div>
+        <p className="login-brand-tagline">Build with us</p>
+      </div>
+      <div className="login-form-panel">
+        <div className="login-card">
+          <div className="login-header">
+            <h1>Welcome Back</h1>
+            <p>Sign in to your account</p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
+          <form onSubmit={handleSubmit} className="login-form">
           {(localError || authError) && (
             <div className="error-message">
               {localError || authError}
@@ -105,11 +109,12 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="login-footer">
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register">Sign up</Link>
-          </p>
+          <div className="login-footer">
+            <p>
+              Don't have an account?{' '}
+              <Link to="/register">Sign up</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

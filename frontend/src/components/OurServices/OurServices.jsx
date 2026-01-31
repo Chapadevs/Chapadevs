@@ -1,7 +1,34 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import './OurServices.css'
 
 const OurServices = () => {
+  const { isAuthenticated } = useAuth()
+
+  const benefits = [
+    {
+      icon: 'fas fa-bolt',
+      title: 'Instant Analysis',
+      text: 'Get project overview, features, and tech stack recommendations in seconds.',
+    },
+    {
+      icon: 'fas fa-chart-line',
+      title: 'Timeline & Budget',
+      text: 'AI-powered estimates for timeline phases and budget breakdown.',
+    },
+    {
+      icon: 'fas fa-code',
+      title: 'Live React Preview',
+      text: 'See a working website preview. Copy or download the code.',
+    },
+    {
+      icon: 'fas fa-layer-group',
+      title: '5 Generations per Project',
+      text: 'Refine your idea with multiple AI generations per project.',
+    },
+  ]
+
   return (
     <section className="services-section services" id="services">
       <div className="bg-float bg-float-1"></div>
@@ -11,73 +38,51 @@ const OurServices = () => {
       <div className="bg-float bg-float-5"></div>
       <div className="bg-float bg-float-6"></div>
       <div className="bg-float bg-float-7"></div>
-      
+
       <div className="services-container">
-        <div className="services-grid">
-          <article className="service-card service-card-left">
-            <div className="card-bg-blur"></div>
-            
-            <div className="service-icon">
-              <i className="fas fa-layer-group"></i>
-            </div>
-            <h3>COMPLETE LAUNCH & SETUP</h3>
-            <p>
-              We launch your entire digital presence. Domain setup, hosting, and all
-              technical details handled.
-            </p>
-            <div className="service-tags">
-              <span className="service-tag">DOMAIN & HOSTING SETUP</span>
-              <span className="service-tag">SSL CERTIFICATES</span>
-              <span className="service-tag">EMAIL CONFIGURATION</span>
-            </div>
-          </article>
-          
-          <header className="section-header">
+        <div className="services-feature-hero">
+          <header className="services-feature-header">
             <div className="title-brand-split">
               <div className="title-line-1">
-                <span className="dark-text">OUR</span>
+                <span className="dark-text">AI</span>
               </div>
               <div className="title-line-2">
-                <span className="green-text">SERVICES</span>
+                <span className="green-text">PROJECT PREVIEW</span>
               </div>
             </div>
+            <p className="services-feature-description">
+              Describe your project and get instant AI analysis—overview, features, tech stack, timeline, and a live website preview. Available in your project dashboard.
+            </p>
           </header>
-          
-          <article className="service-card service-card-right">
-            <div className="card-bg-blur"></div>
-            
-            <div className="service-icon">
-              <i className="fas fa-tools"></i>
-            </div>
-            <h3>MAINTENANCE & UPDATES</h3>
-            <p>
-              We keep your site secure and up to date with ongoing maintenance and future improvements.
-            </p>
-            <div className="service-tags">
-              <span className="service-tag">CONTINUOUS SUPPORT</span>
-              <span className="service-tag">SECURITY UPDATES</span>
-              <span className="service-tag">FUTURE FEATURES</span>
-              <span className="service-tag">RELIABILITY</span>
-            </div>
-          </article>
-          
-          <article className="service-card service-card-bottom">
-            <div className="card-bg-blur"></div>
-            
-            <div className="service-icon">
-              <i className="fas fa-rocket"></i>
-            </div>
-            <h3>RAPID DEPLOYMENT</h3>
-            <p>
-              We don't waste time with unnecessary over-engineering. 
-              We deliver your website fast, using the best technologies.
-            </p>
-            <div className="service-tags">
-              <span className="service-tag">1-2 WEEK DELIVERY</span>
-              <span className="service-tag">QUALITY ASSURANCE</span>
-              <span className="service-tag">ONGOING SUPPORT</span>
-            </div>
-          </article>
+
+          <div className="services-benefits">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="services-benefit-item">
+                <div className="services-benefit-icon">
+                  <i className={benefit.icon}></i>
+                </div>
+                <div className="services-benefit-content">
+                  <h4 className="services-benefit-title">{benefit.title}</h4>
+                  <p className="services-benefit-text">{benefit.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="services-tags">
+            <span className="service-tag">Powered by Vertex AI</span>
+            <span className="service-tag">Live Preview</span>
+            <span className="service-tag">Tech Stack Recommendations</span>
+          </div>
+
+          <div className="services-cta">
+            <Link
+              to={isAuthenticated ? '/projects/create' : '/register'}
+              className="btn btn--primary"
+            >
+              Get Started
+            </Link>
+          </div>
         </div>
       </div>
     </section>
@@ -85,4 +90,3 @@ const OurServices = () => {
 }
 
 export default OurServices
-
