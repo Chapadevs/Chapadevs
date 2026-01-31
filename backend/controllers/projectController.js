@@ -1,6 +1,8 @@
 import Project from '../models/Project.js'
-import ProjectNote from '../models/ProjectNote.js'
+import ProjectPhase from '../models/ProjectPhase.js'
 import AIPreview from '../models/AIPreview.js'
+import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
+import { getPhasesFromAIAnalysis } from '../utils/aiAnalysisPhases.js'
 import asyncHandler from 'express-async-handler'
 
 // @desc    Create a new project
@@ -86,17 +88,78 @@ export const getProjectById = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  const notes = await ProjectNote.find({ projectId: project._id })
-    .populate('userId', 'name email')
-    .sort({ createdAt: -1 })
+  let phases = await ProjectPhase.find({ projectId: project._id })
+    .sort({ order: 1 })
     .lean()
+
+  // If project is in Development (or Completed) but has no phases (e.g. assigned before phases feature), create them now
+  if (phases.length === 0 && ['Development', 'Completed'].includes(project.status)) {
+    let definitions = await getPhasesFromAIAnalysis(project._id)
+    if (!definitions?.length) {
+      const template = getPhasesForProjectType(project.projectType)
+      definitions = template.map((d) => ({
+        title: d.title,
+        description: d.description ?? null,
+        order: d.order,
+        deliverables: [],
+      }))
+    }
+    const created = await ProjectPhase.insertMany(
+      definitions.map((d) => ({
+        projectId: project._id,
+        title: d.title,
+        description: d.description ?? null,
+        order: d.order,
+        status: 'not_started',
+        deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
+      }))
+    )
+    phases = created.map((p) => p.toObject ? p.toObject() : p)
+  }
 
   const previewCount = await AIPreview.countDocuments({
     projectId: project._id,
     status: 'completed'
   })
 
-  res.json({ ...project, notes, previewCount })
+  res.json({ ...project, phases, previewCount })
+})
+
+// @desc    Update a project phase (status, completedAt). Programmer or admin only.
+// @route   PATCH /api/projects/:projectId/phases/:phaseId
+// @access  Private (assigned programmer or admin)
+export const updatePhase = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const phaseId = req.params.phaseId
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const isProgrammer = assignedId && req.user._id.toString() === assignedId
+  if (req.user.role !== 'admin' && !isProgrammer) {
+    res.status(403)
+    throw new Error('Only the assigned programmer or admin can update phase status')
+  }
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  if (!phase) {
+    res.status(404)
+    throw new Error('Phase not found')
+  }
+  if (req.body.status !== undefined) {
+    const valid = ['not_started', 'in_progress', 'completed'].includes(req.body.status)
+    if (!valid) {
+      res.status(400)
+      throw new Error('Invalid phase status')
+    }
+    phase.status = req.body.status
+    phase.completedAt = req.body.status === 'completed' ? new Date() : null
+  }
+  if (req.body.completedAt !== undefined) phase.completedAt = req.body.completedAt
+  await phase.save()
+  const updated = await ProjectPhase.findById(phase._id).lean()
+  res.json(updated)
 })
 
 // @desc    Get AI previews for a project (client or assigned programmer)
@@ -159,17 +222,18 @@ export const deleteProject = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  if (req.user.role === 'user') {
+  if (req.user.role === 'user' || req.user.role === 'client') {
     if (project.clientId.toString() !== req.user._id.toString()) {
       res.status(403)
       throw new Error('Not authorized to delete this project')
     }
-    if (project.status !== 'Holding') {
+    if (!['Holding', 'Development'].includes(project.status)) {
       res.status(403)
-      throw new Error('Can only delete projects in Holding status')
+      throw new Error('Can only delete projects in Holding or Development status')
     }
   }
 
+  await ProjectPhase.deleteMany({ projectId: project._id })
   await project.deleteOne()
 
   res.json({ message: 'Project removed' })

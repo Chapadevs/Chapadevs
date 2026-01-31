@@ -1,6 +1,32 @@
 import Project from '../models/Project.js'
+import ProjectPhase from '../models/ProjectPhase.js'
 import { createNotification } from './notificationController.js'
+import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
+import { getPhasesFromAIAnalysis } from '../utils/aiAnalysisPhases.js'
 import asyncHandler from 'express-async-handler'
+
+async function createPhasesForProject(project) {
+  let definitions = await getPhasesFromAIAnalysis(project._id)
+  if (!definitions?.length) {
+    const template = getPhasesForProjectType(project.projectType)
+    definitions = template.map((d) => ({
+      title: d.title,
+      description: d.description ?? null,
+      order: d.order,
+      deliverables: [],
+    }))
+  }
+  return ProjectPhase.insertMany(
+    definitions.map((d) => ({
+      projectId: project._id,
+      title: d.title,
+      description: d.description ?? null,
+      order: d.order,
+      status: 'not_started',
+      deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
+    }))
+  )
+}
 
 // @desc    Get available projects (not assigned, status Ready)
 // @route   GET /api/assignments/available
@@ -45,6 +71,7 @@ export const assignProject = asyncHandler(async (req, res) => {
   project.startDate = new Date()
 
   await project.save()
+  await createPhasesForProject(project)
 
   await createNotification(
     project.clientId,
@@ -92,6 +119,7 @@ export const acceptProject = asyncHandler(async (req, res) => {
   project.startDate = new Date()
 
   await project.save()
+  await createPhasesForProject(project)
 
   await createNotification(
     project.clientId,
@@ -125,6 +153,7 @@ export const rejectProject = asyncHandler(async (req, res) => {
   project.status = 'Ready'
 
   await project.save()
+  await ProjectPhase.deleteMany({ projectId: project._id })
 
   res.json(project)
 })
@@ -154,6 +183,7 @@ export const unassignProject = asyncHandler(async (req, res) => {
   project.status = 'Ready'
 
   await project.save()
+  await ProjectPhase.deleteMany({ projectId: project._id })
 
   res.json(project)
 })

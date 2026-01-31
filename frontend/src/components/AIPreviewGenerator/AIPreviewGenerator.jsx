@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { generateAIPreview, getVertexAIStatus } from '../../services/api'
-import { Sandpack } from '@codesandbox/sandpack-react'
+import { TECH_STACK_BY_CATEGORY } from '../../config/techStack'
 import JSZip from 'jszip'
 import './AIPreviewGenerator.css'
 
@@ -10,7 +10,7 @@ const AIPreviewGenerator = () => {
     budget: '',
     timeline: '',
     projectType: '',
-    techStack: ''
+    techStack: [],
   })
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -64,8 +64,17 @@ const AIPreviewGenerator = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     })
+  }
+
+  const handleTechToggle = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      techStack: prev.techStack.includes(value)
+        ? prev.techStack.filter((t) => t !== value)
+        : [...prev.techStack, value],
+    }))
   }
 
   const handleSubmit = async (e) => {
@@ -83,7 +92,13 @@ const AIPreviewGenerator = () => {
     setWebsiteIsMock(false)
 
     try {
-      const response = await generateAIPreview(formData)
+      const payload = {
+        ...formData,
+        techStack: Array.isArray(formData.techStack)
+          ? formData.techStack.join(', ')
+          : String(formData.techStack || ''),
+      }
+      const response = await generateAIPreview(payload)
       
       // Parse the JSON result if it's a string
       let parsedResult
@@ -445,15 +460,28 @@ npm start
           </div>
 
           <div className="form-group">
-            <label htmlFor="techStack">Tech Preferences (Optional)</label>
-            <input
-              type="text"
-              id="techStack"
-              name="techStack"
-              value={formData.techStack}
-              onChange={handleChange}
-              placeholder="e.g., React, Node.js, MongoDB"
-            />
+            <label>Tech Stack</label>
+            <p className="form-hint">Select stacks for AI analysis</p>
+            <div className="tech-stack-categories">
+              {Object.entries(TECH_STACK_BY_CATEGORY).map(([category, options]) => (
+                <div key={category} className="tech-stack-category" role="group" aria-label={`${category} technologies`}>
+                  <span className="tech-stack-category-label">{category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                  <div className="tech-stack-options">
+                    {options.map((opt) => (
+                      <label key={opt.value} className="tech-stack-option">
+                        <input
+                          type="checkbox"
+                          value={opt.value}
+                          checked={formData.techStack.includes(opt.value)}
+                          onChange={() => handleTechToggle(opt.value)}
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

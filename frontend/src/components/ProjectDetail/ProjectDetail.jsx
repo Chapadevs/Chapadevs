@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { projectAPI, generateAIPreview, deleteAIPreview } from '../../services/api'
+import { TECH_STACK_BY_CATEGORY } from '../../config/techStack'
 import JSZip from 'jszip'
 import Header from '../Header/Header'
 import './ProjectDetail.css'
@@ -25,13 +26,24 @@ const ProjectDetail = () => {
     budget: '',
     timeline: '',
     projectType: '',
-    techStack: ''
+    techStack: [],
   })
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState('')
   const [expandedPreviewId, setExpandedPreviewId] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
   const [showMoreDetails, setShowMoreDetails] = useState(false)
+  const [updatingPhaseId, setUpdatingPhaseId] = useState(null)
+  const [selectedPhase, setSelectedPhase] = useState(null)
+  const phasesScrollRef = useRef(null)
+
+  const PHASES_STEP_WIDTH = 130
+  const scrollPhases = (direction) => {
+    const el = phasesScrollRef.current
+    if (!el) return
+    const delta = el.clientWidth * 0.6
+    el.scrollBy({ left: direction === 'next' ? delta : -delta, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     if (!id || id === 'undefined') {
@@ -112,10 +124,17 @@ const ProjectDetail = () => {
     setGenerating(true)
     setGenerateError('')
     try {
-      await generateAIPreview({ ...generateFormData, projectId: id })
+      const payload = {
+        ...generateFormData,
+        projectId: id,
+        techStack: Array.isArray(generateFormData.techStack)
+          ? generateFormData.techStack.join(', ')
+          : String(generateFormData.techStack || ''),
+      }
+      await generateAIPreview(payload)
       await loadPreviews()
       setShowGenerateForm(false)
-      setGenerateFormData({ prompt: '', budget: '', timeline: '', projectType: '', techStack: '' })
+      setGenerateFormData({ prompt: '', budget: '', timeline: '', projectType: '', techStack: [] })
     } catch (err) {
       setGenerateError(err.message || 'Failed to generate preview')
     } finally {
@@ -130,6 +149,24 @@ const ProjectDetail = () => {
       await loadPreviews()
     } catch (err) {
       setError(err.message || 'Failed to delete preview')
+    }
+  }
+
+  const handleUpdatePhase = async (phaseId, status) => {
+    try {
+      setUpdatingPhaseId(phaseId)
+      setError(null)
+      const updated = await projectAPI.updatePhase(id, phaseId, { status })
+      setProject((prev) => ({
+        ...prev,
+        phases: (prev.phases || []).map((p) =>
+          (p._id || p.id) === phaseId ? { ...p, ...updated } : p
+        ),
+      }))
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to update phase')
+    } finally {
+      setUpdatingPhaseId(null)
     }
   }
 
@@ -205,7 +242,7 @@ const ProjectDetail = () => {
   const isClientOwner = userIdStr && clientIdStr && clientIdStr === userIdStr
   const isAssignedProgrammer = userIdStr && assignedProgrammerIdStr && assignedProgrammerIdStr === userIdStr
   const canEdit = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Ready'].includes(project.status)
-  const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && project.status === 'Holding'
+  const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Development'].includes(project.status)
   const canMarkReady = (user?.role === 'client' || user?.role === 'user') && isClientOwner && project.status === 'Holding'
   const canGeneratePreviews = isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT
   const showAIPreviewsSection = isClientOwner || isAssignedProgrammer
@@ -326,27 +363,145 @@ const ProjectDetail = () => {
 
       <div className="project-detail-content">
         <div className="project-main">
-          <section className="project-section project-overview">
-            {project.projectType && (
-              <span className="project-overview-type">{project.projectType}</span>
-            )}
-            <p className="project-overview-description">{project.description}</p>
-            {(project.goals?.length > 0 || project.features?.length > 0 || project.technologies?.length > 0) && (
-              <div className="project-overview-meta">
-                <span className="project-overview-badges">
-                  {project.goals?.length > 0 && (
-                    <span className="project-overview-tag">Goals: {project.goals.join(' · ')}</span>
-                  )}
-                  {project.features?.length > 0 && (
-                    <span className="project-overview-tag">Features: {project.features.join(' · ')}</span>
-                  )}
-                  {project.technologies?.length > 0 && (
-                    <span className="project-overview-tag">Tech: {project.technologies.join(', ')}</span>
-                  )}
-                </span>
+          {project.phases && project.phases.length > 0 && (
+            <section className="project-section project-phases">
+              <h2>Project progress</h2>
+              <div className="project-phases-linear">
+                <div className="project-phases-progress-bar">
+                  <div
+                    className="project-phases-progress-fill"
+                    style={{
+                      width: `${(project.phases.filter((p) => p.status === 'completed').length / project.phases.length) * 100}%`,
+                    }}
+                  />
+                </div>
+                <div className="project-phases-progress-label">
+                  {project.phases.filter((p) => p.status === 'completed').length} of {project.phases.length} phases completed
+                </div>
+                <div className="project-phases-scroll-outer">
+                  <button
+                    type="button"
+                    className="project-phases-scroll-btn project-phases-scroll-prev"
+                    onClick={() => scrollPhases('prev')}
+                    aria-label="Previous steps"
+                  >
+                    ‹
+                  </button>
+                  <div
+                    ref={phasesScrollRef}
+                    className="project-phases-scroll"
+                    role="region"
+                    aria-label="Project phases"
+                  >
+                    <div
+                      className="project-phases-scroll-inner"
+                      style={{
+                        '--phases-step-width': PHASES_STEP_WIDTH,
+                        '--phases-count': project.phases.length,
+                      }}
+                    >
+                      <div
+                        className="project-phases-track"
+                        style={{ '--steps': project.phases.length }}
+                      >
+                        <div className="project-phases-track-line" aria-hidden />
+                        <div
+                          className="project-phases-track-fill"
+                          style={{
+                            width: (() => {
+                              const total = project.phases.length
+                              const completed = project.phases.filter((p) => p.status === 'completed').length
+                              if (completed === 0 || total <= 1) return '0%'
+                              return `${((completed - 1) / (total - 1)) * 100}%`
+                            })(),
+                          }}
+                          aria-hidden
+                        />
+                        {project.phases.map((phase, index) => {
+                          const phaseId = phase._id || phase.id
+                          const isCompleted = phase.status === 'completed'
+                          const isInProgress = phase.status === 'in_progress'
+                          return (
+                            <div
+                              key={phaseId}
+                              className={`project-phase-step project-phase-step-clickable ${isCompleted ? 'step-completed' : isInProgress ? 'step-in-progress' : 'step-pending'}`}
+                              style={{ '--step-i': index }}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setSelectedPhase(phase)}
+                              onKeyDown={(e) => e.key === 'Enter' && setSelectedPhase(phase)}
+                              aria-label={`View details: ${phase.title}`}
+                            >
+                              <div className="project-phase-step-node">
+                                {isCompleted ? (
+                                  <span className="project-phase-step-icon" aria-hidden>✓</span>
+                                ) : (
+                                  <span className="project-phase-step-number">{phase.order}</span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div
+                        className="project-phases-labels"
+                        style={{ '--steps': project.phases.length }}
+                      >
+                        {project.phases.map((phase, index) => {
+                          const phaseId = phase._id || phase.id
+                          const isCompleted = phase.status === 'completed'
+                          const isInProgress = phase.status === 'in_progress'
+                          return (
+                            <div
+                              key={phaseId}
+                              className={`project-phase-label-wrap project-phase-label-clickable ${isCompleted ? 'label-completed' : isInProgress ? 'label-active' : ''}`}
+                              style={{ '--step-i': index }}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setSelectedPhase(phase)}
+                              onKeyDown={(e) => e.key === 'Enter' && setSelectedPhase(phase)}
+                              aria-label={`View details: ${phase.title}`}
+                            >
+                              <span className="project-phase-label-title">{phase.title}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="project-phases-scroll-btn project-phases-scroll-next"
+                    onClick={() => scrollPhases('next')}
+                    aria-label="Next steps"
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
-            )}
-            {(project.brandingDetails || project.specialRequirements || project.additionalComments) && (
+            </section>
+          )}
+
+          <section className="project-section project-overview">
+            <div className="project-overview-row">
+              {project.projectType && (
+                <span className="project-overview-type">{project.projectType}</span>
+              )}
+              {(project.goals?.length > 0 || project.features?.length > 0) && (
+                <div className="project-overview-meta">
+                  <span className="project-overview-badges">
+                    {project.goals?.length > 0 && (
+                      <span className="project-overview-tag">Goals: {project.goals.join(' · ')}</span>
+                    )}
+                    {project.features?.length > 0 && (
+                      <span className="project-overview-tag">Features: {project.features.join(' · ')}</span>
+                    )}
+                  </span>
+                </div>
+              )}
+              <p className="project-overview-description">{project.description}</p>
+            </div>
+            {(project.brandingDetails || project.specialRequirements || project.additionalComments || (project.technologies?.length > 0)) && (
               <div className="project-more-details">
                 <button
                   type="button"
@@ -358,6 +513,11 @@ const ProjectDetail = () => {
                 </button>
                 {showMoreDetails && (
                   <div className="project-more-details-content">
+                    {project.technologies?.length > 0 && (
+                      <div className="project-more-detail-row">
+                        <strong>Tech:</strong> {project.technologies.join(', ')}
+                      </div>
+                    )}
                     {project.brandingDetails && (
                       <div className="project-more-detail-row">
                         <strong>Branding:</strong> {project.hasBranding && `${project.hasBranding} — `}
@@ -395,7 +555,7 @@ const ProjectDetail = () => {
                   className="btn btn-primary project-generate-preview-btn"
                   onClick={() => setShowGenerateForm(true)}
                 >
-                  Generate new preview
+                  Generate new Website
                 </button>
               )}
 
@@ -443,14 +603,35 @@ const ProjectDetail = () => {
                     </div>
                   </div>
                   <div className="project-preview-form-group">
-                    <label htmlFor="preview-tech">Tech preferences (optional)</label>
-                    <input
-                      id="preview-tech"
-                      type="text"
-                      value={generateFormData.techStack}
-                      onChange={(e) => setGenerateFormData({ ...generateFormData, techStack: e.target.value })}
-                      placeholder="e.g. React, Node.js"
-                    />
+                    <label>Tech Stack</label>
+                    <p className="project-preview-form-hint">Select stacks for AI analysis</p>
+                    <div className="tech-stack-categories">
+                      {Object.entries(TECH_STACK_BY_CATEGORY).map(([category, options]) => (
+                        <div key={category} className="tech-stack-category" role="group" aria-label={`${category} technologies`}>
+                          <span className="tech-stack-category-label">{category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                          <div className="tech-stack-options">
+                            {options.map((opt) => (
+                              <label key={opt.value} className="tech-stack-option">
+                                <input
+                                  type="checkbox"
+                                  value={opt.value}
+                                  checked={generateFormData.techStack.includes(opt.value)}
+                                  onChange={() => {
+                                    setGenerateFormData((prev) => ({
+                                      ...prev,
+                                      techStack: prev.techStack.includes(opt.value)
+                                        ? prev.techStack.filter((t) => t !== opt.value)
+                                        : [...prev.techStack, opt.value],
+                                    }))
+                                  }}
+                                />
+                                <span>{opt.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {generateError && <div className="error-message">{generateError}</div>}
                   <div className="project-preview-form-actions">
@@ -568,6 +749,14 @@ const ProjectDetail = () => {
                 <span>{project.assignedProgrammerId.name}</span>
               </div>
             )}
+            {project.phases && project.phases.length > 0 && (
+              <div className="info-item">
+                <strong>Progress:</strong>
+                <span>
+                  {project.phases.filter((p) => p.status === 'completed').length} / {project.phases.length} phases
+                </span>
+              </div>
+            )}
             {project.budget && (
               <div className="info-item">
                 <strong>Budget:</strong>
@@ -600,6 +789,102 @@ const ProjectDetail = () => {
         </div>
       </div>
       </div>
+
+      {selectedPhase && (
+        <div
+          className="project-phase-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="phase-modal-title"
+          onClick={() => setSelectedPhase(null)}
+        >
+          <div
+            className="project-phase-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="project-phase-modal-header">
+              <h2 id="phase-modal-title" className="project-phase-modal-title">
+                {selectedPhase.title}
+              </h2>
+              <button
+                type="button"
+                className="project-phase-modal-close"
+                onClick={() => setSelectedPhase(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="project-phase-modal-body">
+              <div className="project-phase-modal-status">
+                <span className={`project-phase-modal-status-badge status-${selectedPhase.status?.replace('_', '-')}`}>
+                  {selectedPhase.status === 'not_started' && 'Not started'}
+                  {selectedPhase.status === 'in_progress' && 'In progress'}
+                  {selectedPhase.status === 'completed' && 'Completed'}
+                </span>
+              </div>
+              <p className="project-phase-modal-description">
+                {selectedPhase.description || `This phase covers ${selectedPhase.title.toLowerCase()} for the project.`}
+              </p>
+              {selectedPhase.deliverables?.length > 0 && (
+                <div className="project-phase-modal-deliverables">
+                  <strong>Deliverables:</strong>
+                  <ul>
+                    {selectedPhase.deliverables.map((d, i) => (
+                      <li key={i}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {selectedPhase.completedAt && (
+                <p className="project-phase-modal-completed">
+                  Completed on {new Date(selectedPhase.completedAt).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            {isAssignedProgrammer && selectedPhase.status !== 'completed' && (() => {
+              const phases = project.phases
+              const inProgressIdx = phases.findIndex((p) => p.status === 'in_progress')
+              const notStartedIdx = phases.findIndex((p) => p.status === 'not_started')
+              const currentStepIndex = inProgressIdx >= 0 ? inProgressIdx : notStartedIdx
+              const selectedIndex = phases.findIndex((p) => (p._id || p.id) === (selectedPhase._id || selectedPhase.id))
+              const isCurrentStep = currentStepIndex >= 0 && selectedIndex === currentStepIndex
+              const phaseId = selectedPhase._id || selectedPhase.id
+              const isUpdating = updatingPhaseId === phaseId
+              if (!isCurrentStep) return null
+              return (
+                <div className="project-phase-modal-footer">
+                  {selectedPhase.status === 'not_started' ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={isUpdating}
+                      onClick={() => {
+                        handleUpdatePhase(phaseId, 'in_progress')
+                        setSelectedPhase(null)
+                      }}
+                    >
+                      {isUpdating ? '…' : 'Start phase'}
+                    </button>
+                  ) : selectedPhase.status === 'in_progress' ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={isUpdating}
+                      onClick={() => {
+                        handleUpdatePhase(phaseId, 'completed')
+                        setSelectedPhase(null)
+                      }}
+                    >
+                      {isUpdating ? '…' : 'Mark complete'}
+                    </button>
+                  ) : null}
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
     </>
   )
 }

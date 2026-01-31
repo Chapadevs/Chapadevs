@@ -1,13 +1,32 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { projectAPI } from '../../services/api'
+import { TECH_STACK_BY_CATEGORY } from '../../config/techStack'
 import Header from '../Header/Header'
 import './CreateProject.css'
+
+const formatBudgetDisplay = (value) => {
+  const digitsOnly = value.replace(/[^\d.]/g, '')
+  if (digitsOnly === '' || digitsOnly === '.') return ''
+  const parts = digitsOnly.split('.')
+  const intPart = parts[0] || '0'
+  const decPart = parts[1] != null ? parts[1].slice(0, 2) : ''
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  if (decPart === '') return `$${formattedInt}`
+  return `$${formattedInt}.${decPart}`
+}
+
+const parseBudgetForSubmit = (displayValue) => {
+  if (!displayValue) return ''
+  const raw = displayValue.replace(/[$,]/g, '')
+  return raw === '' ? '' : raw
+}
 
 const CreateProject = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const dueDateInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [formData, setFormData] = useState({
@@ -19,7 +38,7 @@ const CreateProject = () => {
     goals: '',
     features: '',
     designStyles: '',
-    technologies: '',
+    technologies: [],
     hasBranding: '',
     brandingDetails: '',
     contentStatus: '',
@@ -31,10 +50,24 @@ const CreateProject = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+    if (name === 'budget') {
+      setFormData((prev) => ({
+        ...prev,
+        budget: formatBudgetDisplay(value),
+      }))
+      return
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
+  }
+
+  const timelineWeeks = Math.max(1, Math.min(52, parseInt(formData.timeline, 10) || 4))
+
+  const handleTimelineChange = (delta) => {
+    const next = Math.max(1, Math.min(52, timelineWeeks + delta))
+    setFormData((prev) => ({ ...prev, timeline: String(next) }))
   }
 
   const handleSubmit = async (e) => {
@@ -46,10 +79,12 @@ const CreateProject = () => {
       // Process arrays from comma-separated strings
       const projectData = {
         ...formData,
+        budget: parseBudgetForSubmit(formData.budget),
+        timeline: formData.timeline || String(Math.max(1, Math.min(52, parseInt(formData.timeline, 10) || 4))),
         goals: formData.goals ? formData.goals.split(',').map((g) => g.trim()).filter(Boolean) : [],
         features: formData.features ? formData.features.split(',').map((f) => f.trim()).filter(Boolean) : [],
         designStyles: formData.designStyles ? formData.designStyles.split(',').map((s) => s.trim()).filter(Boolean) : [],
-        technologies: formData.technologies ? formData.technologies.split(',').map((t) => t.trim()).filter(Boolean) : [],
+        technologies: Array.isArray(formData.technologies) ? formData.technologies : [],
         dueDate: formData.dueDate || null,
       }
 
@@ -128,13 +163,31 @@ const CreateProject = () => {
 
             <div className="form-group">
               <label htmlFor="dueDate">Due Date</label>
-              <input
-                type="date"
-                id="dueDate"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
-              />
+              <div className="date-input-wrapper">
+                <button
+                  type="button"
+                  className="date-input-calendar-btn"
+                  onClick={() => dueDateInputRef.current?.showPicker?.() ?? dueDateInputRef.current?.focus()}
+                  aria-label="Open calendar to pick due date"
+                  title="Pick date"
+                >
+                  <svg className="date-input-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </button>
+                <input
+                  ref={dueDateInputRef}
+                  type="date"
+                  id="dueDate"
+                  name="dueDate"
+                  value={formData.dueDate}
+                  onChange={handleChange}
+                  className="date-input-field"
+                />
+              </div>
             </div>
           </div>
 
@@ -151,16 +204,32 @@ const CreateProject = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group form-group--timeline">
               <label htmlFor="timeline">Timeline</label>
-              <input
-                type="text"
-                id="timeline"
-                name="timeline"
-                value={formData.timeline}
-                onChange={handleChange}
-                placeholder="e.g., 4-6 weeks"
-              />
+              <div className="timeline-stepper" role="group" aria-label="Project timeline in weeks">
+                <button
+                  type="button"
+                  className="timeline-stepper-btn"
+                  onClick={() => handleTimelineChange(-1)}
+                  aria-label="Decrease weeks"
+                  disabled={timelineWeeks <= 1}
+                >
+                  <span aria-hidden>−</span>
+                </button>
+                <span className="timeline-stepper-value" id="timeline">
+                  {timelineWeeks} Weeks
+                </span>
+                <button
+                  type="button"
+                  className="timeline-stepper-btn"
+                  onClick={() => handleTimelineChange(1)}
+                  aria-label="Increase weeks"
+                  disabled={timelineWeeks >= 52}
+                >
+                  <span aria-hidden>+</span>
+                </button>
+                <input type="hidden" name="timeline" value={formData.timeline || String(timelineWeeks)} />
+              </div>
             </div>
           </div>
         </div>
@@ -193,15 +262,37 @@ const CreateProject = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="technologies">Technologies (comma-separated)</label>
-            <input
-              type="text"
-              id="technologies"
-              name="technologies"
-              value={formData.technologies}
-              onChange={handleChange}
-              placeholder="e.g., React, Node.js, MongoDB"
-            />
+            <label>Technologies</label>
+            <p className="form-hint">Select the stacks your team will use</p>
+            <div className="tech-stack-categories">
+              {Object.entries(TECH_STACK_BY_CATEGORY).map(([category, options]) => (
+                <div key={category} className="tech-stack-category" role="group" aria-label={`${category} technologies`}>
+                  <span className="tech-stack-category-label">{category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                  <div className="tech-stack-options">
+                    {options.map((opt) => (
+                      <label key={opt.value} className="tech-stack-option">
+                        <input
+                          type="checkbox"
+                          name="technologies"
+                          value={opt.value}
+                          checked={formData.technologies.includes(opt.value)}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setFormData((prev) => ({
+                              ...prev,
+                              technologies: checked
+                                ? [...prev.technologies, opt.value]
+                                : prev.technologies.filter((t) => t !== opt.value),
+                            }))
+                          }}
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="form-group">

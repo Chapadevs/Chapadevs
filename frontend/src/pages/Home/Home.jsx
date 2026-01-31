@@ -5,7 +5,6 @@ import OurBusiness from '../../components/OurBusiness/OurBusiness'
 import OurServices from '../../components/OurServices/OurServices'
 import Team from '../../components/Team/Team'
 import AI from '../../components/AI/AI'
-import InquiryForm from '../../components/InquiryForm/InquiryForm'
 import FAQ from '../../components/FAQ/FAQ'
 import Footer from '../../components/Footer/Footer'
 
@@ -18,7 +17,6 @@ const Home = () => {
       <OurServices />
       <Team />
       <AI />
-      <InquiryForm />
       <FAQ />
       <Footer />
     </>

@@ -35,10 +35,16 @@
   padding: 0 2rem;
 }
 
-.logo-section {
+.header-left {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
 }
 
 .header-logo {
@@ -73,15 +79,15 @@
 
 .header-btn {
   padding: 0.5rem 1rem;
-  border: 2px solid #059669;
+  border: none;
   border-radius: 0;
-  background: #FFFFFF;
+  background: transparent;
   color: #059669;
   font-family: 'Creato Display Medium', serif;
   font-weight: 800;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.3s ease-in-out;
+  transition: color 0.2s ease, background 0.2s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -95,17 +101,20 @@
 }
 
 .header-btn:hover {
-  background: #059669;
-  color: #FFFFFF;
-  transform: translateY(-2px);
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
 }
 
 .header-btn:active {
-  transform: translateY(0);
+  background: rgba(5, 150, 105, 0.15);
 }
 
 .header-btn:focus {
-  outline: 2px solid #059669;
+  outline: none;
+  background: rgba(5, 150, 105, 0.08);
+}
+.header-btn:focus-visible {
+  outline: 1px solid #059669;
   outline-offset: 2px;
 }
 
@@ -118,7 +127,7 @@
 .header-btn--login {
   background: #059669;
   color: #FFFFFF !important;
-  border-color: #059669;
+  border: none;
   padding: 0.5rem 1rem;
   font-weight: 800;
   font-size: 0.85rem;
@@ -130,21 +139,173 @@
 
 .header-btn--login:hover {
   background: #0d9488;
-  border-color: #0d9488;
   color: #FFFFFF !important;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
-  transform: translateY(-2px);
 }
 
 .header-btn--login:active {
   background: #047857;
-  border-color: #047857;
+}
+
+/* Platform dropdown */
+.platform-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.header-btn--platform {
+  appearance: none;
+  font: inherit;
+}
+
+.platform-wrapper:hover .header-btn--platform {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.platform-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  min-width: 220px;
+  padding: 0.75rem 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.platform-dropdown--open,
+.platform-wrapper:hover .platform-dropdown {
+  opacity: 1;
+  visibility: visible;
   transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Resources dropdown */
+.resources-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.header-btn--resources {
+  appearance: none;
+  font: inherit;
+}
+
+.resources-wrapper:hover .header-btn--resources {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.resources-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  min-width: 220px;
+  padding: 0.75rem 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.resources-dropdown--open,
+.resources-wrapper:hover .resources-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.resources-dropdown-group {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0.5rem;
+}
+
+.resources-dropdown-group:not(:last-child) {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(5, 150, 105, 0.15);
+}
+
+.resources-dropdown-label {
+  font-family: 'Creato Display Medium', serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: #047857;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.resources-dropdown-link {
+  display: block;
+  padding: 0.4rem 0.5rem;
+  color: #059669;
+  font-family: 'Creato Display Medium', serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  border-radius: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.resources-dropdown-link:hover {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.resources-dropdown-link:focus {
+  outline: none;
+}
+
+.resources-dropdown-link:focus-visible {
+  outline: 1px solid #059669;
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
   .header-content {
     padding: 0 1rem;
+  }
+
+  .header-left {
+    flex-wrap: wrap;
+  }
+
+  .platform-dropdown {
+    min-width: 200px;
+    left: 0;
+  }
+
+  .resources-dropdown {
+    min-width: 200px;
+    left: 0;
+  }
+
+  .header-btn--platform {
+    min-width: 80px;
   }
   
   .logo-section {
@@ -168,6 +329,10 @@
     line-height: 20px;
     box-sizing: border-box;
   }
+
+  .header-btn--resources {
+    min-width: 80px;
+  }
   
   .header-btn--login {
     background: #059669;
@@ -190,6 +355,25 @@
   .header-content {
     padding: 0 0.75rem;
   }
+
+  .platform-dropdown {
+    min-width: 180px;
+    padding: 0.5rem 0;
+  }
+
+  .resources-dropdown {
+    min-width: 180px;
+    padding: 0.5rem 0;
+  }
+
+  .header-btn--platform {
+    min-width: 70px;
+  }
+
+  .resources-dropdown-link {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.5rem;
+  }
   
   .logo-section {
     gap: 0.5rem;
@@ -211,6 +395,10 @@
     font-size: 0.65rem;
     line-height: 18px;
     box-sizing: border-box;
+  }
+
+  .header-btn--resources {
+    min-width: 70px;
   }
   
   .header-btn--login {

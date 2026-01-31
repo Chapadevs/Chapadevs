@@ -5,6 +5,7 @@ import {
   getProjectById,
   getProjectPreviews,
   updateProject,
+  updatePhase,
   deleteProject,
   getMyProjects,
   getAssignedProjects,
@@ -28,6 +29,7 @@ router.post('/', createProject)
 router.get('/', getProjects)
 router.put('/:id/ready', markProjectReady)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
+router.patch('/:id/phases/:phaseId', authorizeProjectAccess, updatePhase)
 router
   .route('/:id')
   .get(authorizeProjectAccess, getProjectById)

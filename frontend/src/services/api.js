@@ -117,6 +117,11 @@ export const projectAPI = {
     const response = await api.put(`/projects/${id}/ready`)
     return response.data
   },
+
+  updatePhase: async (projectId, phaseId, data) => {
+    const response = await api.patch(`/projects/${projectId}/phases/${phaseId}`, data)
+    return response.data
+  },
 }
 
 // Assignment API functions

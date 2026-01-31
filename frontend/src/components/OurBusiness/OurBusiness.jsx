@@ -74,7 +74,7 @@ const OurBusiness = () => {
   }, [])
 
   return (
-    <section className="support-section support">
+    <section className="support-section support" id="about">
       <div className="floating-shape-1"></div>
       <div className="floating-shape-2"></div>
       <div className="floating-shape-3"></div>

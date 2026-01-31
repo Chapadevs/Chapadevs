@@ -357,10 +357,10 @@ export default GeneratedComponent;`;
         "Multi-language support and localization"
       ],
       techStack: {
-        frontend: ["React 18", "TypeScript", "Tailwind CSS", "Redux Toolkit", "React Router"],
+        frontend: ["React 18", "TypeScript", "Tailwind CSS", "React Router"],
         backend: ["Node.js", "Express.js", "JWT Authentication", "RESTful API"],
-        database: ["MongoDB", "Redis (caching)"],
-        deployment: ["AWS", "Docker", "Nginx"],
+        database: ["MongoDB"],
+        deployment: ["Vercel", "Docker", "Nginx"],
         other: ["Git", "GitHub Actions", "Jest", "ESLint", "Prettier"]
       },
       timeline: {
@@ -472,14 +472,21 @@ export default GeneratedComponent;`;
   }
 
   buildOptimizedPrompt(prompt, userInputs) {
+    const techPref = userInputs.techStack?.trim() || 'React or Angular, Node.js, Express, MongoDB or PostgreSQL — JavaScript/TypeScript only'
     // Concise prompt to minimize tokens
     return `You are an expert web development agency project analyst. Generate a comprehensive project specification in JSON format.
+
+CRITICAL: Our team ONLY works with the JavaScript ecosystem. You MUST suggest ONLY these technologies:
+- Frontend: React, Angular, Next.js, TypeScript, Tailwind CSS
+- Backend: Node.js, Express
+- Database: MongoDB, PostgreSQL
+- NO Python, Java, C#, PHP, Ruby, or other non-JS languages.
 
 CLIENT REQUEST: ${prompt}
 BUDGET: ${userInputs.budget || 'Not specified'}
 TIMELINE: ${userInputs.timeline || 'Not specified'}
 PROJECT TYPE: ${userInputs.projectType || 'General web project'}
-TECH PREFERENCES: ${userInputs.techStack || 'Modern web technologies'}
+TECH PREFERENCES (from user, must stay within JS ecosystem): ${techPref}
 
 Provide a detailed analysis in the following JSON structure (respond ONLY with valid JSON, no markdown):
 
@@ -492,11 +499,11 @@ Provide a detailed analysis in the following JSON structure (respond ONLY with v
     "At least 5-8 key features"
   ],
   "techStack": {
-    "frontend": ["Technology 1", "Technology 2"],
-    "backend": ["Technology 1", "Technology 2"],
-    "database": ["Database choice"],
-    "deployment": ["Hosting solution"],
-    "other": ["Additional tools/services"]
+    "frontend": ["React or Angular", "TypeScript", "Tailwind CSS"],
+    "backend": ["Node.js", "Express"],
+    "database": ["MongoDB or PostgreSQL"],
+    "deployment": ["Vercel or Docker"],
+    "other": ["Git", "Jest", "ESLint"]
   },
   "timeline": {
     "totalWeeks": 8,
@@ -619,6 +626,7 @@ Generate the response now:`;
     
     return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED, PRODUCTION-READY React component.
 
+MANDATORY: Generate ONLY React/JavaScript code. No Angular templates, no Vue, no other frameworks. Use React 18 functional components.
 PROJECT DETAILS:
 - Type: ${projectType}
 - Full Description: "${prompt}"

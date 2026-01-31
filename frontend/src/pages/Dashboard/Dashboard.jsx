@@ -75,7 +75,7 @@ const Dashboard = () => {
           <div className="dashboard-main-card">
             <div className="dashboard-main-grid">
               <section className="dashboard-main-block">
-                <h3>Quick Actions</h3>
+                <h3>Profile</h3>
                 <div className="dashboard-actions">
                   <Link to="/profile" className="dashboard-link">
                     Edit Profile

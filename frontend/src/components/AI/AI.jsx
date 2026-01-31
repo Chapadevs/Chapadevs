@@ -3,7 +3,7 @@ import './AI.css'
 
 const AI = () => {
   return (
-    <section className="features-section">
+    <section className="features-section" id="ai">
       <header className="section-header">
         <div className="title-brand-split">
           <div className="title-line-1">

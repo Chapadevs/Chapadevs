@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 import RoleProtectedRoute from './components/ProtectedRoute/RoleProtectedRoute'
 import Home from './pages/Home/Home'
+import Contact from './pages/Contact/Contact'
 import Login from './pages/Login/Login'
 import Register from './pages/Register/Register'
 import Dashboard from './pages/Dashboard/Dashboard'
@@ -20,6 +21,7 @@ function App() {
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
