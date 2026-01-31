@@ -28,7 +28,7 @@ const Header = () => {
         <div className="logo-section">
           <Link to="/">
             <img
-              src="assets/logos/chapadevs-logo.png"
+              src="/assets/logos/chapadevs-logo.png"
               alt="Chapadevs Logo"
               className="header-logo"
             />
@@ -46,13 +46,9 @@ const Header = () => {
             </>
           ) : (
             <>
-              <span className="user-name">Welcome, {user?.name}</span>
               <div className="user-menu">
                 <Link to="/dashboard" className="header-btn header-btn--dashboard">
                   DASHBOARD
-                </Link>
-                <Link to="/profile" className="header-btn header-btn--profile">
-                  PROFILE
                 </Link>
                 {user?.role === 'admin' && (
                   <Link to="/admin" className="header-btn header-btn--admin">

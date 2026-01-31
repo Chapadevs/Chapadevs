@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Header from '../../components/Header/Header'
 import './ChangePassword.css'
@@ -68,6 +69,9 @@ const ChangePassword = () => {
       <Header />
       <div className="change-password-container">
         <div className="change-password-card">
+          <Link to="/dashboard" className="change-password-back">
+            ← Go back
+          </Link>
           <div className="change-password-header">
             <h1>Change Password</h1>
             <p>Update your account password</p>

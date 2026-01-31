@@ -31,6 +31,7 @@ const ProjectDetail = () => {
   const [generateError, setGenerateError] = useState('')
   const [expandedPreviewId, setExpandedPreviewId] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
+  const [showMoreDetails, setShowMoreDetails] = useState(false)
 
   useEffect(() => {
     if (!id || id === 'undefined') {
@@ -265,7 +266,10 @@ const ProjectDetail = () => {
   const renderPreviewAnalysis = (preview) => {
     const result = parsePreviewResult(preview.previewResult)
     if (!result) return <p className="project-preview-empty">No analysis content.</p>
-    if (result.raw) return <pre className="project-preview-raw">{result.raw}</pre>
+    if (result.raw) return <p className="project-preview-analysis">{result.raw}</p>
+    const tech = result.techStack
+    const frontend = Array.isArray(tech?.frontend) ? tech.frontend : []
+    const backend = Array.isArray(tech?.backend) ? tech.backend : []
     return (
       <div className="project-preview-analysis">
         {result.overview && <p><strong>Overview:</strong> {result.overview}</p>}
@@ -275,10 +279,11 @@ const ProjectDetail = () => {
             <ul>{result.features.map((f, i) => <li key={i}>{f}</li>)}</ul>
           </div>
         )}
-        {result.techStack && (
+        {(frontend.length > 0 || backend.length > 0) && (
           <div>
             <strong>Tech stack:</strong>
-            <pre>{JSON.stringify(result.techStack, null, 2)}</pre>
+            {frontend.length > 0 && <p><strong>Frontend:</strong> {frontend.join(', ')}</p>}
+            {backend.length > 0 && <p><strong>Backend:</strong> {backend.join(', ')}</p>}
           </div>
         )}
       </div>
@@ -297,7 +302,6 @@ const ProjectDetail = () => {
             <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
               {project.status}
             </span>
-            <span className="project-id">ID: {project.id || project._id}</span>
           </div>
         </div>
         <div className="project-actions">
@@ -322,75 +326,59 @@ const ProjectDetail = () => {
 
       <div className="project-detail-content">
         <div className="project-main">
-          <section className="project-section">
-            <h2>Description</h2>
-            <p>{project.description}</p>
+          <section className="project-section project-overview">
+            {project.projectType && (
+              <span className="project-overview-type">{project.projectType}</span>
+            )}
+            <p className="project-overview-description">{project.description}</p>
+            {(project.goals?.length > 0 || project.features?.length > 0 || project.technologies?.length > 0) && (
+              <div className="project-overview-meta">
+                <span className="project-overview-badges">
+                  {project.goals?.length > 0 && (
+                    <span className="project-overview-tag">Goals: {project.goals.join(' · ')}</span>
+                  )}
+                  {project.features?.length > 0 && (
+                    <span className="project-overview-tag">Features: {project.features.join(' · ')}</span>
+                  )}
+                  {project.technologies?.length > 0 && (
+                    <span className="project-overview-tag">Tech: {project.technologies.join(', ')}</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {(project.brandingDetails || project.specialRequirements || project.additionalComments) && (
+              <div className="project-more-details">
+                <button
+                  type="button"
+                  className="project-more-details-toggle"
+                  onClick={() => setShowMoreDetails((v) => !v)}
+                  aria-expanded={showMoreDetails}
+                >
+                  {showMoreDetails ? '▼ Hide details' : '▶ More details'}
+                </button>
+                {showMoreDetails && (
+                  <div className="project-more-details-content">
+                    {project.brandingDetails && (
+                      <div className="project-more-detail-row">
+                        <strong>Branding:</strong> {project.hasBranding && `${project.hasBranding} — `}
+                        {project.brandingDetails}
+                      </div>
+                    )}
+                    {project.specialRequirements && (
+                      <div className="project-more-detail-row">
+                        <strong>Special requirements:</strong> {project.specialRequirements}
+                      </div>
+                    )}
+                    {project.additionalComments && (
+                      <div className="project-more-detail-row">
+                        <strong>Comments:</strong> {project.additionalComments}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
-
-          {project.projectType && (
-            <section className="project-section">
-              <h2>Project Type</h2>
-              <p>{project.projectType}</p>
-            </section>
-          )}
-
-          {(project.goals?.length > 0 || project.features?.length > 0 || project.technologies?.length > 0) && (
-            <section className="project-section">
-              <h2>Project Details</h2>
-              {project.goals?.length > 0 && (
-                <div className="detail-item">
-                  <strong>Goals:</strong>
-                  <ul>
-                    {project.goals.map((goal, idx) => (
-                      <li key={idx}>{goal}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {project.features?.length > 0 && (
-                <div className="detail-item">
-                  <strong>Features:</strong>
-                  <ul>
-                    {project.features.map((feature, idx) => (
-                      <li key={idx}>{feature}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {project.technologies?.length > 0 && (
-                <div className="detail-item">
-                  <strong>Technologies:</strong>
-                  <ul>
-                    {project.technologies.map((tech, idx) => (
-                      <li key={idx}>{tech}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </section>
-          )}
-
-          {project.brandingDetails && (
-            <section className="project-section">
-              <h2>Branding</h2>
-              <p><strong>Has Branding:</strong> {project.hasBranding}</p>
-              <p>{project.brandingDetails}</p>
-            </section>
-          )}
-
-          {project.specialRequirements && (
-            <section className="project-section">
-              <h2>Special Requirements</h2>
-              <p>{project.specialRequirements}</p>
-            </section>
-          )}
-
-          {project.additionalComments && (
-            <section className="project-section">
-              <h2>Additional Comments</h2>
-              <p>{project.additionalComments}</p>
-            </section>
-          )}
 
           {showAIPreviewsSection && (
             <section className="project-section project-section-previews">
@@ -528,9 +516,6 @@ const ProjectDetail = () => {
                                       className="project-preview-iframe"
                                     />
                                   </div>
-                                </div>
-                                <div className="project-preview-code-block">
-                                  <h4>Generated code</h4>
                                   <div className="project-preview-code-actions">
                                     <button
                                       type="button"
@@ -547,7 +532,6 @@ const ProjectDetail = () => {
                                       Download ZIP
                                     </button>
                                   </div>
-                                  <pre className="project-preview-code">{code.substring(0, 500)}{code.length > 500 ? '...' : ''}</pre>
                                 </div>
                               </>
                             )}
@@ -576,12 +560,12 @@ const ProjectDetail = () => {
             <h3>Project Information</h3>
             <div className="info-item">
               <strong>Client:</strong>
-              <span>{project.client?.name || 'N/A'}</span>
+              <span>{project.clientId?.name ?? 'N/A'}</span>
             </div>
-            {project.assignedProgrammer && (
+            {project.assignedProgrammerId && (
               <div className="info-item">
                 <strong>Assigned Programmer:</strong>
-                <span>{project.assignedProgrammer.name}</span>
+                <span>{project.assignedProgrammerId.name}</span>
               </div>
             )}
             {project.budget && (

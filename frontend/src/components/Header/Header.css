@@ -83,14 +83,15 @@
   cursor: pointer;
   transition: all 0.3s ease-in-out;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   min-width: 90px;
-  max-width: 90px;
-  width: 90px;
   height: 42px;
   line-height: 22px;
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .header-btn:hover {
@@ -122,8 +123,6 @@
   font-weight: 800;
   font-size: 0.85rem;
   min-width: 90px;
-  max-width: 90px;
-  width: 90px;
   height: 42px;
   line-height: 22px;
   box-sizing: border-box;
@@ -164,8 +163,6 @@
   .header-btn {
     padding: 0.4rem 0.75rem;
     min-width: 80px;
-    max-width: 80px;
-    width: 80px;
     height: 38px;
     font-size: 0.75rem;
     line-height: 20px;
@@ -177,8 +174,6 @@
     color: #FFFFFF !important;
     padding: 0.4rem 0.75rem;
     min-width: 80px;
-    max-width: 80px;
-    width: 80px;
     height: 38px;
     font-size: 0.75rem;
     line-height: 20px;
@@ -212,8 +207,6 @@
   .header-btn {
     padding: 0.35rem 0.6rem;
     min-width: 65px;
-    max-width: 65px;
-    width: 65px;
     height: 34px;
     font-size: 0.65rem;
     line-height: 18px;
@@ -225,8 +218,6 @@
     color: #FFFFFF !important;
     padding: 0.35rem 0.6rem;
     min-width: 65px;
-    max-width: 65px;
-    width: 65px;
     height: 34px;
     font-size: 0.65rem;
     line-height: 18px;

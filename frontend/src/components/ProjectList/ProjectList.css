@@ -86,7 +86,7 @@
 .project-card-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #1976d2;
+  color: var(--primary-green, #059669);
   flex: 1;
   margin-right: 1rem;
 }
@@ -167,12 +167,12 @@
 }
 
 .btn-primary {
-  background-color: #1976d2;
+  background-color: var(--primary-green, #059669);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #1565c0;
+  background-color: var(--primary-green-dark, #047857);
 }
 
 .btn-secondary {
