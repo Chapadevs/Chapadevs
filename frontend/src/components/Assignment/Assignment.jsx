@@ -96,6 +96,10 @@ const Assignment = () => {
       {availableProjects.length === 0 ? (
         <div className="assignment-empty">
           <p>No available projects at the moment.</p>
+          <p className="assignment-empty-hint">
+            Projects appear here after a client marks them as <strong>Ready</strong> for assignment.
+            Clients can do this from the project detail page (open a project → &quot;Mark as Ready&quot;).
+          </p>
         </div>
       ) : (
         <div className="assignment-grid">

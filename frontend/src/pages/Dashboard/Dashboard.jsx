@@ -3,14 +3,16 @@ import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
 import Header from '../../components/Header/Header'
 import UserStatus from '../../components/UserStatus/UserStatus'
-import AIPreviewGenerator from '../../components/AIPreviewGenerator/AIPreviewGenerator'
-import { getAIPreviewUsage } from '../../services/api'
+import { getAIPreviewUsage, getAIPreviews } from '../../services/api'
 import './Dashboard.css'
 
 const Dashboard = () => {
   const { user } = useAuth()
   const [aiUsage, setAiUsage] = useState(null)
-  const showAiUsage = user?.role === 'client' || user?.role === 'user'
+  const [previews, setPreviews] = useState([])
+  const [previewsLoading, setPreviewsLoading] = useState(false)
+  const isClient = user?.role === 'client' || user?.role === 'user'
+  const showAiUsage = isClient
 
   useEffect(() => {
     if (!showAiUsage) return
@@ -18,6 +20,15 @@ const Dashboard = () => {
       .then((data) => setAiUsage(data))
       .catch(() => setAiUsage(null))
   }, [showAiUsage])
+
+  useEffect(() => {
+    if (!isClient) return
+    setPreviewsLoading(true)
+    getAIPreviews()
+      .then((data) => setPreviews(data || []))
+      .catch(() => setPreviews([]))
+      .finally(() => setPreviewsLoading(false))
+  }, [isClient])
 
   const renderRoleBlock = () => {
     switch (user?.role) {
@@ -38,17 +49,20 @@ const Dashboard = () => {
           ],
         }
       case 'client':
+      case 'user':
       default:
         return {
           title: 'Projects',
           links: [
             { to: '/projects', label: 'My Projects' },
+            { to: '/projects/create', label: 'Create New Project' },
           ],
         }
     }
   }
 
   const roleBlock = renderRoleBlock()
+  const roleBadgeClass = user?.role === 'user' ? 'role-badge--client' : `role-badge--${user?.role}`
 
   return (
     <>
@@ -61,7 +75,9 @@ const Dashboard = () => {
               <span className="dashboard-user-meta">
                 {user?.email}
                 <span className="dashboard-user-sep">·</span>
-                <span className={`role-badge role-badge--${user?.role}`}>{user?.role?.toUpperCase()}</span>
+                <span className={`role-badge ${roleBadgeClass}`}>
+                  {user?.role === 'user' ? 'CLIENT' : user?.role?.toUpperCase()}
+                </span>
                 {user?.company && (
                   <>
                     <span className="dashboard-user-sep">·</span>
@@ -114,11 +130,54 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {(user?.role === 'programmer' || user?.role === 'client') && (
-            <UserStatus />
+          {isClient && (
+            <div className="dashboard-ai-card">
+              <div className="dashboard-ai-card-header">
+                <h3>AI Project Previews</h3>
+                <Link to="/projects" className="dashboard-link dashboard-link-sm">
+                  My Projects
+                </Link>
+              </div>
+              <p className="dashboard-ai-card-text">
+                Previews you’ve generated. Open a project to view or create more (up to 5 per project).
+              </p>
+              {previewsLoading ? (
+                <p className="dashboard-previews-loading">Loading previews…</p>
+              ) : previews.length === 0 ? (
+                <p className="dashboard-previews-empty">No previews yet. Open a project and use the AI Previews section to generate one.</p>
+              ) : (
+                <ul className="dashboard-previews-list">
+                  {previews.map((p) => {
+                    const projectId = p.projectId?._id || p.projectId
+                    return (
+                      <li key={p._id} className="dashboard-preview-item">
+                        <div className="dashboard-preview-item-main">
+                          <span className="dashboard-preview-prompt">
+                            {p.prompt?.substring(0, 60)}{(p.prompt?.length || 0) > 60 ? '…' : ''}
+                          </span>
+                          <span className="dashboard-preview-meta">
+                            {new Date(p.createdAt).toLocaleDateString()}
+                            <span className={`dashboard-preview-status dashboard-preview-status--${p.status}`}>
+                              {p.status}
+                            </span>
+                          </span>
+                        </div>
+                        {projectId ? (
+                          <Link to={`/projects/${projectId}`} className="dashboard-preview-link">
+                            View project
+                          </Link>
+                        ) : (
+                          <span className="dashboard-preview-standalone">Standalone</span>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
           )}
 
-          {(user?.role === 'client' || user?.role === 'user') && <AIPreviewGenerator />}
+          {user?.role === 'programmer' && <UserStatus />}
         </div>
       </div>
     </>

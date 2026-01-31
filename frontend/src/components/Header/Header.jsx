@@ -7,16 +7,6 @@ const Header = () => {
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
 
-  const scrollToFaq = () => {
-    const faqElement = document.querySelector('.faq-section')
-    if (faqElement) {
-      faqElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      })
-    }
-  }
-  
   const scrollToInquiry = () => {
     const inquiryElement = document.getElementById('inquiry-form')
     if (inquiryElement) {
@@ -43,26 +33,10 @@ const Header = () => {
               className="header-logo"
             />
           </Link>
-          <a 
-            href="https://www.linkedin.com/company/chapadevs/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="linkedin-link"
-            aria-label="Visit ChaPaDevs LinkedIn page"
-          >
-            <img
-              src="assets/images/linkedin.png"
-              alt="LinkedIn"
-              className="linkedin-logo"
-            />
-          </a>
         </div>
         <nav className="header-navigation">
           {!isAuthenticated ? (
             <>
-              <button className="header-btn header-btn--faq" onClick={scrollToFaq}>
-                FAQ
-              </button>
               <button className="header-btn header-btn--inquiry" onClick={scrollToInquiry}>
                 INQUIRY
               </button>

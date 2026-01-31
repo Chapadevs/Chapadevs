@@ -41,8 +41,8 @@ const UserStatus = () => {
     return statusMap[statusValue] || ''
   }
 
-  // Only show for programmers and clients
-  if (user?.role === 'admin') {
+  // Only show for programmers (availability is for developers to signal when they can take work)
+  if (user?.role !== 'programmer') {
     return null
   }
 

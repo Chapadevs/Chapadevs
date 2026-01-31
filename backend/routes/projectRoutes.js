@@ -3,6 +3,7 @@ import {
   createProject,
   getProjects,
   getProjectById,
+  getProjectPreviews,
   updateProject,
   deleteProject,
   getMyProjects,
@@ -26,6 +27,7 @@ router.get('/assigned', getAssignedProjects)
 router.post('/', createProject)
 router.get('/', getProjects)
 router.put('/:id/ready', markProjectReady)
+router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
 router
   .route('/:id')
   .get(authorizeProjectAccess, getProjectById)

@@ -21,7 +21,7 @@ const ProjectList = () => {
       setError(null)
       let data
       
-      if (user?.role === 'client') {
+      if (user?.role === 'client' || user?.role === 'user') {
         data = await projectAPI.getMyProjects()
       } else if (user?.role === 'programmer') {
         data = await projectAPI.getAssignedProjects()
@@ -61,12 +61,13 @@ const ProjectList = () => {
       <Header />
       <div className="project-list-container">
       <div className="project-list-header">
-        <h2>Projects</h2>
-        {(user?.role === 'client' || user?.role === 'user') && (
-          <Link to="/projects/create" className="btn btn-primary">
-            Create New Project
-          </Link>
-        )}
+        <h1>Projects</h1>
+        <div className="project-list-header-actions">
+          <Link to="/dashboard" className="project-list-back">← Dashboard</Link>
+          {(user?.role === 'client' || user?.role === 'user') && (
+            <Link to="/projects/create" className="btn btn-primary">Create New Project</Link>
+          )}
+        </div>
       </div>
 
       {projects.length === 0 ? (

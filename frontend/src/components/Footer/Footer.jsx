@@ -19,6 +19,19 @@ const Footer = () => {
               <i className="fas fa-envelope"></i>
               contact@chapadevs.com
             </a>
+            <a
+              href="https://www.linkedin.com/company/chapadevs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-linkedin-link"
+              aria-label="Visit ChaPaDevs on LinkedIn"
+            >
+              <img
+                src="assets/images/linkedin.png"
+                alt="LinkedIn"
+                className="footer-linkedin-logo"
+              />
+            </a>
           </div>
         </div>
         

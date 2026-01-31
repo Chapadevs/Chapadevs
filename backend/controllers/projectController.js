@@ -1,5 +1,6 @@
 import Project from '../models/Project.js'
 import ProjectNote from '../models/ProjectNote.js'
+import AIPreview from '../models/AIPreview.js'
 import asyncHandler from 'express-async-handler'
 
 // @desc    Create a new project
@@ -90,7 +91,24 @@ export const getProjectById = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
-  res.json({ ...project, notes })
+  const previewCount = await AIPreview.countDocuments({
+    projectId: project._id,
+    status: 'completed'
+  })
+
+  res.json({ ...project, notes, previewCount })
+})
+
+// @desc    Get AI previews for a project (client or assigned programmer)
+// @route   GET /api/projects/:id/previews
+// @access  Private (project owner, assigned programmer, or admin)
+export const getProjectPreviews = asyncHandler(async (req, res) => {
+  const previews = await AIPreview.find({ projectId: req.params.id })
+    .select('_id prompt previewResult metadata status createdAt tokenUsage')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  res.json(previews)
 })
 
 // @desc    Update project

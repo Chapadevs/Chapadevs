@@ -62,6 +62,15 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       res.status(403)
       throw new Error('Not authorized to generate preview for this project')
     }
+    // Per-project limit: max 5 completed previews per project
+    const projectPreviewCount = await AIPreview.countDocuments({
+      projectId,
+      status: 'completed'
+    })
+    if (projectPreviewCount >= 5) {
+      res.status(400)
+      throw new Error('This project already has 5 AI previews. Delete one to generate another.')
+    }
   }
 
   // Create preview record

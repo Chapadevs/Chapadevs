@@ -47,31 +47,6 @@
   object-fit: contain;
 }
 
-.linkedin-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s ease-in-out;
-  padding: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.linkedin-link:hover {
-  transform: scale(1.1);
-}
-
-.linkedin-link:focus {
-  outline: 2px solid #059669;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.linkedin-logo {
-  height: 30px;
-  width: 30px;
-  object-fit: contain;
-}
-
 .header-navigation {
   display: flex;
   flex-wrap: wrap;
@@ -181,16 +156,6 @@
     height: 60px;
   }
   
-  .linkedin-link {
-    margin-top: 0.35rem;
-    padding: 0.2rem;
-  }
-  
-  .linkedin-logo {
-    height: 20px;
-    width: 20px;
-  }
-  
   .header-navigation {
     gap: 0.5rem;
     flex-wrap: wrap;
@@ -237,16 +202,6 @@
   
   .header-logo {
     height: 50px;
-  }
-  
-  .linkedin-link {
-    margin-top: 0.3rem;
-    padding: 0.15rem;
-  }
-  
-  .linkedin-logo {
-    height: 18px;
-    width: 18px;
   }
   
   .header-navigation {

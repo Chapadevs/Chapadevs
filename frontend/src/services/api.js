@@ -93,6 +93,11 @@ export const projectAPI = {
     return response.data
   },
 
+  getPreviews: async (id) => {
+    const response = await api.get(`/projects/${id}/previews`)
+    return response.data
+  },
+
   create: async (projectData) => {
     const response = await api.post('/projects', projectData)
     return response.data
