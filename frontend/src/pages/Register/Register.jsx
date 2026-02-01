@@ -63,7 +63,7 @@ const Register = () => {
     })
 
     if (result.success) {
-      navigate('/dashboard')
+      navigate('/login', { state: { fromRegister: true, email: result.email } })
     } else {
       setLocalError(result.error || 'Registration failed')
     }

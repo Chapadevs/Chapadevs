@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './Login.css'
 
@@ -12,6 +12,10 @@ const Login = () => {
 
   const { login, user, loading, error: authError } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromRegister = location.state?.fromRegister
+  const registeredEmail = location.state?.email
+  const passwordReset = location.state?.passwordReset
 
   // Redirect if already logged in
   useEffect(() => {
@@ -65,10 +69,29 @@ const Login = () => {
             <p>Sign in to your account</p>
           </div>
 
+          {fromRegister && (
+            <div className="login-info-message">
+              We sent a verification link to {registeredEmail || 'your email'}. Check your inbox and spam folder, then sign in after verifying.
+            </div>
+          )}
+
+          {passwordReset && (
+            <div className="login-info-message">
+              Password reset. You can sign in with your new password.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="login-form">
           {(localError || authError) && (
-            <div className="error-message">
-              {localError || authError}
+            <div className="login-error-wrap">
+              <div className="error-message">
+                {localError || authError}
+              </div>
+              {(localError || authError || '').toLowerCase().includes('verify your email') && (
+                <p className="login-verify-hint">
+                  Check your inbox and spam folder for the email from Chapadevs, click the verification link, then try signing in again.
+                </p>
+              )}
             </div>
           )}
 
@@ -107,6 +130,9 @@ const Login = () => {
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+          <p className="login-forgot-link">
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
         </form>
 
           <div className="login-footer">
@@ -121,5 +147,5 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Login;
 

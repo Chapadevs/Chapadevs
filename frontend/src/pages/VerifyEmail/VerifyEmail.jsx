@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { authAPI } from '../../services/api'
 import './VerifyEmail.css'
@@ -8,6 +8,8 @@ const VerifyEmail = () => {
   const token = searchParams.get('token')
   const [status, setStatus] = useState('loading') // loading | success | error
   const [message, setMessage] = useState('')
+  const successSet = useRef(false)
+  const messageSet = useRef(false)
 
   useEffect(() => {
     if (!token) {
@@ -20,12 +22,18 @@ const VerifyEmail = () => {
       .verifyEmail(token)
       .then((data) => {
         if (!cancelled) {
+          successSet.current = true
           setStatus('success')
-          setMessage(data.message || 'Your email has been verified.')
+          const msg = data.message || 'Your email has been verified.'
+          const isFreshVerification = /has been verified|was already verified/i.test(msg)
+          if (isFreshVerification || !messageSet.current) {
+            messageSet.current = true
+            setMessage(msg)
+          }
         }
       })
       .catch((err) => {
-        if (!cancelled) {
+        if (!cancelled && !successSet.current) {
           setStatus('error')
           const msg = err.response?.data?.message || err.message || 'Verification failed.'
           setMessage(msg)

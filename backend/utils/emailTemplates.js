@@ -154,6 +154,45 @@ export function getWelcomeEmail(opts) {
   return { text, html, subject }
 }
 
+/**
+ * Build password reset email.
+ * @param {Object} opts - { name, resetUrl }
+ * @returns {{ text: string, html: string, subject: string }}
+ */
+export function getPasswordResetEmail(opts) {
+  const { name, resetUrl } = opts
+  const subject = 'Reset your Chapadevs password'
+
+  const text = [
+    `Hi ${name},`,
+    '',
+    'You requested a password reset. Click the link below to set a new password:',
+    resetUrl,
+    'This link expires in 1 hour.',
+    '',
+    'If you did not request this, you can ignore this email. Your password will not change.',
+    '',
+    'Best regards,',
+    FROM_NAME
+  ].join('\n')
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>${escapeHtml(subject)}</title></head>
+<body style="font-family: sans-serif; max-width: 560px;">
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>You requested a password reset. Click the link below to set a new password:</p>
+  <p><a href="${escapeHtml(resetUrl)}">Reset my password</a></p>
+  <p style="color:#666;">This link expires in 1 hour.</p>
+  <p>If you did not request this, you can ignore this email. Your password will not change.</p>
+  <p>Best regards,<br/><strong>${escapeHtml(FROM_NAME)}</strong></p>
+</body>
+</html>`.trim()
+
+  return { text, html, subject }
+}
+
 function escapeHtml(str) {
   if (str == null) return ''
   return String(str)

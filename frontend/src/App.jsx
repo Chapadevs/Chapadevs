@@ -7,6 +7,8 @@ import Contact from './pages/Contact/Contact'
 import Login from './pages/Login/Login'
 import Register from './pages/Register/Register'
 import VerifyEmail from './pages/VerifyEmail/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword/ForgotPassword'
+import ResetPassword from './pages/ResetPassword/ResetPassword'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Profile from './pages/Profile/Profile'
 import ChangePassword from './pages/Settings/ChangePassword'
@@ -26,6 +28,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={

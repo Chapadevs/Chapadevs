@@ -4,7 +4,7 @@ import generateToken from '../utils/generateToken.js'
 import asyncHandler from 'express-async-handler'
 import mongoose from 'mongoose'
 import { sendMail } from '../services/emailService.js'
-import { getWelcomeEmail } from '../utils/emailTemplates.js'
+import { getWelcomeEmail, getPasswordResetEmail } from '../utils/emailTemplates.js'
 
 // Helper to check database connection
 const checkDBConnection = () => {
@@ -75,11 +75,8 @@ export const registerUser = asyncHandler(async (req, res) => {
     }
 
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
+      message: 'Please verify your email. We sent a verification link to your inbox.',
       email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
     })
   } else {
     res.status(400)
@@ -93,23 +90,49 @@ export const registerUser = asyncHandler(async (req, res) => {
 export const verifyEmail = asyncHandler(async (req, res) => {
   checkDBConnection()
 
-  const { token } = req.query
+  let rawToken = req.query.token
+  if (typeof rawToken !== 'string') rawToken = ''
+  let token = rawToken.trim()
+  try {
+    const decoded = decodeURIComponent(token)
+    if (decoded !== token) token = decoded.trim()
+  } catch (_) { /* keep token as-is */ }
   if (!token) {
     res.status(400)
-    throw new Error('Verification token is required')
+    throw new Error('Verification token is required. Use the full link from the email.')
   }
 
-  const user = await User.findOne({
+  let user = await User.findOne({
     emailVerificationToken: token
-  }).select('+emailVerificationToken +emailVerificationExpires')
+  }).select('+emailVerificationToken +emailVerificationExpires +isEmailVerified')
+
+  if (!user && rawToken.trim() !== token) {
+    user = await User.findOne({
+      emailVerificationToken: rawToken.trim()
+    }).select('+emailVerificationToken +emailVerificationExpires +isEmailVerified')
+  }
 
   if (!user) {
-    res.status(400)
-    throw new Error('Invalid or expired verification link')
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Verify email: no user found for token length', token.length, '(expected 64). Link may have been used already or from a different environment.')
+    }
+    res.status(200).json({
+      success: true,
+      message: 'This link was already used or has expired. If you can log in, your email is already verified.'
+    })
+    return
   }
   if (user.emailVerificationExpires && new Date() > user.emailVerificationExpires) {
     res.status(400)
-    throw new Error('Verification link has expired')
+    throw new Error('Verification link has expired. You can still log in; consider signing up again if you need a new link.')
+  }
+
+  if (user.isEmailVerified) {
+    res.json({
+      success: true,
+      message: 'Your email was already verified. You can log in.'
+    })
+    return
   }
 
   user.isEmailVerified = true
@@ -120,6 +143,94 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Your email has been verified. You can now log in.'
+  })
+})
+
+const RESET_PASSWORD_EXPIRY_MS = 60 * 60 * 1000 // 1 hour
+
+// @desc    Forgot password – send reset link to email
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = asyncHandler(async (req, res) => {
+  checkDBConnection()
+
+  const email = (req.body.email || '').trim().toLowerCase()
+  if (!email) {
+    res.status(400)
+    throw new Error('Email is required')
+  }
+
+  const user = await User.findOne({ email }).select('+resetPasswordToken +resetPasswordExpires')
+  const genericMessage = 'If that email is registered, we sent a reset link. Check your inbox and spam folder.'
+
+  if (user) {
+    const resetPasswordToken = crypto.randomBytes(32).toString('hex')
+    const resetPasswordExpires = new Date(Date.now() + RESET_PASSWORD_EXPIRY_MS)
+    user.resetPasswordToken = resetPasswordToken
+    user.resetPasswordExpires = resetPasswordExpires
+    await user.save({ validateBeforeSave: false })
+
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '')
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetPasswordToken}`
+    const { text, html, subject } = getPasswordResetEmail({ name: user.name, resetUrl })
+    const emailResult = await sendMail({
+      to: user.email,
+      subject,
+      text,
+      html
+    })
+    if (!emailResult.success) {
+      console.error('Password reset email failed:', emailResult.error)
+    }
+  }
+
+  res.status(200).json({ message: genericMessage })
+})
+
+// @desc    Reset password with token from email link
+// @route   POST /api/auth/reset-password
+// @access  Public
+export const resetPassword = asyncHandler(async (req, res) => {
+  checkDBConnection()
+
+  let rawToken = req.body.token
+  if (typeof rawToken !== 'string') rawToken = ''
+  let token = rawToken.trim()
+  try {
+    const decoded = decodeURIComponent(token)
+    if (decoded !== token) token = decoded.trim()
+  } catch (_) { /* keep token as-is */ }
+
+  const newPassword = (req.body.newPassword || '').trim()
+  if (!token) {
+    res.status(400)
+    throw new Error('Reset token is required.')
+  }
+  if (!newPassword || newPassword.length < 6) {
+    res.status(400)
+    throw new Error('New password must be at least 6 characters.')
+  }
+
+  const user = await User.findOne({
+    resetPasswordToken: token
+  }).select('+resetPasswordToken +resetPasswordExpires +password')
+
+  if (!user) {
+    res.status(400)
+    throw new Error('Invalid or expired reset link. Request a new one from the forgot password page.')
+  }
+  if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) {
+    res.status(400)
+    throw new Error('Reset link has expired. Request a new one from the forgot password page.')
+  }
+
+  user.password = newPassword
+  user.resetPasswordToken = undefined
+  user.resetPasswordExpires = undefined
+  await user.save()
+
+  res.status(200).json({
+    message: 'Password reset. You can log in with your new password.'
   })
 })
 
@@ -138,18 +249,23 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email }).select('+password')
 
-  if (user && (await user.matchPassword(password))) {
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token: generateToken(user._id),
-    })
-  } else {
+  if (!user || !(await user.matchPassword(password))) {
     res.status(401)
     throw new Error('Invalid email or password')
   }
+
+  if (user.isEmailVerified === false) {
+    res.status(403)
+    throw new Error('Please verify your email before logging in. Check your inbox (and spam folder) for the verification link.')
+  }
+
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    token: generateToken(user._id),
+  })
 })
 
 // @desc    Get current user
