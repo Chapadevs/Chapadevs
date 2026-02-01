@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import emailjs from '@emailjs/browser'
-import { environment } from '../../config/environment'
+import React, { useState } from 'react'
+import { submitInquiry } from '../../services/api'
 import './InquiryForm.css'
 
 const InquiryForm = () => {
@@ -81,10 +80,6 @@ const InquiryForm = () => {
     hear_about_us_other: '',
     additional_comments: ''
   })
-
-  useEffect(() => {
-    emailjs.init(environment.emailService.publicKey)
-  }, [])
 
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -185,66 +180,12 @@ const InquiryForm = () => {
         throw new Error('Invalid email address format')
       }
 
-      const adminEmailParams = {
-        to_email: 'admin@chapadevs.com',
-        from_name: `${formData.from_name} (Chapadevs Inquiry)`,
-        from_email: customerEmail,
-        reply_to: customerEmail,
-        customer_email: customerEmail,
-        customer_name: formData.from_name,
-        company_name: formData.company_name || 'Not provided',
-        phone: formData.phone || 'Not provided',
-        contact_method: formData.contact_method,
-        project_type: formData.project_type,
-        project_description: formData.project_description,
-        goals: (formData.goals || []).join(', ') || 'Not specified',
-        goals_other: formData.goals_other || '',
-        features: (formData.features || []).join(', ') || 'Not specified',
-        features_other: formData.features_other || '',
-        styles: (formData.styles || []).join(', ') || 'Not specified',
-        budget: formData.budget,
-        timeline: formData.timeline,
-        has_website: formData.has_website,
-        website_url: formData.website_url || 'Not provided',
-        current_host: formData.current_host || 'Not provided',
-        branding: formData.branding,
-        branding_details: formData.branding_details || 'Not provided',
-        content_status: formData.content_status,
-        reference_websites: formData.reference_websites || 'Not provided',
-        special_requirements: formData.special_requirements || 'None',
-        hear_about_us: formData.hear_about_us || 'Not specified',
-        hear_about_us_other: formData.hear_about_us_other || '',
-        additional_comments: formData.additional_comments || 'None',
-        submission_date: new Date().toLocaleString()
-      }
-
-      const userEmailParams = {
-        customer_email: customerEmail,
-        customer_name: formData.from_name,
-        company_name: formData.company_name || '',
-        project_type: formData.project_type,
-        budget: formData.budget,
-        timeline: formData.timeline,
-        contact_method: formData.contact_method,
-        submission_date: new Date().toLocaleDateString()
-      }
-
-      await emailjs.send(
-        environment.emailService.serviceId,
-        environment.emailService.templateId,
-        adminEmailParams
-      )
-
-      await emailjs.send(
-        environment.emailService.serviceId,
-        environment.emailService.userTemplateId,
-        userEmailParams
-      )
+      const result = await submitInquiry(formData)
 
       setIsSubmitting(false)
       setSubmitSuccess(true)
       setSubmitMessage(
-        "Thank you! Your inquiry has been submitted successfully. We've also sent you a confirmation email. We'll get back to you within 24 hours."
+        result.message || "Thank you! Your inquiry has been submitted successfully. We've also sent you a confirmation email. We'll get back to you within 24 hours."
       )
 
       setTimeout(() => {
@@ -280,14 +221,14 @@ const InquiryForm = () => {
         setTouched({})
       }, 3001)
     } catch (error) {
-      console.error('Error sending emails:', error)
+      console.error('Error submitting inquiry:', error)
       setIsSubmitting(false)
       setSubmitSuccess(false)
-      
+      const msg = error.response?.data?.message || error.message
       if (error instanceof Error && error.message === 'Invalid email address format') {
         setSubmitMessage('Please enter a valid email address.')
-      } else if (error && typeof error === 'object' && 'text' in error) {
-        setSubmitMessage(`Email sending failed: ${error.text}. Please check your email address and try again.`)
+      } else if (msg) {
+        setSubmitMessage(msg)
       } else {
         setSubmitMessage("Sorry, there was an error sending your inquiry. Please try again or contact us directly.")
       }

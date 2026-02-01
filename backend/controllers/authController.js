@@ -1,7 +1,10 @@
+import crypto from 'crypto'
 import User from '../models/User.js'
 import generateToken from '../utils/generateToken.js'
 import asyncHandler from 'express-async-handler'
 import mongoose from 'mongoose'
+import { sendMail } from '../services/emailService.js'
+import { getWelcomeEmail } from '../utils/emailTemplates.js'
 
 // Helper to check database connection
 const checkDBConnection = () => {
@@ -35,11 +38,17 @@ export const registerUser = asyncHandler(async (req, res) => {
   // Normalize legacy role name "client" to "user"
   const normalizedRole = role === 'client' ? 'user' : role
 
+  const emailVerificationToken = crypto.randomBytes(32).toString('hex')
+  const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
   const user = await User.create({
     name,
     email,
     password,
     role: normalizedRole || 'user',
+    isEmailVerified: false,
+    emailVerificationToken,
+    emailVerificationExpires,
     ...(role === 'programmer' && {
       skills: [],
       bio: '',
@@ -48,6 +57,23 @@ export const registerUser = asyncHandler(async (req, res) => {
   })
 
   if (user) {
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '')
+    const verificationUrl = `${frontendUrl}/verify-email?token=${emailVerificationToken}`
+    const { text, html, subject } = getWelcomeEmail({
+      name: user.name,
+      email: user.email,
+      verificationUrl
+    })
+    const emailResult = await sendMail({
+      to: user.email,
+      subject,
+      text,
+      html
+    })
+    if (!emailResult.success) {
+      console.error('Welcome/verification email failed:', emailResult.error)
+    }
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -59,6 +85,42 @@ export const registerUser = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error('Invalid user data')
   }
+})
+
+// @desc    Verify email address (click link from welcome email)
+// @route   GET /api/auth/verify-email
+// @access  Public
+export const verifyEmail = asyncHandler(async (req, res) => {
+  checkDBConnection()
+
+  const { token } = req.query
+  if (!token) {
+    res.status(400)
+    throw new Error('Verification token is required')
+  }
+
+  const user = await User.findOne({
+    emailVerificationToken: token
+  }).select('+emailVerificationToken +emailVerificationExpires')
+
+  if (!user) {
+    res.status(400)
+    throw new Error('Invalid or expired verification link')
+  }
+  if (user.emailVerificationExpires && new Date() > user.emailVerificationExpires) {
+    res.status(400)
+    throw new Error('Verification link has expired')
+  }
+
+  user.isEmailVerified = true
+  user.emailVerificationToken = undefined
+  user.emailVerificationExpires = undefined
+  await user.save({ validateBeforeSave: false })
+
+  res.json({
+    success: true,
+    message: 'Your email has been verified. You can now log in.'
+  })
 })
 
 // @desc    Authenticate a user

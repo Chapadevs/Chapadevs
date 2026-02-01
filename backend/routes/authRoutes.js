@@ -5,6 +5,7 @@ import {
   getMe,
   updateProfile,
   changePassword,
+  verifyEmail,
 } from '../controllers/authController.js'
 import { protect } from '../middleware/authMiddleware.js'
 
@@ -13,6 +14,7 @@ const router = express.Router()
 // Public routes
 router.post('/register', registerUser)
 router.post('/login', loginUser)
+router.get('/verify-email', verifyEmail)
 
 // Protected routes
 router.get('/me', protect, getMe)

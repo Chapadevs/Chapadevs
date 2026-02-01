@@ -69,6 +69,11 @@ export const authAPI = {
     })
     return response.data
   },
+
+  verifyEmail: async (token) => {
+    const response = await api.get('/auth/verify-email', { params: { token } })
+    return response.data
+  },
 }
 
 // Project API functions
@@ -170,6 +175,12 @@ export const userAPI = {
 // AI Preview API functions
 export const generateAIPreview = async (data) => {
   const response = await api.post('/ai-previews', data)
+  return response.data
+}
+
+/** Submit project inquiry (public). Sends admin + user confirmation emails via backend. */
+export const submitInquiry = async (formData) => {
+  const response = await api.post('/inquiry', formData)
   return response.data
 }
 

@@ -29,6 +29,7 @@ import userRoutes from './routes/userRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
 import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
+import inquiryRoutes from './routes/inquiryRoutes.js'
 
 const app = express()
 
@@ -82,6 +83,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/assignments', assignmentRoutes)
 app.use('/api/ai-previews', aiPreviewRoutes)
+app.use('/api/inquiry', inquiryRoutes)
 
 // Error handling middleware (must be last)
 app.use(notFound)
