@@ -12,6 +12,7 @@ class VertexAIService {
     this.lastApiCall = 0;
     this.vertex = null;
     this.model = null;
+    this.modelInstances = new Map(); // Cache model instances by modelId
     this.initialized = false;
     
     // Try to initialize Vertex AI, but don't crash if it fails
@@ -36,8 +37,18 @@ class VertexAIService {
       console.log(`   Location: us-central1`);
       console.log(`   Model: ${modelId}`);
       
+      // Check for local development credentials
+      const serviceAccountPath = process.env.GMAIL_SERVICE_ACCOUNT_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      if (serviceAccountPath && process.env.NODE_ENV === 'development') {
+        console.log(`   Using service account: ${serviceAccountPath}`);
+        // Set GOOGLE_APPLICATION_CREDENTIALS if not already set
+        if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && serviceAccountPath) {
+          process.env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountPath;
+        }
+      }
+      
       // In Cloud Run, authentication happens automatically via the service account
-      // No need to set credentials explicitly - Cloud Run provides them
+      // For local dev, GOOGLE_APPLICATION_CREDENTIALS should point to service account JSON
       this.vertex = new VertexAI({
         project: process.env.GCP_PROJECT_ID,
         location: 'us-central1'
@@ -76,26 +87,42 @@ class VertexAIService {
       if (error.message?.includes('authentication') || 
           error.message?.includes('permission') || 
           error.message?.includes('Permission denied') ||
+          error.message?.includes('Unable to authenticate') ||
           error.code === 403) {
         console.error('\n   🔑 AUTHENTICATION/PERMISSION ERROR DETECTED');
-        console.error('   Solutions:');
-        console.error('   1. In Cloud Run: Ensure service account has "Vertex AI User" role');
-        console.error('      Run: gcloud projects add-iam-policy-binding chapadevs-468722 \\');
+        console.error('   Solutions for LOCAL DEVELOPMENT:');
+        console.error('   1. Set GOOGLE_APPLICATION_CREDENTIALS environment variable:');
+        console.error('      export GOOGLE_APPLICATION_CREDENTIALS="./chapadevs-468722-e8777b042699.json"');
+        console.error('      (or use the same file as GMAIL_SERVICE_ACCOUNT_PATH)');
+        console.error('   2. Or authenticate with gcloud:');
+        console.error('      gcloud auth application-default login');
+        console.error('   3. Ensure the service account has "Vertex AI User" role:');
+        console.error('      gcloud projects add-iam-policy-binding chapadevs-468722 \\');
         console.error('           --member="serviceAccount:SERVICE_ACCOUNT_EMAIL" \\');
         console.error('           --role="roles/aiplatform.user"');
+        console.error('   Solutions for CLOUD RUN:');
+        console.error('   1. Ensure service account has "Vertex AI User" role');
         console.error('   2. Check service account in Cloud Run service settings');
         console.error('   3. Verify GCP_PROJECT_ID is correct:', process.env.GCP_PROJECT_ID);
       }
       
       if (error.message?.includes('not found') || 
           error.message?.includes('404') || 
+          error.message?.includes('was not found') ||
           error.code === 404) {
         console.error('\n   🔍 API NOT ENABLED OR MODEL NOT FOUND');
         console.error('   Solutions:');
         console.error('   1. Enable Vertex AI API:');
         console.error('      gcloud services enable aiplatform.googleapis.com --project=chapadevs-468722');
-        console.error('   2. Try VERTEX_AI_MODEL=gemini-2.0-flash or gemini-1.5-flash-002');
-        console.error('   3. Visit: https://console.cloud.google.com/vertex-ai?project=chapadevs-468722');
+        console.error('   2. Enable Generative AI API:');
+        console.error('      gcloud services enable generativelanguage.googleapis.com --project=chapadevs-468722');
+        console.error('   3. Check available models in your region:');
+        console.error('      Visit: https://console.cloud.google.com/vertex-ai/model-garden?project=chapadevs-468722');
+        console.error('   4. Try these model IDs:');
+        console.error('      - gemini-2.0-flash-exp (experimental, usually available)');
+        console.error('      - gemini-1.5-pro-002 (stable version)');
+        console.error('      - gemini-1.5-flash-002 (faster alternative)');
+        console.error('   5. Note: Some models may not be available in all regions');
       }
       
       if (error.message?.includes('quota') || 
@@ -755,6 +782,617 @@ Generate the complete component NOW:`;
     return {
       initialized: this.initialized,
       ...this.getCacheStats()
+    };
+  }
+
+  // Normalize model ID to correct Vertex AI format
+  normalizeModelId(modelId) {
+    // Map user-friendly names to actual Vertex AI model IDs
+    // Note: Model availability varies by region and project
+    const modelMap = {
+      'gemini-2.0-flash': 'gemini-2.0-flash-exp', // Experimental version (usually available)
+      'gemini-2.5-pro': 'gemini-2.5-pro', // Gemini 2.5 Pro (available in Model Garden)
+      'gemini-1.5-pro': 'gemini-2.5-pro', // Map old 1.5-pro to 2.5-pro for backward compatibility
+      'gemini-1.5-flash': 'gemini-1.5-flash-002',
+    };
+    
+    // Return mapped version if exists, otherwise return as-is
+    return modelMap[modelId] || modelId;
+  }
+  
+  // Get available model IDs to try (with fallbacks)
+  getModelIdVariants(modelId) {
+    const variants = {
+      'gemini-2.5-pro': [
+        'gemini-2.5-pro',      // Base name (try first)
+        'gemini-2.5-pro-exp',  // Experimental version if available
+        'gemini-2.5-pro-001',  // Version 001 if available
+      ],
+      'gemini-1.5-pro': [
+        'gemini-2.5-pro',      // Map to 2.5 Pro (newer version)
+        'gemini-1.5-pro',      // Base name (fallback)
+        'gemini-1.5-pro-001',  // Version 001
+      ],
+      'gemini-2.0-flash': [
+        'gemini-2.0-flash-exp', // Experimental
+        'gemini-2.0-flash',     // Base name
+      ],
+    };
+    
+    return variants[modelId] || [modelId];
+  }
+
+  // Get or create model instance for a specific modelId with automatic fallback
+  async getModel(modelId = 'gemini-2.0-flash') {
+    if (!this.initialized || !this.vertex) {
+      return null;
+    }
+
+    // Get variants to try (with fallbacks)
+    const variants = this.getModelIdVariants(modelId);
+    const normalizedBase = this.normalizeModelId(modelId);
+    
+    // Add normalized base to front of variants if not already there
+    if (!variants.includes(normalizedBase)) {
+      variants.unshift(normalizedBase);
+    }
+    
+    // Try each variant until one works
+    let lastError = null;
+    for (const variantId of variants) {
+      // Return cached model instance if available
+      if (this.modelInstances.has(variantId)) {
+        console.log(`✅ Using cached model: ${variantId} (requested: ${modelId})`);
+        return this.modelInstances.get(variantId);
+      }
+
+      // Try to create model instance
+      try {
+        const model = this.vertex.getGenerativeModel({
+          model: variantId,
+          generationConfig: {
+            maxOutputTokens: 8192,
+            temperature: 0.8,
+            topP: 0.95,
+          },
+        });
+        
+        // Test if model is accessible (this doesn't make an API call, just creates the instance)
+        this.modelInstances.set(variantId, model);
+        console.log(`✅ Model instance created and cached: ${variantId} (requested: ${modelId})`);
+        return model;
+      } catch (error) {
+        lastError = error;
+        // If this variant fails with 404, try the next one
+        if (error.message?.includes('404') || error.message?.includes('not found')) {
+          console.warn(`⚠️ Model ${variantId} not available (404), trying next variant...`);
+          continue;
+        }
+        // For other errors, log and continue to next variant
+        console.warn(`⚠️ Error with model ${variantId}:`, error.message);
+        continue;
+      }
+    }
+    
+    // If all variants failed, log detailed error
+    console.error(`❌ All model variants failed for ${modelId}`);
+    if (lastError) {
+      console.error('Last error:', lastError.message);
+      
+        // Provide specific guidance for Pro model
+        if (modelId === 'gemini-2.5-pro' || modelId === 'gemini-1.5-pro' || modelId.includes('pro')) {
+          console.error('\n📋 TO ENABLE GEMINI 2.5 PRO:');
+          console.error('   1. Visit: https://console.cloud.google.com/vertex-ai/model-garden?project=' + process.env.GCP_PROJECT_ID);
+          console.error('   2. Search for "Gemini 2.5 Pro" and click "Enable"');
+          console.error('   3. Or run: gcloud services enable aiplatform.googleapis.com --project=' + process.env.GCP_PROJECT_ID);
+          console.error('   4. Some Pro models may require billing account or specific region');
+          console.error('   5. Check available models: gcloud ai models list --region=us-central1 --project=' + process.env.GCP_PROJECT_ID);
+        }
+    }
+    
+    // Don't automatically fallback - let the user know Pro isn't available
+    // The API call handler will provide better error messages
+    return null;
+  }
+
+  // Get template structure based on niche/project type
+  getTemplateStructure(niche) {
+    const lowerNiche = (niche || '').toLowerCase();
+    
+    // E-commerce template
+    if (lowerNiche.includes('ecommerce') || lowerNiche.includes('store') || lowerNiche.includes('shop') || lowerNiche.includes('selling')) {
+      return {
+        type: 'ecommerce',
+        sections: [
+          { type: 'hero', required: true, description: 'Hero section with main CTA' },
+          { type: 'products', required: true, count: '6-12', description: 'Product showcase grid' },
+          { type: 'features', required: true, count: '4-6', description: 'Key features/benefits' },
+          { type: 'testimonials', required: false, count: '3-5', description: 'Customer testimonials' },
+          { type: 'footer', required: true, description: 'Footer with links and contact' }
+        ]
+      };
+    }
+    
+    // Advocacy template
+    if (lowerNiche.includes('advocacy') || lowerNiche.includes('nonprofit') || lowerNiche.includes('charity') || lowerNiche.includes('cause')) {
+      return {
+        type: 'advocacy',
+        sections: [
+          { type: 'hero', required: true, description: 'Hero with mission statement' },
+          { type: 'mission', required: true, description: 'Mission and values section' },
+          { type: 'services', required: true, count: '4-6', description: 'Services or programs offered' },
+          { type: 'impact', required: false, description: 'Impact metrics and stories' },
+          { type: 'footer', required: true, description: 'Footer with contact and social links' }
+        ]
+      };
+    }
+    
+    // Portfolio template
+    if (lowerNiche.includes('portfolio') || lowerNiche.includes('personal') || lowerNiche.includes('freelance')) {
+      return {
+        type: 'portfolio',
+        sections: [
+          { type: 'hero', required: true, description: 'Hero with name and tagline' },
+          { type: 'projects', required: true, count: '6-9', description: 'Project showcase gallery' },
+          { type: 'skills', required: true, description: 'Skills and expertise section' },
+          { type: 'contact', required: true, description: 'Contact form or information' },
+          { type: 'footer', required: true, description: 'Footer with social links' }
+        ]
+      };
+    }
+    
+    // Blog template
+    if (lowerNiche.includes('blog') || lowerNiche.includes('news') || lowerNiche.includes('article')) {
+      return {
+        type: 'blog',
+        sections: [
+          { type: 'hero', required: true, description: 'Hero with featured post' },
+          { type: 'featured', required: true, count: '3-6', description: 'Featured posts grid' },
+          { type: 'categories', required: false, description: 'Category navigation' },
+          { type: 'newsletter', required: false, description: 'Newsletter signup' },
+          { type: 'footer', required: true, description: 'Footer with links' }
+        ]
+      };
+    }
+    
+    // Default business template
+    return {
+      type: 'business',
+      sections: [
+        { type: 'hero', required: true, description: 'Hero section with main value proposition' },
+        { type: 'services', required: true, count: '4-6', description: 'Services offered' },
+        { type: 'about', required: true, description: 'About the business' },
+        { type: 'testimonials', required: false, count: '3-5', description: 'Client testimonials' },
+        { type: 'footer', required: true, description: 'Footer with contact and links' }
+      ]
+    };
+  }
+
+  // Build optimized combined prompt (analysis + code in one)
+  buildCombinedPrompt(prompt, userInputs) {
+    const template = this.getTemplateStructure(userInputs.projectType || prompt);
+    const techPref = userInputs.techStack?.trim() || 'React, Node.js, MongoDB — JavaScript/TypeScript only';
+    
+    // Extract business details
+    const lowerPrompt = prompt.toLowerCase();
+    let businessName = prompt
+      .replace(/i need (an?|the) /gi, '')
+      .replace(/i want (an?|the) /gi, '')
+      .replace(/^(build|create|make|design) (me )?(an?|a|the) /gi, '')
+      .replace(/\b(website|web app|application|store|ecommerce|portfolio|blog)\b/gi, '')
+      .trim();
+    const words = businessName.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
+    businessName = words.join(' ').trim() || 'Your Business';
+    if (businessName.length > 50) businessName = businessName.substring(0, 47) + '...';
+    
+    // Extract color preferences
+    const colorKeywords = ['blue', 'red', 'green', 'purple', 'pink', 'yellow', 'orange', 'cyan', 'teal', 'indigo', 'violet', 'rose', 'amber'];
+    let colorScheme = 'purple-600, indigo-600';
+    for (const color of colorKeywords) {
+      if (lowerPrompt.includes(color)) {
+        const colorMap = {
+          'blue': 'blue-600', 'red': 'red-600', 'green': 'green-600', 'purple': 'purple-600',
+          'pink': 'pink-500', 'yellow': 'yellow-500', 'orange': 'orange-500', 'cyan': 'cyan-500',
+          'teal': 'teal-600', 'indigo': 'indigo-600', 'violet': 'violet-600', 'rose': 'rose-500', 'amber': 'amber-500'
+        };
+        colorScheme = `${colorMap[color] || 'purple-600'}, ${(colorMap[color] || 'purple-600').replace('-600', '-500').replace('-500', '-400')}`;
+        break;
+      }
+    }
+    
+    // Extract style
+    const styleKeywords = ['modern', 'minimal', 'clean', 'bold', 'elegant', 'fun', 'professional', 'creative'];
+    let style = 'modern';
+    for (const keyword of styleKeywords) {
+      if (lowerPrompt.includes(keyword)) {
+        style = keyword;
+        break;
+      }
+    }
+    
+    // Build sections description
+    const sectionsDesc = template.sections.map(s => 
+      `- ${s.type}: ${s.description}${s.count ? ` (${s.count} items)` : ''}`
+    ).join('\n');
+    
+    return `Generate a complete project analysis and React component in JSON format.
+
+REQUIREMENTS:
+- Project: "${prompt}"
+- Business: "${businessName}"
+- Type: ${template.type}
+- Budget: ${userInputs.budget || 'Not specified'}
+- Timeline: ${userInputs.timeline || 'Not specified'}
+- Tech: ${techPref} (JS ecosystem only: React, Node.js, MongoDB/PostgreSQL)
+
+TEMPLATE STRUCTURE (${template.type}):
+${sectionsDesc}
+
+STYLING:
+- Colors: ${colorScheme} (use Tailwind classes)
+- Style: ${style}
+- Single page only (no navigation to other pages, but can have links)
+
+OUTPUT FORMAT (JSON only, no markdown):
+CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
+- Use \\n for newlines in strings
+- Use \\" for quotes in strings  
+- Use \\\\ for backslashes
+- NO unescaped control characters
+- NO markdown code blocks around JSON
+
+{
+  "analysis": {
+    "title": "Project title",
+    "overview": "2-3 sentence summary",
+    "features": ["Feature 1", "Feature 2", "..."],
+    "techStack": {
+      "frontend": ["React", "TypeScript", "Tailwind CSS"],
+      "backend": ["Node.js", "Express"],
+      "database": ["MongoDB"]
+    },
+    "timeline": {
+      "totalWeeks": 8,
+      "phases": [
+        {"phase": "Planning", "weeks": 2, "deliverables": ["..."]},
+        {"phase": "Development", "weeks": 4, "deliverables": ["..."]},
+        {"phase": "Testing & Launch", "weeks": 2, "deliverables": ["..."]}
+      ]
+    },
+    "budgetBreakdown": {
+      "total": "Estimated total",
+      "breakdown": [
+        {"category": "Design", "percentage": 25, "description": "..."},
+        {"category": "Development", "percentage": 50, "description": "..."},
+        {"category": "Testing", "percentage": 15, "description": "..."},
+        {"category": "Deployment", "percentage": 10, "description": "..."}
+      ]
+    },
+    "risks": ["Risk 1 with mitigation", "..."],
+    "recommendations": ["Recommendation 1", "..."]
+  },
+  "code": "import { useState } from 'react';\\n\\nfunction App() {\\n  return (\\n    <div>...</div>\\n  );\\n}\\n\\nexport default App;"
+}
+
+CRITICAL CODE REQUIREMENTS:
+- Component MUST be named: App
+- Use function App() { ... } OR const App = () => { ... }
+- Export: export default App;
+- ALL helper components (icons, sub-components) MUST be defined BEFORE the App component
+- Helper components must use: const ComponentName = () => { ... } syntax
+- ALL components must be in the same scope (no separate files)
+- Tailwind CSS classes only
+- Responsive (sm:, md:, lg: breakpoints)
+- Images: Use https://picsum.photos/400/300?random=SEED or https://placehold.co/400x300?text=TEXT
+- NO placeholders, NO Lorem Ipsum
+- NO markdown code blocks in code field
+- Single page with all sections
+- If using icon components, define them BEFORE using them in arrays/objects
+
+CODE STRUCTURE EXAMPLE:
+const Icon1 = () => <svg>...</svg>;
+const Icon2 = () => <svg>...</svg>;
+function App() {
+  const features = [
+    { icon: <Icon1 />, title: '...' },
+    { icon: <Icon2 />, title: '...' }
+  ];
+  return <div>...</div>;
+}
+export default App;
+
+Generate now:`;
+  }
+
+  // Generate combined preview (analysis + code in one call)
+  async generateCombinedPreview(prompt, userInputs, modelId = 'gemini-2.0-flash') {
+    if (!this.initialized || !this.vertex) {
+      console.warn('⚠️ Vertex AI not initialized, using mock data');
+      return this.generateMockCombined(prompt, userInputs);
+    }
+
+    const cacheKey = `combined_${modelId}_${this.hashString(prompt + JSON.stringify(userInputs))}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Combined cache hit - saving API call');
+      return { result: cached, fromCache: true, usage: null };
+    }
+
+    const model = await this.getModel(modelId);
+    if (!model) {
+      console.warn('⚠️ Model not available, using mock data');
+      return this.generateMockCombined(prompt, userInputs);
+    }
+
+    const combinedPrompt = this.buildCombinedPrompt(prompt, userInputs);
+
+    try {
+      const { result, usage } = await this.withRateLimit(async () => {
+        let response;
+        try {
+          response = await model.generateContent(combinedPrompt);
+        } catch (apiError) {
+          // If model returns 404, try other variants of the same model type
+          if ((apiError.message?.includes('404') || apiError.message?.includes('not found')) && 
+              modelId !== 'gemini-2.0-flash') {
+            console.warn(`⚠️ Model ${modelId} returned 404, trying other variants...`);
+            
+            // Try other variants of the requested model
+            const variants = this.getModelIdVariants(modelId);
+            const currentVariant = variants.find(v => this.modelInstances.has(v));
+            
+            // Try next variants
+            for (const variantId of variants) {
+              if (variantId === currentVariant) continue; // Skip the one that failed
+              
+              try {
+                // Determine which model type to request based on variant
+                let modelTypeToRequest = modelId;
+                if (variantId.includes('2.5-pro')) {
+                  modelTypeToRequest = 'gemini-2.5-pro';
+                } else if (variantId.includes('1.5-pro')) {
+                  modelTypeToRequest = 'gemini-1.5-pro';
+                } else if (variantId.includes('pro')) {
+                  modelTypeToRequest = 'gemini-2.5-pro'; // Default to 2.5 Pro
+                }
+                
+                const variantModel = await this.getModel(modelTypeToRequest);
+                if (variantModel && variantModel !== model) {
+                  console.log(`🔄 Trying variant: ${variantId}`);
+                  response = await variantModel.generateContent(combinedPrompt);
+                  console.log(`✅ Variant ${variantId} worked!`);
+                  break;
+                }
+              } catch (variantError) {
+                console.warn(`⚠️ Variant ${variantId} also failed:`, variantError.message);
+                continue;
+              }
+            }
+            
+            // If all variants failed, throw a helpful error with instructions
+            if (!response) {
+              const errorMsg = `Gemini 2.5 Pro is not available in your project (${process.env.GCP_PROJECT_ID}). 
+
+To enable it:
+1. Visit Model Garden: https://console.cloud.google.com/vertex-ai/model-garden?project=${process.env.GCP_PROJECT_ID}
+2. Search for "Gemini 2.5 Pro" and click "Enable"
+3. Or enable Vertex AI API: gcloud services enable aiplatform.googleapis.com --project=${process.env.GCP_PROJECT_ID}
+4. Check if Pro models are available in your region (us-central1)
+
+Note: Pro models may require billing account or specific project tier.`;
+              throw new Error(errorMsg);
+            }
+          } else {
+            throw apiError;
+          }
+        }
+        
+        const text = this.extractText(response);
+        const usage = this.extractUsage(response);
+        
+        // Parse JSON response with robust error handling
+        let cleanText = text.trim();
+        
+        // Remove markdown code blocks
+        if (cleanText.startsWith('```json')) {
+          cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+        } else if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/```\n?/g, '');
+        }
+        
+        // Try to extract JSON object if embedded in text
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanText = jsonMatch[0];
+        }
+        
+        // Remove control characters that break JSON (keep \n, \r, \t for formatting)
+        // But we need to be careful - these should be escaped in strings
+        cleanText = cleanText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        
+        let parsed;
+        try {
+          parsed = JSON.parse(cleanText);
+        } catch (parseError) {
+          console.error('Failed to parse JSON response:', parseError.message);
+          const errorPos = parseError.message.match(/position (\d+)/)?.[1];
+          if (errorPos) {
+            const pos = parseInt(errorPos);
+            console.error('Error around position:', cleanText.substring(Math.max(0, pos - 50), pos + 50));
+          }
+          
+          // Try to fix common JSON issues - escape control characters in string values
+          try {
+            // More sophisticated fix: properly escape strings
+            // This regex finds string values and escapes control characters in them
+            let fixedText = cleanText.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match, content) => {
+              if (!content) return match;
+              // Escape control characters in string content
+              const escaped = content
+                .replace(/\\/g, '\\\\')  // Escape backslashes first
+                .replace(/"/g, '\\"')    // Escape quotes
+                .replace(/\n/g, '\\n')    // Escape newlines
+                .replace(/\r/g, '\\r')   // Escape carriage returns
+                .replace(/\t/g, '\\t');  // Escape tabs
+              return `"${escaped}"`;
+            });
+            
+            parsed = JSON.parse(fixedText);
+            console.log('✅ Fixed JSON parsing issues (escaped control characters in strings)');
+          } catch (retryError) {
+            // Last attempt: try to manually reconstruct the code field
+            try {
+              // Find the code field and properly escape it
+              const codeFieldMatch = cleanText.match(/"code"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/);
+              if (codeFieldMatch) {
+                let codeValue = codeFieldMatch[1];
+                // Properly escape the code string value
+                codeValue = codeValue
+                  .replace(/\\/g, '\\\\')  // Escape backslashes
+                  .replace(/"/g, '\\"')    // Escape quotes
+                  .replace(/\n/g, '\\n')    // Escape newlines
+                  .replace(/\r/g, '\\r')   // Escape carriage returns
+                  .replace(/\t/g, '\\t');  // Escape tabs
+                
+                // Replace the code field in the JSON
+                const fixedCodeJson = cleanText.replace(
+                  /"code"\s*:\s*"[\s\S]*?"(?=\s*[,}])/,
+                  `"code": "${codeValue}"`
+                );
+                parsed = JSON.parse(fixedCodeJson);
+                console.log('✅ Fixed JSON by properly escaping code field');
+              } else {
+                throw retryError;
+              }
+            } catch (finalError) {
+              console.error('All JSON parsing attempts failed');
+              console.error('Response length:', cleanText.length);
+              console.error('First 1000 chars:', cleanText.substring(0, 1000));
+              throw new Error('AI returned invalid JSON format that could not be fixed');
+            }
+          }
+        }
+        
+        // Clean and validate code
+        if (parsed.code) {
+          let code = parsed.code;
+          code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
+          code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
+          code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
+          code = code.replace(/const GeneratedComponent\s*=/g, 'function App');
+          code = code.replace(/export default GeneratedComponent;?/g, 'export default App;');
+          code = code.replace(/function GeneratedComponent\(\)/g, 'function App()');
+          code = code.replace(/GeneratedComponent/g, 'App');
+          if (!code.includes('export default App')) {
+            code = code.replace(/export default \w+;?/g, 'export default App;');
+            if (!code.includes('export default')) {
+              code += '\n\nexport default App;';
+            }
+          }
+          parsed.code = this.fixBrokenImageSrc(code);
+        }
+        
+        return { result: parsed, usage };
+      });
+      
+      this.cache.set(cacheKey, result);
+      return { result, fromCache: false, usage };
+    } catch (error) {
+      console.error('Vertex AI Error:', error.message);
+      console.warn('⚠️  API call failed - using MOCK data');
+      return this.generateMockCombined(prompt, userInputs);
+    }
+  }
+
+  // Regenerate with cached context (styling only)
+  async regenerateWithContext(cachedCode, modifications, modelId = 'gemini-2.0-flash') {
+    if (!this.initialized || !this.vertex) {
+      console.warn('⚠️ Vertex AI not initialized');
+      return { htmlCode: cachedCode, fromCache: false, usage: null };
+    }
+
+    const model = await this.getModel(modelId);
+    if (!model) {
+      console.warn('⚠️ Model not available');
+      return { htmlCode: cachedCode, fromCache: false, usage: null };
+    }
+
+    const regeneratePrompt = `Given this existing React component code, modify ONLY the styling (colors, spacing, layout). Keep all content, structure, and functionality identical.
+
+EXISTING CODE:
+\`\`\`jsx
+${cachedCode}
+\`\`\`
+
+MODIFICATIONS REQUESTED:
+${modifications || 'Change color scheme, adjust spacing and layout for a fresh look'}
+
+REQUIREMENTS:
+- Keep component name: App
+- Keep all content and text identical
+- Keep all functionality identical
+- Only modify: colors, spacing, padding, margins, layout (grid/flex), shadows, borders
+- Use Tailwind CSS classes
+- Return ONLY the complete React component code
+- NO markdown code blocks
+- Component MUST be: function App() { ... } OR const App = () => { ... }
+- Export: export default App;
+
+Generate the modified component:`;
+
+    try {
+      const { result, usage } = await this.withRateLimit(async () => {
+        const response = await model.generateContent(regeneratePrompt);
+        const text = this.extractText(response);
+        const usage = this.extractUsage(response);
+        
+        let cleanCode = text.trim();
+        if (cleanCode.startsWith('```jsx')) {
+          cleanCode = cleanCode.replace(/```jsx\n?/g, '').replace(/```\n?$/g, '');
+        } else if (cleanCode.startsWith('```')) {
+          cleanCode = cleanCode.replace(/```\n?/g, '');
+        }
+        
+        // Normalize component name
+        cleanCode = cleanCode.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
+        cleanCode = cleanCode.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
+        cleanCode = cleanCode.replace(/const GeneratedComponent\s*=/g, 'function App');
+        cleanCode = cleanCode.replace(/export default GeneratedComponent;?/g, 'export default App;');
+        cleanCode = cleanCode.replace(/function GeneratedComponent\(\)/g, 'function App()');
+        cleanCode = cleanCode.replace(/GeneratedComponent/g, 'App');
+        if (!cleanCode.includes('export default App')) {
+          cleanCode = cleanCode.replace(/export default \w+;?/g, 'export default App;');
+          if (!cleanCode.includes('export default')) {
+            cleanCode += '\n\nexport default App;';
+          }
+        }
+        
+        cleanCode = this.fixBrokenImageSrc(cleanCode);
+        return { result: cleanCode, usage };
+      });
+      
+      return { htmlCode: result, fromCache: false, usage };
+    } catch (error) {
+      console.error('Regenerate Error:', error.message);
+      return { htmlCode: cachedCode, fromCache: false, usage: null };
+    }
+  }
+
+  // Mock combined response
+  generateMockCombined(prompt, userInputs) {
+    console.log('🎭 Generating MOCK combined response');
+    
+    const analysis = this.generateMockAnalysis(prompt, userInputs);
+    const website = this.generateMockWebsite(prompt, userInputs);
+    
+    return {
+      result: {
+        analysis: JSON.parse(analysis.result),
+        code: website.htmlCode
+      },
+      fromCache: false,
+      isMock: true,
+      usage: null
     };
   }
 }

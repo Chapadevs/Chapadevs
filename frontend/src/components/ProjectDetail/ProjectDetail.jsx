@@ -27,6 +27,7 @@ const ProjectDetail = () => {
     timeline: '',
     projectType: '',
     techStack: [],
+    modelId: 'gemini-2.0-flash',
   })
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState('')
@@ -134,7 +135,7 @@ const ProjectDetail = () => {
       await generateAIPreview(payload)
       await loadPreviews()
       setShowGenerateForm(false)
-      setGenerateFormData({ prompt: '', budget: '', timeline: '', projectType: '', techStack: [] })
+      setGenerateFormData({ prompt: '', budget: '', timeline: '', projectType: '', techStack: [], modelId: 'gemini-2.0-flash' })
     } catch (err) {
       setGenerateError(err.message || 'Failed to generate preview')
     } finally {
@@ -259,6 +260,24 @@ const ProjectDetail = () => {
   const buildPreviewIframeSrcDoc = (websiteCode) => {
     if (!websiteCode) return ''
     let code = websiteCode
+    
+    // Unescape if the code is stored as a JSON string (double-escaped)
+    try {
+      // Try to parse as JSON string first (handles double-escaped strings)
+      if (code.startsWith('"') && code.endsWith('"')) {
+        code = JSON.parse(code)
+      }
+    } catch (e) {
+      // Not a JSON string, continue with original code
+    }
+    
+    // Replace escaped newlines with actual newlines
+    code = code.replace(/\\n/g, '\n')
+    code = code.replace(/\\t/g, '\t')
+    code = code.replace(/\\r/g, '\r')
+    code = code.replace(/\\"/g, '"')
+    code = code.replace(/\\\\/g, '\\')
+    
     code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '')
     code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()')
     code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()')
@@ -270,11 +289,19 @@ const ProjectDetail = () => {
     if (!code.includes('export default App')) {
       code = code.replace(/export default \w+;?/g, 'export default App;')
     }
-    const componentMatch = code.match(/(?:function|const)\s+App\s*[=\(].*?export default App/s)
-    let componentCode = code
-    if (componentMatch) {
-      componentCode = componentMatch[0].replace(/export default App;?/g, '')
-    }
+    
+    // Remove import statements (we'll use CDN React)
+    code = code.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '')
+    code = code.replace(/^import\s+.*?;?\s*$/gm, '')
+    
+    // Remove export default but keep all component definitions
+    // Find where export default App is and remove just that line
+    code = code.replace(/export\s+default\s+App;?\s*$/gm, '')
+    
+    // Ensure we have all the code including helper components
+    // The code should now contain all component definitions and the App component
+    let componentCode = code.trim()
+    
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -291,7 +318,14 @@ const ProjectDetail = () => {
   <div id="root"></div>
   <script type="text/babel">
     const { useState } = React;
+    
     ${componentCode}
+    
+    // Ensure App is available
+    if (typeof App === 'undefined') {
+      console.error('App component is not defined. Check your code.');
+      console.error('Available components:', Object.keys(window).filter(k => typeof window[k] === 'function'));
+    }
     const AppComponent = App;
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(React.createElement(AppComponent));
@@ -601,6 +635,18 @@ const ProjectDetail = () => {
                         <option value="2-3 months">2-3 months</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="project-preview-form-group">
+                    <label htmlFor="preview-modelId">AI Model</label>
+                    <select
+                      id="preview-modelId"
+                      value={generateFormData.modelId}
+                      onChange={(e) => setGenerateFormData({ ...generateFormData, modelId: e.target.value })}
+                    >
+                      <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
+                      <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
+                    </select>
+                    <p className="project-preview-form-hint">Flash: Faster, lower cost. Pro: Higher quality, higher cost.</p>
                   </div>
                   <div className="project-preview-form-group">
                     <label>Tech Stack</label>

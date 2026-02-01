@@ -11,7 +11,7 @@ const ESTIMATED_TOKENS_PER_REQUEST = 20000
 // @route   POST /api/ai-previews
 // @access  Private
 export const generateAIPreview = asyncHandler(async (req, res) => {
-  const { prompt, projectId, previewType, budget, timeline, techStack, projectType } = req.body
+  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, modelId } = req.body
 
   if (!prompt) {
     res.status(400)
@@ -73,6 +73,9 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     }
   }
 
+  // Use provided modelId or default to gemini-2.0-flash
+  const selectedModelId = modelId || 'gemini-2.0-flash'
+
   // Create preview record
   const preview = await AIPreview.create({
     userId: req.user._id,
@@ -81,58 +84,55 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     previewType: previewType || 'text',
     previewResult: '',
     status: 'generating',
-    metadata: { budget, timeline, techStack, projectType }
+    metadata: { budget, timeline, techStack, projectType, modelId: selectedModelId }
   })
 
   try {
     const userInputs = { budget, timeline, techStack, projectType }
     
-    const { result, fromCache, usage: usageAnalysis } = await vertexAIService.generateProjectAnalysis(prompt, userInputs)
+    // Use combined preview generation (single API call)
+    const { result, fromCache, usage, isMock } = await vertexAIService.generateCombinedPreview(
+      prompt, 
+      userInputs, 
+      selectedModelId
+    )
 
-    if (fromCache) costMonitor.trackCacheHit()
-    else costMonitor.trackAPICall()
-
-    let websitePreview = null
-    let websiteFromCache = false
-    let websiteIsMock = false
-    let usageWebsite = null
-
-    try {
-      const websiteResult = await vertexAIService.generateWebsitePreview(prompt, userInputs)
-      websitePreview = websiteResult.htmlCode
-      websiteFromCache = websiteResult.fromCache
-      websiteIsMock = websiteResult.isMock === true
-      usageWebsite = websiteResult.usage ?? null
-
-      if (websiteIsMock) { /* no track */ } else if (websiteFromCache) costMonitor.trackCacheHit()
-      else costMonitor.trackAPICall()
-    } catch (websiteError) {
-      console.error('Website preview generation failed:', websiteError)
+    if (fromCache) {
+      costMonitor.trackCacheHit()
+    } else if (!isMock) {
+      costMonitor.trackAPICall()
     }
 
-    const totalTokenCount = [usageAnalysis, usageWebsite]
-      .filter(Boolean)
-      .reduce((sum, u) => sum + (u.totalTokenCount ?? 0), 0)
+    // Extract analysis and code from combined result
+    const analysis = result.analysis || {}
+    const code = result.code || ''
+
+    // Convert analysis to JSON string for storage
+    const analysisJson = JSON.stringify(analysis)
+
+    const totalTokenCount = usage?.totalTokenCount ?? 0
     const estimatedTokens = totalTokenCount > 0
       ? totalTokenCount
-      : Math.ceil(result.length / 4) + (websitePreview ? Math.ceil(websitePreview.length / 4) : 0)
+      : Math.ceil(analysisJson.length / 4) + Math.ceil(code.length / 4)
 
-    preview.previewResult = result
+    preview.previewResult = analysisJson
     preview.status = 'completed'
     preview.tokenUsage = estimatedTokens
     preview.metadata = {
       ...preview.metadata,
-      ...(websitePreview && { websitePreviewCode: websitePreview }),
-      usage: {
-        analysis: usageAnalysis ? { promptTokenCount: usageAnalysis.promptTokenCount, candidatesTokenCount: usageAnalysis.candidatesTokenCount, totalTokenCount: usageAnalysis.totalTokenCount } : null,
-        website: usageWebsite ? { promptTokenCount: usageWebsite.promptTokenCount, candidatesTokenCount: usageWebsite.candidatesTokenCount, totalTokenCount: usageWebsite.totalTokenCount } : null,
-      },
+      websitePreviewCode: code,
+      usage: usage ? {
+        combined: {
+          promptTokenCount: usage.promptTokenCount || 0,
+          candidatesTokenCount: usage.candidatesTokenCount || 0,
+          totalTokenCount: usage.totalTokenCount || 0
+        }
+      } : null,
     }
     await preview.save()
 
     const usagePayload = {
-      analysis: usageAnalysis,
-      website: usageWebsite,
+      combined: usage,
       totalTokenCount: estimatedTokens,
     }
 
@@ -141,13 +141,13 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       prompt: preview.prompt,
       previewType: preview.previewType,
       status: 'completed',
-      result,
-      websitePreview: websitePreview ? { htmlCode: websitePreview, isMock: websiteIsMock } : null,
-      fromCache: fromCache && websiteFromCache,
-      websiteIsMock,
+      result: analysis,
+      websitePreview: code ? { htmlCode: code, isMock: isMock === true } : null,
+      fromCache: fromCache === true,
+      websiteIsMock: isMock === true,
       tokenUsage: estimatedTokens,
       usage: usagePayload,
-      message: (fromCache && websiteFromCache) ? 'Results retrieved from cache' : 'AI preview generated successfully',
+      message: fromCache ? 'Results retrieved from cache' : 'AI preview generated successfully',
     })
 
   } catch (error) {
@@ -271,4 +271,86 @@ export const deleteAIPreview = asyncHandler(async (req, res) => {
   await preview.deleteOne()
 
   res.json({ message: 'AI preview deleted successfully' })
+})
+
+// @desc    Regenerate AI preview with styling modifications
+// @route   POST /api/ai-previews/:id/regenerate
+// @access  Private
+export const regenerateAIPreview = asyncHandler(async (req, res) => {
+  const { modifications, modelId } = req.body
+
+  const preview = await AIPreview.findById(req.params.id)
+
+  if (!preview) {
+    res.status(404)
+    throw new Error('AI preview not found')
+  }
+
+  if (
+    preview.userId.toString() !== req.user._id.toString() &&
+    req.user.role !== 'admin'
+  ) {
+    res.status(403)
+    throw new Error('Not authorized to regenerate this preview')
+  }
+
+  if (preview.status !== 'completed') {
+    res.status(400)
+    throw new Error('Can only regenerate completed previews')
+  }
+
+  // Get cached code from metadata
+  const cachedCode = preview.metadata?.websitePreviewCode
+  if (!cachedCode) {
+    res.status(400)
+    throw new Error('No cached code found for regeneration')
+  }
+
+  // Use provided modelId or default to gemini-2.0-flash
+  const selectedModelId = modelId || 'gemini-2.0-flash'
+
+  try {
+    const { htmlCode, usage } = await vertexAIService.regenerateWithContext(
+      cachedCode,
+      modifications || 'Change color scheme and adjust spacing for a fresh look',
+      selectedModelId
+    )
+
+    if (!usage) {
+      costMonitor.trackCacheHit()
+    } else {
+      costMonitor.trackAPICall()
+    }
+
+    // Update preview with new code
+    preview.metadata = {
+      ...preview.metadata,
+      websitePreviewCode: htmlCode,
+      modelId: selectedModelId,
+      lastRegenerated: new Date(),
+    }
+    
+    const tokenUsage = usage?.totalTokenCount ?? Math.ceil(htmlCode.length / 4)
+    preview.tokenUsage = (preview.tokenUsage || 0) + tokenUsage
+    await preview.save()
+
+    res.status(200).json({
+      id: preview._id,
+      websitePreview: { htmlCode, isMock: false },
+      tokenUsage: tokenUsage,
+      usage: usage ? {
+        regenerate: {
+          promptTokenCount: usage.promptTokenCount || 0,
+          candidatesTokenCount: usage.candidatesTokenCount || 0,
+          totalTokenCount: usage.totalTokenCount || 0
+        }
+      } : null,
+      message: 'Preview regenerated successfully',
+    })
+
+  } catch (error) {
+    costMonitor.trackError()
+    res.status(500)
+    throw new Error(`Regeneration failed: ${error.message}`)
+  }
 })

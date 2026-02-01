@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { generateAIPreview, getVertexAIStatus } from '../../services/api'
+import { generateAIPreview, getVertexAIStatus, regenerateAIPreview } from '../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../config/techStack'
 import JSZip from 'jszip'
 import './AIPreviewGenerator.css'
@@ -11,11 +11,14 @@ const AIPreviewGenerator = () => {
     timeline: '',
     projectType: '',
     techStack: [],
+    modelId: 'gemini-2.0-flash',
   })
   const [loading, setLoading] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
   const [result, setResult] = useState(null)
   const [websitePreview, setWebsitePreview] = useState(null)
   const [websiteIsMock, setWebsiteIsMock] = useState(false)
+  const [previewId, setPreviewId] = useState(null)
   const [vertexAIReady, setVertexAIReady] = useState(null)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('analysis')
@@ -125,6 +128,11 @@ const AIPreviewGenerator = () => {
         setWebsitePreview(response.websitePreview.htmlCode)
         setWebsiteIsMock(response.websitePreview.isMock === true || response.websiteIsMock === true)
       }
+
+      // Store preview ID for regenerate
+      if (response.id) {
+        setPreviewId(response.id)
+      }
     } catch (err) {
       setError(err.message || 'Failed to generate AI preview. Please try again.')
     } finally {
@@ -197,6 +205,29 @@ npm start
     } catch (err) {
       console.error('Failed to download:', err)
       setError('Failed to download code. Please try again.')
+    }
+  }
+
+  const handleRegenerate = async () => {
+    if (!previewId || !websitePreview) return
+
+    setRegenerating(true)
+    setError('')
+
+    try {
+      const response = await regenerateAIPreview(previewId, {
+        modifications: 'Change color scheme and adjust spacing for a fresh look',
+        modelId: formData.modelId
+      })
+
+      if (response.websitePreview && response.websitePreview.htmlCode) {
+        setWebsitePreview(response.websitePreview.htmlCode)
+        setWebsiteIsMock(false)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to regenerate preview. Please try again.')
+    } finally {
+      setRegenerating(false)
     }
   }
 
@@ -460,6 +491,22 @@ npm start
           </div>
 
           <div className="form-group">
+            <label htmlFor="modelId">AI Model</label>
+                    <select
+                      id="modelId"
+                      name="modelId"
+                      value={formData.modelId}
+                      onChange={handleChange}
+                    >
+                      <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
+                      <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
+                    </select>
+            <p className="form-hint">Flash: Faster, lower cost. Pro: Higher quality, higher cost.</p>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
             <label>Tech Stack</label>
             <p className="form-hint">Select stacks for AI analysis</p>
             <div className="tech-stack-categories">
@@ -553,6 +600,13 @@ npm start
                 >
                   💾 Download ZIP
                 </button>
+                <button 
+                  onClick={handleRegenerate}
+                  className="action-button regenerate-button"
+                  disabled={regenerating || !previewId}
+                >
+                  {regenerating ? '🔄 Regenerating...' : '🎨 Regenerate Style'}
+                </button>
               </div>
 
               <div className="sandpack-container">
@@ -569,6 +623,24 @@ npm start
                   srcDoc={(() => {
                     // Normalize the code
                     let code = websitePreview;
+                    
+                    // Unescape if the code is stored as a JSON string (double-escaped)
+                    try {
+                      // Try to parse as JSON string first (handles double-escaped strings)
+                      if (code.startsWith('"') && code.endsWith('"')) {
+                        code = JSON.parse(code)
+                      }
+                    } catch (e) {
+                      // Not a JSON string, continue with original code
+                    }
+                    
+                    // Replace escaped newlines with actual newlines
+                    code = code.replace(/\\n/g, '\n')
+                    code = code.replace(/\\t/g, '\t')
+                    code = code.replace(/\\r/g, '\r')
+                    code = code.replace(/\\"/g, '"')
+                    code = code.replace(/\\\\/g, '\\')
+                    
                     code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
                     code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
                     code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
@@ -581,12 +653,17 @@ npm start
                       code = code.replace(/export default \w+;?/g, 'export default App;');
                     }
                     
-                    // Extract component code (remove imports and export, we'll handle those)
-                    const componentMatch = code.match(/(?:function|const)\s+App\s*[=\(].*?export default App/s);
-                    let componentCode = code;
-                    if (componentMatch) {
-                      componentCode = componentMatch[0].replace(/export default App;?/g, '');
-                    }
+                    // Remove import statements (we'll use CDN React)
+                    code = code.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
+                    code = code.replace(/^import\s+.*?;?\s*$/gm, '');
+                    
+                    // Remove export default but keep all component definitions
+                    // Find where export default App is and remove just that line
+                    code = code.replace(/export\s+default\s+App;?\s*$/gm, '');
+                    
+                    // Ensure we have all the code including helper components
+                    // The code should now contain all component definitions and the App component
+                    let componentCode = code.trim();
                     
                     // Create HTML with React from CDN and Babel standalone for JSX
                     return `<!DOCTYPE html>
@@ -614,6 +691,11 @@ npm start
     
     ${componentCode}
     
+    // Ensure App is available
+    if (typeof App === 'undefined') {
+      console.error('App component is not defined. Check your code.');
+      console.error('Available components:', Object.keys(window).filter(k => typeof window[k] === 'function'));
+    }
     const AppComponent = App;
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(React.createElement(AppComponent));

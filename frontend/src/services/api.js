@@ -188,6 +188,11 @@ export const generateAIPreview = async (data) => {
   return response.data
 }
 
+export const regenerateAIPreview = async (id, data) => {
+  const response = await api.post(`/ai-previews/${id}/regenerate`, data)
+  return response.data
+}
+
 /** Submit project inquiry (public). Sends admin + user confirmation emails via backend. */
 export const submitInquiry = async (formData) => {
   const response = await api.post('/inquiry', formData)
