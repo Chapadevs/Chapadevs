@@ -60,7 +60,7 @@ app.get('/api/health', (req, res) => {
 // Vertex AI status endpoint - Check if Vertex AI is working
 app.get('/api/vertex-ai/status', async (req, res) => {
   try {
-    const vertexAIService = (await import('./services/vertexAIService.js')).default
+    const vertexAIService = (await import('./services/vertexAI/index.js')).default
     const status = vertexAIService.checkVertexAIStatus()
     res.status(200).json({
       ...status,

@@ -2,7 +2,7 @@ import AIPreview from '../models/AIPreview.js'
 import Project from '../models/Project.js'
 import User from '../models/User.js'
 import asyncHandler from 'express-async-handler'
-import vertexAIService from '../services/vertexAIService.js'
+import vertexAIService from '../services/vertexAI/index.js'
 import costMonitor from '../middleware/costMonitoring.js'
 
 const ESTIMATED_TOKENS_PER_REQUEST = 20000
