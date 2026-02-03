@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from '../NotificationBell/NotificationBell'
 import './Header.css'
 
 const Header = () => {
@@ -179,6 +180,7 @@ const Header = () => {
                   ADMIN
                 </Link>
               )}
+              <NotificationBell />
               <button className="header-btn header-btn--logout" onClick={handleLogout}>
                 LOGOUT
               </button>

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import PhaseDetail from './PhaseDetail'
 import './Timeline.css'
 
-const Timeline = ({ project, onPhaseUpdate }) => {
+const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews }) => {
   const { user } = useAuth()
   const [selectedPhase, setSelectedPhase] = useState(null)
   const phasesScrollRef = useRef(null)
@@ -49,10 +49,43 @@ const Timeline = ({ project, onPhaseUpdate }) => {
     setSelectedPhase(null)
   }
 
+  const previewsCount = previews?.length || 0
+  const completedPreviews = previews?.filter((p) => p.status === 'completed').length || 0
+
   return (
     <>
       <section className="project-section project-phases">
-        <h2>Project Timeline</h2>
+        <h2>Development Progress</h2>
+        
+        {/* AI Preview Context Section */}
+        <div className="timeline-ai-preview-context">
+          <div className="timeline-preview-status">
+            <span className="preview-count-badge">
+              {previewsCount} AI Preview{previewsCount !== 1 ? 's' : ''} Generated
+            </span>
+            {isAssignedProgrammer && previewsCount > 0 && onSwitchToPreviews && (
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary timeline-preview-link"
+                onClick={onSwitchToPreviews}
+              >
+                View AI Previews →
+              </button>
+            )}
+          </div>
+          {previewsCount === 0 && project.status === 'Development' && (
+            <p className="timeline-preview-hint">
+              ⚠️ No AI previews available. Phases were created from project templates.
+            </p>
+          )}
+          {previewsCount > 0 && (
+            <p className="timeline-preview-info">
+              {isClientOwner && 'Your AI previews inform the development phases below.'}
+              {isAssignedProgrammer && !isClientOwner && 'Review the AI previews to understand project requirements before starting development.'}
+            </p>
+          )}
+        </div>
+
         <div className="project-phases-linear">
           <div className="project-phases-progress-bar">
             <div

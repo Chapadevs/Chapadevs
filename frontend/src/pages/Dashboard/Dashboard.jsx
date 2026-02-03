@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
 import Header from '../../components/Header/Header'
 import UserStatus from '../../components/UserStatus/UserStatus'
+import NotificationBadge from '../../components/NotificationBadge/NotificationBadge'
 import { getAIPreviewUsage } from '../../services/api'
 import './Dashboard.css'
 
@@ -62,7 +63,7 @@ const Dashboard = () => {
             <span className={`role-badge ${roleBadgeClass} dashboard-role-badge`}>
               {user?.role === 'user' ? 'CLIENT' : user?.role?.toUpperCase()}
             </span>
-            <h1>Dashboard</h1>
+            <h1>Dashboard<NotificationBadge /></h1>
             {user?.company && (
               <div className="dashboard-user-info">
                 <span className="dashboard-user-meta">{user.company}</span>

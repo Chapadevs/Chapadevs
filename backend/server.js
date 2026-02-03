@@ -22,6 +22,7 @@ console.log('')
 
 import { connectDB } from './config/database.js'
 import { errorHandler, notFound } from './middleware/errorMiddleware.js'
+import websocketService from './services/websocket.js'
 
 // Import Routes
 import authRoutes from './routes/authRoutes.js'
@@ -30,6 +31,7 @@ import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
 import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
 import inquiryRoutes from './routes/inquiryRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
 
 const app = express()
 
@@ -87,6 +89,7 @@ app.use('/api/projects', projectRoutes)
 app.use('/api/assignments', assignmentRoutes)
 app.use('/api/ai-previews', aiPreviewRoutes)
 app.use('/api/inquiry', inquiryRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 // Error handling middleware (must be last)
 app.use(notFound)
@@ -111,6 +114,10 @@ async function start() {
     console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
     console.log(`📡 Health check available at http://0.0.0.0:${PORT}/health`)
     console.log(`📡 API health check at http://0.0.0.0:${PORT}/api/health`)
+    
+    // Initialize WebSocket server
+    websocketService.initialize(server)
+    console.log(`🔌 WebSocket server available at ws://0.0.0.0:${PORT}/ws`)
   })
 
   server.on('error', (error) => {

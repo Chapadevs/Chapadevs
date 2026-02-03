@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
 import RoleProtectedRoute from './components/ProtectedRoute/RoleProtectedRoute'
 import Home from './pages/Home/Home'
@@ -21,7 +22,8 @@ import './styles.css'
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <NotificationProvider>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
@@ -98,6 +100,7 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

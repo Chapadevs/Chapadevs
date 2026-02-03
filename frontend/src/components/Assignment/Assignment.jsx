@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { assignmentAPI, userAPI, projectAPI } from '../../services/api'
 import { Link } from 'react-router-dom'
 import Header from '../Header/Header'
+import NotificationBadge from '../NotificationBadge/NotificationBadge'
 import './Assignment.css'
 
 const Assignment = () => {
@@ -88,6 +89,7 @@ const Assignment = () => {
       <div className="assignment-header">
         <h2>
           {user?.role === 'programmer' ? 'Available Projects' : 'Project Assignments'}
+          <NotificationBadge />
         </h2>
       </div>
 

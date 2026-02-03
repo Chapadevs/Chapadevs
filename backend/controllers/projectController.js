@@ -4,6 +4,7 @@ import AIPreview from '../models/AIPreview.js'
 import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
 import { getPhasesFromAIAnalysis } from '../utils/aiAnalysisPhases.js'
 import { calculatePhaseDuration, checkClientApprovalRequired } from '../utils/phaseWorkflow.js'
+import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
 import multer from 'multer'
 import path from 'path'
@@ -180,6 +181,8 @@ export const updatePhase = asyncHandler(async (req, res) => {
     throw new Error('Phase not found')
   }
 
+  const previousStatus = phase.status
+
   // Status updates - only programmer/admin
   if (req.body.status !== undefined) {
     if (!isProgrammer && req.user.role !== 'admin') {
@@ -250,6 +253,17 @@ export const updatePhase = asyncHandler(async (req, res) => {
   if (phase.startedAt && phase.completedAt) {
     phase.actualDurationDays = calculatePhaseDuration(phase)
     await phase.save()
+  }
+
+  // Send notification to client if phase was just completed by programmer
+  if (phase.status === 'completed' && previousStatus !== 'completed' && isProgrammer && project.clientId) {
+    await createNotification(
+      project.clientId,
+      'project_updated',
+      'Phase Completed',
+      `The programmer has marked phase "${phase.title}" as completed for project "${project.title}". Please review and approve if required.`,
+      projectId
+    )
   }
 
   const updated = await ProjectPhase.findById(phase._id).lean()
@@ -397,6 +411,7 @@ export const approvePhase = asyncHandler(async (req, res) => {
     throw new Error('This phase does not require client approval')
   }
 
+  const previousStatus = phase.status
   phase.clientApproved = approved !== false
   phase.clientApprovedAt = phase.clientApproved ? new Date() : null
 
@@ -414,6 +429,18 @@ export const approvePhase = asyncHandler(async (req, res) => {
   }
 
   await phase.save()
+  
+  // Send notification to programmer if phase was just completed
+  if (phase.status === 'completed' && previousStatus !== 'completed' && project.assignedProgrammerId) {
+    await createNotification(
+      project.assignedProgrammerId,
+      'project_updated',
+      'Phase Completed',
+      `The client has approved and completed phase "${phase.title}" for project "${project.title}".`,
+      projectId
+    )
+  }
+  
   const updated = await ProjectPhase.findById(phase._id).lean()
   res.json(updated)
 })

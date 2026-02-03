@@ -1,0 +1,236 @@
+.notification-bell-container {
+  position: relative;
+  display: inline-block;
+}
+
+.notification-bell-button {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #059669;
+  transition: color 0.2s ease, background 0.2s ease;
+  border-radius: 4px;
+}
+
+.notification-bell-button:hover {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.notification-bell-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.notification-bell-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0 4px;
+  border: 2px solid white;
+  transform: translate(25%, -25%);
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.notification-dropdown-header {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+}
+
+.notification-dropdown-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: 'Creato Display Medium', serif;
+}
+
+.notification-mark-all-read {
+  background: transparent;
+  border: none;
+  color: #059669;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  font-family: 'Creato Display Medium', serif;
+}
+
+.notification-mark-all-read:hover {
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.notification-list {
+  overflow-y: auto;
+  max-height: 400px;
+  flex: 1;
+}
+
+.notification-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.notification-item {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background: white;
+}
+
+.notification-item:hover {
+  background: #f9fafb;
+}
+
+.notification-item--unread {
+  background: #eff6ff;
+  border-left: 3px solid #059669;
+}
+
+.notification-item--unread:hover {
+  background: #dbeafe;
+}
+
+.notification-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.notification-item-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+  flex: 1;
+  font-family: 'Creato Display Medium', serif;
+}
+
+.notification-item-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #059669;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.notification-item-message {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.notification-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-item-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.notification-item-delete {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.notification-item-delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.notification-dropdown-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: #f9fafb;
+  text-align: center;
+}
+
+.notification-view-all {
+  background: transparent;
+  border: none;
+  color: #059669;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  font-family: 'Creato Display Medium', serif;
+}
+
+.notification-view-all:hover {
+  background: rgba(5, 150, 105, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .notification-dropdown {
+    width: 320px;
+    right: -10px;
+  }
+}

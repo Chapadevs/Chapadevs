@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useNotifications } from '../../context/NotificationContext'
 import { projectAPI, generateAIPreview, deleteAIPreview } from '../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../config/techStack'
 import JSZip from 'jszip'
@@ -14,6 +15,7 @@ const ProjectDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { notifications } = useNotifications()
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -230,6 +232,44 @@ const ProjectDetail = () => {
   const canMarkReady = (user?.role === 'client' || user?.role === 'user') && isClientOwner && project.status === 'Holding'
   const canGeneratePreviews = isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT
   const showAIPreviewsSection = isClientOwner || isAssignedProgrammer
+
+  // Filter notifications for this project and determine which tabs should show badges
+  const projectIdStr = project ? (project._id || project.id)?.toString() : null
+  const projectNotifications = projectIdStr ? notifications.filter((notif) => {
+    const notifProjectId = (notif.projectId?._id || notif.projectId)?.toString()
+    return notifProjectId === projectIdStr && !notif.isRead
+  }) : []
+
+  // Map notification types to relevant tabs
+  const getRelevantTabs = (notificationType) => {
+    switch (notificationType) {
+      case 'project_assigned':
+      case 'project_accepted':
+        return ['programmers', 'timeline'] // Relevant to Programmers and Development Progress
+      case 'project_updated':
+      case 'project_completed':
+        return ['timeline'] // Relevant to Development Progress
+      case 'message_received':
+        return ['comments'] // Relevant to Comments
+      case 'system':
+        return ['timeline'] // System notifications usually relate to progress
+      default:
+        return ['timeline'] // Default to Development Progress
+    }
+  }
+
+  // Determine which tabs have relevant notifications
+  const tabsWithNotifications = new Set()
+  projectNotifications.forEach((notif) => {
+    const relevantTabs = getRelevantTabs(notif.type)
+    relevantTabs.forEach((tab) => tabsWithNotifications.add(tab))
+  })
+
+  const hasDescriptionNotifications = tabsWithNotifications.has('description')
+  const hasAIPreviewNotifications = tabsWithNotifications.has('ai-preview')
+  const hasProgrammersNotifications = tabsWithNotifications.has('programmers')
+  const hasTimelineNotifications = tabsWithNotifications.has('timeline')
+  const hasCommentsNotifications = tabsWithNotifications.has('comments')
 
   const parsePreviewResult = (previewResult) => {
     if (!previewResult) return null
@@ -751,7 +791,12 @@ const ProjectDetail = () => {
 
           {activeTab === 'timeline' && (
             <div className="project-tab-panel">
-              <Timeline project={project} onPhaseUpdate={handlePhaseUpdate} />
+              <Timeline 
+                project={project} 
+                previews={previews}
+                onPhaseUpdate={handlePhaseUpdate}
+                onSwitchToPreviews={() => setActiveTab('ai-preview')}
+              />
             </div>
           )}
 
@@ -771,6 +816,7 @@ const ProjectDetail = () => {
                 onClick={() => setActiveTab('description')}
               >
                 Description
+                {hasDescriptionNotifications && <span className="project-tab-notification-badge"></span>}
               </button>
               {showAIPreviewsSection && (
                 <button
@@ -778,6 +824,7 @@ const ProjectDetail = () => {
                   onClick={() => setActiveTab('ai-preview')}
                 >
                   AI Preview
+                  {hasAIPreviewNotifications && <span className="project-tab-notification-badge"></span>}
                 </button>
               )}
               <button
@@ -785,18 +832,21 @@ const ProjectDetail = () => {
                 onClick={() => setActiveTab('programmers')}
               >
                 Programmers
+                {hasProgrammersNotifications && <span className="project-tab-notification-badge"></span>}
               </button>
               <button
                 className={`project-tab-link ${activeTab === 'timeline' ? 'active' : ''}`}
                 onClick={() => setActiveTab('timeline')}
               >
-                Timeline
+                Development Progress
+                {hasTimelineNotifications && <span className="project-tab-notification-badge"></span>}
               </button>
               <button
                 className={`project-tab-link ${activeTab === 'comments' ? 'active' : ''}`}
                 onClick={() => setActiveTab('comments')}
               >
                 Comments
+                {hasCommentsNotifications && <span className="project-tab-notification-badge"></span>}
               </button>
             </nav>
           </section>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Header from '../../components/Header/Header'
+import NotificationBadge from '../../components/NotificationBadge/NotificationBadge'
 import './Profile.css'
 
 const Profile = () => {
@@ -79,7 +80,7 @@ const Profile = () => {
             ← Go back
           </Link>
           <div className="profile-header">
-            <h1>Profile Settings</h1>
+            <h1>Profile Settings<NotificationBadge /></h1>
             <p>Update your account information</p>
           </div>
 

@@ -19,8 +19,10 @@ router.put('/read-all', markAllAsRead)
 router.route('/')
   .get(getNotifications)
 
-router.route('/:id')
+router.route('/:id/read')
   .put(markAsRead)
+
+router.route('/:id')
   .delete(deleteNotification)
 
 export default router

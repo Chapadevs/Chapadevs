@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { projectAPI } from '../../services/api'
 import { Link } from 'react-router-dom'
 import Header from '../Header/Header'
+import NotificationBadge from '../NotificationBadge/NotificationBadge'
 import './ProjectList.css'
 
 const ProjectList = () => {
@@ -61,7 +62,7 @@ const ProjectList = () => {
       <Header />
       <div className="project-list-container">
       <div className="project-list-header">
-        <h1>Projects</h1>
+        <h1>Projects<NotificationBadge /></h1>
         <div className="project-list-header-actions">
           <Link to="/dashboard" className="project-list-back">← Dashboard</Link>
           {(user?.role === 'client' || user?.role === 'user') && (
