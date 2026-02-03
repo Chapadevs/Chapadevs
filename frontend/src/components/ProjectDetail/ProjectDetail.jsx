@@ -36,6 +36,7 @@ const ProjectDetail = () => {
   const [showMoreDetails, setShowMoreDetails] = useState(false)
   const [updatingPhaseId, setUpdatingPhaseId] = useState(null)
   const [selectedPhase, setSelectedPhase] = useState(null)
+  const [activeTab, setActiveTab] = useState('description')
   const phasesScrollRef = useRef(null)
 
   const PHASES_STEP_WIDTH = 130
@@ -375,212 +376,269 @@ const ProjectDetail = () => {
             </span>
           </div>
         </div>
-        <div className="project-actions">
-          {canMarkReady && (
-            <button
-              onClick={handleMarkReady}
-              className="btn btn-primary"
-              disabled={markingReady}
-            >
-              {markingReady ? 'Marking...' : 'Mark as Ready'}
-            </button>
-          )}
-          {canDelete && (
-            <button onClick={handleDelete} className="btn btn-danger">
-              Delete Project
-            </button>
-          )}
-        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
 
       <div className="project-detail-content">
         <div className="project-main">
-          {project.phases && project.phases.length > 0 && (
-            <section className="project-section project-phases">
-              <h2>Project progress</h2>
-              <div className="project-phases-linear">
-                <div className="project-phases-progress-bar">
-                  <div
-                    className="project-phases-progress-fill"
-                    style={{
-                      width: `${(project.phases.filter((p) => p.status === 'completed').length / project.phases.length) * 100}%`,
-                    }}
-                  />
-                </div>
-                <div className="project-phases-progress-label">
-                  {project.phases.filter((p) => p.status === 'completed').length} of {project.phases.length} phases completed
-                </div>
-                <div className="project-phases-scroll-outer">
+          {activeTab === 'description' && (
+            <>
+              <div className="project-actions">
+                {canMarkReady && (
                   <button
-                    type="button"
-                    className="project-phases-scroll-btn project-phases-scroll-prev"
-                    onClick={() => scrollPhases('prev')}
-                    aria-label="Previous steps"
+                    onClick={handleMarkReady}
+                    className="btn btn-primary"
+                    disabled={markingReady}
                   >
-                    ‹
+                    {markingReady ? 'Marking...' : 'Mark as Ready'}
                   </button>
-                  <div
-                    ref={phasesScrollRef}
-                    className="project-phases-scroll"
-                    role="region"
-                    aria-label="Project phases"
-                  >
-                    <div
-                      className="project-phases-scroll-inner"
-                      style={{
-                        '--phases-step-width': PHASES_STEP_WIDTH,
-                        '--phases-count': project.phases.length,
-                      }}
-                    >
+                )}
+                {canDelete && (
+                  <button onClick={handleDelete} className="btn btn-danger">
+                    Delete Project
+                  </button>
+                )}
+              </div>
+
+              <section className="project-section project-info-section">
+                <h2>Project Information</h2>
+                <div className="project-info-grid">
+                  <div className="info-item">
+                    <strong>Client:</strong>
+                    <span>{project.clientId?.name ?? 'N/A'}</span>
+                  </div>
+                  {project.assignedProgrammerId && (
+                    <div className="info-item">
+                      <strong>Assigned Programmer:</strong>
+                      <span>{project.assignedProgrammerId.name}</span>
+                    </div>
+                  )}
+                  {project.phases && project.phases.length > 0 && (
+                    <div className="info-item">
+                      <strong>Progress:</strong>
+                      <span>
+                        {project.phases.filter((p) => p.status === 'completed').length} / {project.phases.length} phases
+                      </span>
+                    </div>
+                  )}
+                  {project.budget && (
+                    <div className="info-item">
+                      <strong>Budget:</strong>
+                      <span>{project.budget}</span>
+                    </div>
+                  )}
+                  {project.timeline && (
+                    <div className="info-item">
+                      <strong>Timeline:</strong>
+                      <span>{project.timeline}</span>
+                    </div>
+                  )}
+                  {project.startDate && (
+                    <div className="info-item">
+                      <strong>Start Date:</strong>
+                      <span>{new Date(project.startDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {project.dueDate && (
+                    <div className="info-item">
+                      <strong>Due Date:</strong>
+                      <span>{new Date(project.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  <div className="info-item">
+                    <strong>Created:</strong>
+                    <span>{new Date(project.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </section>
+
+              {project.phases && project.phases.length > 0 && (
+                <section className="project-section project-phases">
+                  <h2>Project progress</h2>
+                  <div className="project-phases-linear">
+                    <div className="project-phases-progress-bar">
                       <div
-                        className="project-phases-track"
-                        style={{ '--steps': project.phases.length }}
+                        className="project-phases-progress-fill"
+                        style={{
+                          width: `${(project.phases.filter((p) => p.status === 'completed').length / project.phases.length) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="project-phases-progress-label">
+                      {project.phases.filter((p) => p.status === 'completed').length} of {project.phases.length} phases completed
+                    </div>
+                    <div className="project-phases-scroll-outer">
+                      <button
+                        type="button"
+                        className="project-phases-scroll-btn project-phases-scroll-prev"
+                        onClick={() => scrollPhases('prev')}
+                        aria-label="Previous steps"
                       >
-                        <div className="project-phases-track-line" aria-hidden />
+                        ‹
+                      </button>
+                      <div
+                        ref={phasesScrollRef}
+                        className="project-phases-scroll"
+                        role="region"
+                        aria-label="Project phases"
+                      >
                         <div
-                          className="project-phases-track-fill"
+                          className="project-phases-scroll-inner"
                           style={{
-                            width: (() => {
-                              const total = project.phases.length
-                              const completed = project.phases.filter((p) => p.status === 'completed').length
-                              if (completed === 0 || total <= 1) return '0%'
-                              return `${((completed - 1) / (total - 1)) * 100}%`
-                            })(),
+                            '--phases-step-width': PHASES_STEP_WIDTH,
+                            '--phases-count': project.phases.length,
                           }}
-                          aria-hidden
-                        />
-                        {project.phases.map((phase, index) => {
-                          const phaseId = phase._id || phase.id
-                          const isCompleted = phase.status === 'completed'
-                          const isInProgress = phase.status === 'in_progress'
-                          return (
+                        >
+                          <div
+                            className="project-phases-track"
+                            style={{ '--steps': project.phases.length }}
+                          >
+                            <div className="project-phases-track-line" aria-hidden />
                             <div
-                              key={phaseId}
-                              className={`project-phase-step project-phase-step-clickable ${isCompleted ? 'step-completed' : isInProgress ? 'step-in-progress' : 'step-pending'}`}
-                              style={{ '--step-i': index }}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => setSelectedPhase(phase)}
-                              onKeyDown={(e) => e.key === 'Enter' && setSelectedPhase(phase)}
-                              aria-label={`View details: ${phase.title}`}
-                            >
-                              <div className="project-phase-step-node">
-                                {isCompleted ? (
-                                  <span className="project-phase-step-icon" aria-hidden>✓</span>
-                                ) : (
-                                  <span className="project-phase-step-number">{phase.order}</span>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
+                              className="project-phases-track-fill"
+                              style={{
+                                width: (() => {
+                                  const total = project.phases.length
+                                  const completed = project.phases.filter((p) => p.status === 'completed').length
+                                  if (completed === 0 || total <= 1) return '0%'
+                                  return `${((completed - 1) / (total - 1)) * 100}%`
+                                })(),
+                              }}
+                              aria-hidden
+                            />
+                            {project.phases.map((phase, index) => {
+                              const phaseId = phase._id || phase.id
+                              const isCompleted = phase.status === 'completed'
+                              const isInProgress = phase.status === 'in_progress'
+                              return (
+                                <div
+                                  key={phaseId}
+                                  className={`project-phase-step project-phase-step-clickable ${isCompleted ? 'step-completed' : isInProgress ? 'step-in-progress' : 'step-pending'}`}
+                                  style={{ '--step-i': index }}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => setSelectedPhase(phase)}
+                                  onKeyDown={(e) => e.key === 'Enter' && setSelectedPhase(phase)}
+                                  aria-label={`View details: ${phase.title}`}
+                                >
+                                  <div className="project-phase-step-node">
+                                    {isCompleted ? (
+                                      <span className="project-phase-step-icon" aria-hidden>✓</span>
+                                    ) : (
+                                      <span className="project-phase-step-number">{phase.order}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <div
+                            className="project-phases-labels"
+                            style={{ '--steps': project.phases.length }}
+                          >
+                            {project.phases.map((phase, index) => {
+                              const phaseId = phase._id || phase.id
+                              const isCompleted = phase.status === 'completed'
+                              const isInProgress = phase.status === 'in_progress'
+                              return (
+                                <div
+                                  key={phaseId}
+                                  className={`project-phase-label-wrap project-phase-label-clickable ${isCompleted ? 'label-completed' : isInProgress ? 'label-active' : ''}`}
+                                  style={{ '--step-i': index }}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => setSelectedPhase(phase)}
+                                  onKeyDown={(e) => e.key === 'Enter' && setSelectedPhase(phase)}
+                                  aria-label={`View details: ${phase.title}`}
+                                >
+                                  <span className="project-phase-label-title">{phase.title}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
                       </div>
-                      <div
-                        className="project-phases-labels"
-                        style={{ '--steps': project.phases.length }}
+                      <button
+                        type="button"
+                        className="project-phases-scroll-btn project-phases-scroll-next"
+                        onClick={() => scrollPhases('next')}
+                        aria-label="Next steps"
                       >
-                        {project.phases.map((phase, index) => {
-                          const phaseId = phase._id || phase.id
-                          const isCompleted = phase.status === 'completed'
-                          const isInProgress = phase.status === 'in_progress'
-                          return (
-                            <div
-                              key={phaseId}
-                              className={`project-phase-label-wrap project-phase-label-clickable ${isCompleted ? 'label-completed' : isInProgress ? 'label-active' : ''}`}
-                              style={{ '--step-i': index }}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => setSelectedPhase(phase)}
-                              onKeyDown={(e) => e.key === 'Enter' && setSelectedPhase(phase)}
-                              aria-label={`View details: ${phase.title}`}
-                            >
-                              <span className="project-phase-label-title">{phase.title}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
+                        ›
+                      </button>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="project-phases-scroll-btn project-phases-scroll-next"
-                    onClick={() => scrollPhases('next')}
-                    aria-label="Next steps"
-                  >
-                    ›
-                  </button>
-                </div>
-              </div>
-            </section>
-          )}
+                </section>
+              )}
 
-          <section className="project-section project-overview">
-            <div className="project-overview-row">
-              {project.projectType && (
-                <span className="project-overview-type">{project.projectType}</span>
-              )}
-              {(project.goals?.length > 0 || project.features?.length > 0) && (
-                <div className="project-overview-meta">
-                  <span className="project-overview-badges">
-                    {project.goals?.length > 0 && (
-                      <span className="project-overview-tag">Goals: {project.goals.join(' · ')}</span>
-                    )}
-                    {project.features?.length > 0 && (
-                      <span className="project-overview-tag">Features: {project.features.join(' · ')}</span>
-                    )}
-                  </span>
+              <section className="project-section project-overview">
+                <div className="project-overview-row">
+                  {project.projectType && (
+                    <span className="project-overview-type">{project.projectType}</span>
+                  )}
+                  {(project.goals?.length > 0 || project.features?.length > 0) && (
+                    <div className="project-overview-meta">
+                      <span className="project-overview-badges">
+                        {project.goals?.length > 0 && (
+                          <span className="project-overview-tag">Goals: {project.goals.join(' · ')}</span>
+                        )}
+                        {project.features?.length > 0 && (
+                          <span className="project-overview-tag">Features: {project.features.join(' · ')}</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  <p className="project-overview-description">{project.description}</p>
                 </div>
-              )}
-              <p className="project-overview-description">{project.description}</p>
-            </div>
-            {(project.brandingDetails || project.specialRequirements || project.additionalComments || (project.technologies?.length > 0)) && (
-              <div className="project-more-details">
-                <button
-                  type="button"
-                  className="project-more-details-toggle"
-                  onClick={() => setShowMoreDetails((v) => !v)}
-                  aria-expanded={showMoreDetails}
-                >
-                  {showMoreDetails ? '▼ Hide details' : '▶ More details'}
-                </button>
-                {showMoreDetails && (
-                  <div className="project-more-details-content">
-                    {project.technologies?.length > 0 && (
-                      <div className="project-more-detail-row">
-                        <strong>Tech:</strong> {project.technologies.join(', ')}
-                      </div>
-                    )}
-                    {project.brandingDetails && (
-                      <div className="project-more-detail-row">
-                        <strong>Branding:</strong> {project.hasBranding && `${project.hasBranding} — `}
-                        {project.brandingDetails}
-                      </div>
-                    )}
-                    {project.specialRequirements && (
-                      <div className="project-more-detail-row">
-                        <strong>Special requirements:</strong> {project.specialRequirements}
-                      </div>
-                    )}
-                    {project.additionalComments && (
-                      <div className="project-more-detail-row">
-                        <strong>Comments:</strong> {project.additionalComments}
+                {(project.brandingDetails || project.specialRequirements || project.additionalComments || (project.technologies?.length > 0)) && (
+                  <div className="project-more-details">
+                    <button
+                      type="button"
+                      className="project-more-details-toggle"
+                      onClick={() => setShowMoreDetails((v) => !v)}
+                      aria-expanded={showMoreDetails}
+                    >
+                      {showMoreDetails ? '▼ Hide details' : '▶ More details'}
+                    </button>
+                    {showMoreDetails && (
+                      <div className="project-more-details-content">
+                        {project.technologies?.length > 0 && (
+                          <div className="project-more-detail-row">
+                            <strong>Tech:</strong> {project.technologies.join(', ')}
+                          </div>
+                        )}
+                        {project.brandingDetails && (
+                          <div className="project-more-detail-row">
+                            <strong>Branding:</strong> {project.hasBranding && `${project.hasBranding} — `}
+                            {project.brandingDetails}
+                          </div>
+                        )}
+                        {project.specialRequirements && (
+                          <div className="project-more-detail-row">
+                            <strong>Special requirements:</strong> {project.specialRequirements}
+                          </div>
+                        )}
+                        {project.additionalComments && (
+                          <div className="project-more-detail-row">
+                            <strong>Comments:</strong> {project.additionalComments}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
-              </div>
-            )}
-          </section>
+              </section>
+            </>
+          )}
 
-          {showAIPreviewsSection && (
+          {activeTab === 'ai-preview' && showAIPreviewsSection && (
             <section className="project-section project-section-previews">
               <h2>AI Previews</h2>
               <p className="project-previews-intro">
                 {previews.length} / {MAX_PREVIEWS_PER_PROJECT} previews.
                 {isClientOwner && ' Generate up to 5 AI previews for this project. Programmers can view and use the code once assigned.'}
-                {isAssignedProgrammer && !isClientOwner && ' View and download the client’s generated preview code to start development.'}
+                {isAssignedProgrammer && !isClientOwner && " View and download the client's generated preview code to start development."}
               </p>
 
               {isClientOwner && canGeneratePreviews && !showGenerateForm && (
@@ -780,57 +838,63 @@ const ProjectDetail = () => {
               )}
             </section>
           )}
+
+          {activeTab === 'programmers' && (
+            <div className="project-tab-panel">
+              <p>Programmers section coming soon...</p>
+            </div>
+          )}
+
+          {activeTab === 'timeline' && (
+            <div className="project-tab-panel">
+              <p>Timeline section coming soon...</p>
+            </div>
+          )}
+
+          {activeTab === 'comments' && (
+            <div className="project-tab-panel">
+              <p>Comments section coming soon...</p>
+            </div>
+          )}
         </div>
 
         <div className="project-sidebar">
-          <section className="project-info-card">
-            <h3>Project Information</h3>
-            <div className="info-item">
-              <strong>Client:</strong>
-              <span>{project.clientId?.name ?? 'N/A'}</span>
-            </div>
-            {project.assignedProgrammerId && (
-              <div className="info-item">
-                <strong>Assigned Programmer:</strong>
-                <span>{project.assignedProgrammerId.name}</span>
-              </div>
-            )}
-            {project.phases && project.phases.length > 0 && (
-              <div className="info-item">
-                <strong>Progress:</strong>
-                <span>
-                  {project.phases.filter((p) => p.status === 'completed').length} / {project.phases.length} phases
-                </span>
-              </div>
-            )}
-            {project.budget && (
-              <div className="info-item">
-                <strong>Budget:</strong>
-                <span>{project.budget}</span>
-              </div>
-            )}
-            {project.timeline && (
-              <div className="info-item">
-                <strong>Timeline:</strong>
-                <span>{project.timeline}</span>
-              </div>
-            )}
-            {project.startDate && (
-              <div className="info-item">
-                <strong>Start Date:</strong>
-                <span>{new Date(project.startDate).toLocaleDateString()}</span>
-              </div>
-            )}
-            {project.dueDate && (
-              <div className="info-item">
-                <strong>Due Date:</strong>
-                <span>{new Date(project.dueDate).toLocaleDateString()}</span>
-              </div>
-            )}
-            <div className="info-item">
-              <strong>Created:</strong>
-              <span>{new Date(project.createdAt).toLocaleDateString()}</span>
-            </div>
+          <section className="project-sidebar-tabs">
+            <h3>Navigation</h3>
+            <nav className="project-tab-nav">
+              <button
+                className={`project-tab-link ${activeTab === 'description' ? 'active' : ''}`}
+                onClick={() => setActiveTab('description')}
+              >
+                Description
+              </button>
+              {showAIPreviewsSection && (
+                <button
+                  className={`project-tab-link ${activeTab === 'ai-preview' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('ai-preview')}
+                >
+                  AI Preview
+                </button>
+              )}
+              <button
+                className={`project-tab-link ${activeTab === 'programmers' ? 'active' : ''}`}
+                onClick={() => setActiveTab('programmers')}
+              >
+                Programmers
+              </button>
+              <button
+                className={`project-tab-link ${activeTab === 'timeline' ? 'active' : ''}`}
+                onClick={() => setActiveTab('timeline')}
+              >
+                Timeline
+              </button>
+              <button
+                className={`project-tab-link ${activeTab === 'comments' ? 'active' : ''}`}
+                onClick={() => setActiveTab('comments')}
+              >
+                Comments
+              </button>
+            </nav>
           </section>
         </div>
       </div>
