@@ -1,0 +1,474 @@
+import { useState, useEffect } from 'react'
+import { projectAPI } from '../../services/api'
+import SubStep from './SubStep'
+import ClientQuestion from './ClientQuestion'
+import AttachmentManager from './AttachmentManager'
+import './PhaseDetail.css'
+
+const PhaseDetail = ({
+  phase,
+  project,
+  user,
+  isClientOwner,
+  isAssignedProgrammer,
+  onClose,
+  onUpdate,
+}) => {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [localPhase, setLocalPhase] = useState(phase)
+  const [notes, setNotes] = useState(phase.notes || '')
+
+  useEffect(() => {
+    setLocalPhase(phase)
+    setNotes(phase.notes || '')
+  }, [phase])
+
+  const handleStatusChange = async (newStatus) => {
+    if (!isAssignedProgrammer && user?.role !== 'admin') {
+      setError('Only the assigned programmer can change phase status')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      const updated = await projectAPI.updatePhase(project._id || project.id, localPhase._id || localPhase.id, {
+        status: newStatus,
+      })
+      setLocalPhase(updated)
+      if (onUpdate) {
+        onUpdate(updated)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to update phase')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubStepUpdate = async (subStepId, updates) => {
+    if (!isAssignedProgrammer && user?.role !== 'admin') {
+      setError('Only the assigned programmer can update sub-steps')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      const updatedSubSteps = [...(localPhase.subSteps || [])]
+      const index = updatedSubSteps.findIndex(
+        (s) => (s._id || s.id)?.toString() === subStepId?.toString()
+      )
+
+      if (index >= 0) {
+        updatedSubSteps[index] = { ...updatedSubSteps[index], ...updates }
+      } else {
+        // New sub-step
+        updatedSubSteps.push({
+          ...updates,
+          order: updatedSubSteps.length + 1,
+        })
+      }
+
+      const updated = await projectAPI.updatePhase(project._id || project.id, localPhase._id || localPhase.id, {
+        subSteps: updatedSubSteps,
+      })
+      setLocalPhase(updated)
+      if (onUpdate) {
+        onUpdate(updated)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to update sub-step')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleQuestionAnswer = async (questionId, answer) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const updated = await projectAPI.answerQuestion(
+        project._id || project.id,
+        localPhase._id || localPhase.id,
+        questionId,
+        answer
+      )
+      setLocalPhase(updated)
+      if (onUpdate) {
+        onUpdate(updated)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to save answer')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleApprove = async (approved) => {
+    if (!isClientOwner && user?.role !== 'admin') {
+      setError('Only the client can approve phases')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      const updated = await projectAPI.approvePhase(
+        project._id || project.id,
+        localPhase._id || localPhase.id,
+        approved
+      )
+      setLocalPhase(updated)
+      if (onUpdate) {
+        onUpdate(updated)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to approve phase')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleNotesSave = async () => {
+    if (!isAssignedProgrammer && user?.role !== 'admin') {
+      setError('Only the assigned programmer can save notes')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      const updated = await projectAPI.updatePhase(project._id || project.id, localPhase._id || localPhase.id, {
+        notes,
+      })
+      setLocalPhase(updated)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to save notes')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAttachmentUpdate = () => {
+    // Reload phase data after attachment changes
+    if (onUpdate) {
+      onUpdate(localPhase)
+    }
+  }
+
+  const canStartPhase =
+    localPhase.status === 'not_started' && (isAssignedProgrammer || user?.role === 'admin')
+  const canCompletePhase =
+    localPhase.status === 'in_progress' && (isAssignedProgrammer || user?.role === 'admin')
+  const needsApproval = localPhase.requiresClientApproval && !localPhase.clientApproved
+  const canApprove = isClientOwner || user?.role === 'admin'
+
+  const estimatedDays = localPhase.estimatedDurationDays
+  const actualDays = localPhase.actualDurationDays
+  const subSteps = localPhase.subSteps || []
+  const completedSubSteps = subSteps.filter((s) => s.completed).length
+  const subStepsProgress = subSteps.length > 0 ? (completedSubSteps / subSteps.length) * 100 : null
+
+  return (
+    <div
+      className="project-phase-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="phase-modal-title"
+      onClick={onClose}
+    >
+      <div
+        className="project-phase-modal project-phase-modal-enhanced"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="project-phase-modal-header">
+          <h2 id="phase-modal-title" className="project-phase-modal-title">
+            {localPhase.title}
+          </h2>
+          <button
+            type="button"
+            className="project-phase-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        {error && <div className="error-message">{error}</div>}
+
+        <div className="project-phase-modal-tabs">
+          <button
+            className={`project-phase-modal-tab ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Overview
+          </button>
+          {subSteps.length > 0 && (
+            <button
+              className={`project-phase-modal-tab ${activeTab === 'substeps' ? 'active' : ''}`}
+              onClick={() => setActiveTab('substeps')}
+            >
+              Sub-steps ({completedSubSteps}/{subSteps.length})
+            </button>
+          )}
+          {localPhase.clientQuestions && localPhase.clientQuestions.length > 0 && (
+            <button
+              className={`project-phase-modal-tab ${activeTab === 'questions' ? 'active' : ''}`}
+              onClick={() => setActiveTab('questions')}
+            >
+              Questions
+              {localPhase.clientQuestions.filter((q) => q.required && !q.answer).length > 0 && (
+                <span className="tab-badge">
+                  {localPhase.clientQuestions.filter((q) => q.required && !q.answer).length}
+                </span>
+              )}
+            </button>
+          )}
+          <button
+            className={`project-phase-modal-tab ${activeTab === 'attachments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attachments')}
+          >
+            Attachments ({localPhase.attachments?.length || 0})
+          </button>
+          {(isAssignedProgrammer || user?.role === 'admin') && (
+            <button
+              className={`project-phase-modal-tab ${activeTab === 'notes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notes')}
+            >
+              Notes
+            </button>
+          )}
+        </div>
+
+        <div className="project-phase-modal-body">
+          {activeTab === 'overview' && (
+            <div className="phase-overview">
+              <div className="phase-overview-status">
+                <span
+                  className={`project-phase-modal-status-badge status-${localPhase.status?.replace('_', '-')}`}
+                >
+                  {localPhase.status === 'not_started' && 'Not started'}
+                  {localPhase.status === 'in_progress' && 'In progress'}
+                  {localPhase.status === 'completed' && 'Completed'}
+                </span>
+                {localPhase.requiresClientApproval && (
+                  <span
+                    className={`approval-badge ${localPhase.clientApproved ? 'approved' : 'pending'}`}
+                  >
+                    {localPhase.clientApproved ? '✓ Approved' : '⚠ Pending Approval'}
+                  </span>
+                )}
+              </div>
+
+              {localPhase.description && (
+                <p className="phase-overview-description">{localPhase.description}</p>
+              )}
+
+              <div className="phase-overview-meta">
+                {(estimatedDays || actualDays) && (
+                  <div className="phase-meta-item">
+                    <strong>Duration:</strong>
+                    <span>
+                      {actualDays ? (
+                        <>
+                          {actualDays} day{actualDays !== 1 ? 's' : ''} (actual)
+                          {estimatedDays && ` / ${estimatedDays} day${estimatedDays !== 1 ? 's' : ''} (estimated)`}
+                        </>
+                      ) : estimatedDays ? (
+                        `${estimatedDays} day${estimatedDays !== 1 ? 's' : ''} (estimated)`
+                      ) : null}
+                    </span>
+                  </div>
+                )}
+
+                {subStepsProgress !== null && (
+                  <div className="phase-meta-item">
+                    <strong>Progress:</strong>
+                    <span>{Math.round(subStepsProgress)}% complete</span>
+                  </div>
+                )}
+
+                {localPhase.completedAt && (
+                  <div className="phase-meta-item">
+                    <strong>Completed:</strong>
+                    <span>{new Date(localPhase.completedAt).toLocaleDateString()}</span>
+                  </div>
+                )}
+
+                {localPhase.dueDate && (
+                  <div className="phase-meta-item">
+                    <strong>Due Date:</strong>
+                    <span>{new Date(localPhase.dueDate).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+
+              {localPhase.deliverables && localPhase.deliverables.length > 0 && (
+                <div className="phase-deliverables">
+                  <strong>Deliverables:</strong>
+                  <ul>
+                    {localPhase.deliverables.map((d, i) => (
+                      <li key={i}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="phase-actions">
+                {canStartPhase && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={loading}
+                    onClick={() => handleStatusChange('in_progress')}
+                  >
+                    Start Phase
+                  </button>
+                )}
+
+                {canCompletePhase && !needsApproval && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={loading}
+                    onClick={() => handleStatusChange('completed')}
+                  >
+                    Mark Complete
+                  </button>
+                )}
+
+                {canCompletePhase && needsApproval && (
+                  <div className="phase-approval-notice">
+                    <p>This phase requires client approval before it can be marked as complete.</p>
+                  </div>
+                )}
+
+                {needsApproval && canApprove && (
+                  <div className="phase-approval-actions">
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      disabled={loading}
+                      onClick={() => handleApprove(true)}
+                    >
+                      Approve Phase
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={loading}
+                      onClick={() => handleApprove(false)}
+                    >
+                      Request Changes
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'substeps' && (
+            <div className="phase-substeps">
+              {subSteps.length === 0 ? (
+                <p className="empty-state">No sub-steps defined for this phase.</p>
+              ) : (
+                <div className="substeps-list">
+                  {subSteps
+                    .sort((a, b) => (a.order || 0) - (b.order || 0))
+                    .map((subStep, index) => (
+                      <SubStep
+                        key={subStep._id || subStep.id || index}
+                        subStep={subStep}
+                        canEdit={isAssignedProgrammer || user?.role === 'admin'}
+                        onUpdate={(updates) =>
+                          handleSubStepUpdate(subStep._id || subStep.id, updates)
+                        }
+                      />
+                    ))}
+                </div>
+              )}
+              {(isAssignedProgrammer || user?.role === 'admin') && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() =>
+                    handleSubStepUpdate(null, {
+                      title: 'New sub-step',
+                      completed: false,
+                      notes: '',
+                    })
+                  }
+                >
+                  + Add Sub-step
+                </button>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'questions' && (
+            <div className="phase-questions">
+              {localPhase.clientQuestions && localPhase.clientQuestions.length > 0 ? (
+                <div className="questions-list">
+                  {localPhase.clientQuestions
+                    .sort((a, b) => (a.order || 0) - (b.order || 0))
+                    .map((question, index) => (
+                      <ClientQuestion
+                        key={question._id || index}
+                        question={question}
+                        canAnswer={isClientOwner || user?.role === 'admin'}
+                        onAnswer={(answer) =>
+                          handleQuestionAnswer(question._id || question.order, answer)
+                        }
+                      />
+                    ))}
+                </div>
+              ) : (
+                <p className="empty-state">No questions for this phase.</p>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'attachments' && (
+            <AttachmentManager
+              phase={localPhase}
+              project={project}
+              user={user}
+              isClientOwner={isClientOwner}
+              isAssignedProgrammer={isAssignedProgrammer}
+              onUpdate={handleAttachmentUpdate}
+            />
+          )}
+
+          {activeTab === 'notes' && (
+            <div className="phase-notes">
+              <textarea
+                className="notes-textarea"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add notes about this phase..."
+                rows={8}
+                disabled={!isAssignedProgrammer && user?.role !== 'admin'}
+              />
+              {(isAssignedProgrammer || user?.role === 'admin') && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleNotesSave}
+                  disabled={loading}
+                >
+                  Save Notes
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default PhaseDetail

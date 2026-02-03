@@ -2,7 +2,8 @@ import Project from '../models/Project.js'
 import ProjectPhase from '../models/ProjectPhase.js'
 import { createNotification } from './notificationController.js'
 import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
-import { getPhasesFromAIAnalysis } from '../utils/aiAnalysisPhases.js'
+import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
+import { checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import asyncHandler from 'express-async-handler'
 
 async function createPhasesForProject(project) {
@@ -14,18 +15,55 @@ async function createPhasesForProject(project) {
       description: d.description ?? null,
       order: d.order,
       deliverables: [],
+      weeks: null, // No weeks info from template
     }))
   }
-  return ProjectPhase.insertMany(
-    definitions.map((d) => ({
-      projectId: project._id,
-      title: d.title,
-      description: d.description ?? null,
-      order: d.order,
-      status: 'not_started',
-      deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
-    }))
+
+  // Create phases with enhanced fields
+  const phasesToCreate = await Promise.all(
+    definitions.map(async (d) => {
+      // Convert weeks to estimated duration in days (1 week = 7 days)
+      const estimatedDurationDays = d.weeks ? d.weeks * 7 : null
+
+      // Determine if phase requires client approval
+      const requiresApproval = checkClientApprovalRequired({ title: d.title })
+
+      // Get client questions for this phase
+      let clientQuestions = []
+      try {
+        clientQuestions = await extractClientQuestionsFromPreview(project._id, d.title)
+      } catch (error) {
+        // Fallback to default questions if extraction fails
+        clientQuestions = getDefaultQuestionsForPhase(d.title)
+      }
+
+      // Create initial sub-steps from deliverables
+      const subSteps = (d.deliverables || []).map((deliverable, index) => ({
+        title: deliverable,
+        completed: false,
+        order: index + 1,
+        notes: '',
+      }))
+
+      return {
+        projectId: project._id,
+        title: d.title,
+        description: d.description ?? null,
+        order: d.order,
+        status: 'not_started',
+        deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
+        estimatedDurationDays,
+        requiresClientApproval: requiresApproval,
+        clientApproved: false,
+        clientQuestions,
+        subSteps,
+        notes: '',
+        attachments: [],
+      }
+    })
   )
+
+  return ProjectPhase.insertMany(phasesToCreate)
 }
 
 // @desc    Get available projects (not assigned, status Ready)

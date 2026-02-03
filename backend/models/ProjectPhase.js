@@ -38,6 +38,77 @@ const projectPhaseSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    estimatedDurationDays: {
+      type: Number,
+      default: null,
+    },
+    actualDurationDays: {
+      type: Number,
+      default: null,
+    },
+    startedAt: {
+      type: Date,
+      default: null,
+    },
+    subSteps: {
+      type: [
+        {
+          title: { type: String, required: true },
+          completed: { type: Boolean, default: false },
+          order: { type: Number, required: true },
+          notes: { type: String, default: '' },
+        },
+      ],
+      default: [],
+    },
+    clientQuestions: {
+      type: [
+        {
+          question: { type: String, required: true },
+          answer: { type: String, default: '' },
+          required: { type: Boolean, default: false },
+          order: { type: Number, required: true },
+        },
+      ],
+      default: [],
+    },
+    requiresClientApproval: {
+      type: Boolean,
+      default: false,
+    },
+    clientApproved: {
+      type: Boolean,
+      default: false,
+    },
+    clientApprovedAt: {
+      type: Date,
+      default: null,
+    },
+    attachments: {
+      type: [
+        {
+          filename: { type: String, required: true },
+          url: { type: String, required: true },
+          uploadedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+          },
+          uploadedAt: { type: Date, default: Date.now },
+          type: { type: String, default: 'file' },
+        },
+      ],
+      default: [],
+    },
+    notes: {
+      type: String,
+      default: '',
+    },
+    blockedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ProjectPhase',
+      default: null,
+    },
   },
   {
     timestamps: true,

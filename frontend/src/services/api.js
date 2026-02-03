@@ -137,6 +137,54 @@ export const projectAPI = {
     const response = await api.patch(`/projects/${projectId}/phases/${phaseId}`, data)
     return response.data
   },
+
+  addSubStep: async (projectId, phaseId, subStepData) => {
+    const response = await api.post(`/projects/${projectId}/phases/${phaseId}/sub-steps`, subStepData)
+    return response.data
+  },
+
+  updateSubStep: async (projectId, phaseId, subStepId, data) => {
+    const response = await api.post(`/projects/${projectId}/phases/${phaseId}/sub-steps`, {
+      subStepId,
+      ...data,
+    })
+    return response.data
+  },
+
+  answerQuestion: async (projectId, phaseId, questionId, answer) => {
+    const response = await api.post(
+      `/projects/${projectId}/phases/${phaseId}/questions/${questionId}/answer`,
+      { answer }
+    )
+    return response.data
+  },
+
+  approvePhase: async (projectId, phaseId, approved = true) => {
+    const response = await api.post(`/projects/${projectId}/phases/${phaseId}/approve`, {
+      approved,
+    })
+    return response.data
+  },
+
+  uploadAttachment: async (projectId, phaseId, formData) => {
+    const response = await api.post(
+      `/projects/${projectId}/phases/${phaseId}/attachments`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return response.data
+  },
+
+  deleteAttachment: async (projectId, phaseId, attachmentId) => {
+    const response = await api.delete(
+      `/projects/${projectId}/phases/${phaseId}/attachments/${attachmentId}`
+    )
+    return response.data
+  },
 }
 
 // Assignment API functions

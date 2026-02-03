@@ -41,6 +41,9 @@ app.use(cors({
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
 // Health check routes (Cloud Run checks root /health)
 app.get('/health', (req, res) => {
   res.status(200).json({ 

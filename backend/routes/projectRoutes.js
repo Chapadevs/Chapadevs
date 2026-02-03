@@ -6,10 +6,16 @@ import {
   getProjectPreviews,
   updateProject,
   updatePhase,
+  updateSubStep,
+  answerQuestion,
+  approvePhase,
+  uploadAttachment,
+  deleteAttachment,
   deleteProject,
   getMyProjects,
   getAssignedProjects,
   markProjectReady,
+  upload,
 } from '../controllers/projectController.js'
 import { protect, authorizeProjectAccess } from '../middleware/authMiddleware.js'
 
@@ -30,6 +36,11 @@ router.get('/', getProjects)
 router.put('/:id/ready', markProjectReady)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
 router.patch('/:id/phases/:phaseId', authorizeProjectAccess, updatePhase)
+router.post('/:id/phases/:phaseId/sub-steps', authorizeProjectAccess, updateSubStep)
+router.post('/:id/phases/:phaseId/questions/:questionId/answer', authorizeProjectAccess, answerQuestion)
+router.post('/:id/phases/:phaseId/approve', authorizeProjectAccess, approvePhase)
+router.post('/:id/phases/:phaseId/attachments', authorizeProjectAccess, upload.single('file'), uploadAttachment)
+router.delete('/:id/phases/:phaseId/attachments/:attachmentId', authorizeProjectAccess, deleteAttachment)
 router
   .route('/:id')
   .get(authorizeProjectAccess, getProjectById)
