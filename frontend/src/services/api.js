@@ -84,6 +84,17 @@ export const authAPI = {
     const response = await api.post('/auth/reset-password', { token, newPassword })
     return response.data
   },
+
+  logout: async () => {
+    try {
+      const response = await api.post('/auth/logout')
+      return response.data
+    } catch (error) {
+      // Even if the API call fails, we should still logout locally
+      console.error('Logout API call failed:', error)
+      return { message: 'Logged out' }
+    }
+  },
 }
 
 // Project API functions
@@ -130,6 +141,11 @@ export const projectAPI = {
 
   markReady: async (id) => {
     const response = await api.put(`/projects/${id}/ready`)
+    return response.data
+  },
+
+  toggleTeamClosed: async (id, teamClosed) => {
+    const response = await api.put(`/projects/${id}`, { teamClosed })
     return response.data
   },
 
@@ -226,6 +242,11 @@ export const userAPI = {
 
   updateStatus: async (status) => {
     const response = await api.put('/users/status', { status })
+    return response.data
+  },
+
+  getUserStatuses: async (userIds) => {
+    const response = await api.post('/users/statuses', { userIds })
     return response.data
   },
 }

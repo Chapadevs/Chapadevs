@@ -85,11 +85,19 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
-    setError(null)
+  const logout = async () => {
+    try {
+      // Call logout API to set status to offline
+      await authAPI.logout()
+    } catch (error) {
+      // Even if API call fails, continue with local logout
+      console.error('Logout API error:', error)
+    } finally {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+      setError(null)
+    }
   }
 
   const updateProfile = async (userData) => {

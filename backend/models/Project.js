@@ -22,6 +22,11 @@ const projectSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    assignedProgrammerIds: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
     status: {
       type: String,
       enum: ['Holding', 'Ready', 'Development', 'Completed', 'Cancelled'],
@@ -110,6 +115,10 @@ const projectSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    teamClosed: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -119,6 +128,7 @@ const projectSchema = new mongoose.Schema(
 // Indexes
 projectSchema.index({ clientId: 1 })
 projectSchema.index({ assignedProgrammerId: 1 })
+projectSchema.index({ assignedProgrammerIds: 1 })
 projectSchema.index({ status: 1 })
 projectSchema.index({ clientId: 1, status: 1 })
 projectSchema.index({ assignedProgrammerId: 1, status: 1 })

@@ -215,6 +215,27 @@
   background-color: #e0e0e0;
 }
 
+.project-assigned-notice {
+  margin-bottom: 0.5rem;
+}
+
+.assigned-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.team-closed-message {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #d32f2f;
+  font-style: italic;
+}
+
 @media (max-width: 768px) {
   .assignment-grid {
     grid-template-columns: 1fr;

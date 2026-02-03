@@ -79,3 +79,58 @@ export const deleteUser = asyncHandler(async (req, res) => {
   await user.deleteOne()
   res.json({ message: 'User removed' })
 })
+
+// @desc    Update current user's status
+// @route   PUT /api/users/status
+// @access  Private
+export const updateStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body
+
+  if (!['online', 'away', 'busy', 'offline'].includes(status)) {
+    res.status(400)
+    throw new Error('Invalid status. Must be: online, away, busy, or offline')
+  }
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error('User not found')
+  }
+
+  user.status = status
+  user.lastSeen = new Date()
+  await user.save()
+
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    lastSeen: user.lastSeen,
+  })
+})
+
+// @desc    Get user statuses by IDs
+// @route   POST /api/users/statuses
+// @access  Private
+export const getUserStatuses = asyncHandler(async (req, res) => {
+  const { userIds } = req.body
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.json({})
+  }
+
+  const users = await User.find({ _id: { $in: userIds } })
+    .select('_id status lastSeen')
+    .lean()
+
+  const statusMap = {}
+  users.forEach((user) => {
+    statusMap[user._id.toString()] = {
+      status: user.status || 'offline',
+      lastSeen: user.lastSeen,
+    }
+  })
+
+  res.json(statusMap)
+})

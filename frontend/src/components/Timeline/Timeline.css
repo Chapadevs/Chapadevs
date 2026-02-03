@@ -10,6 +10,286 @@
   color: #888;
 }
 
+/* Project phases – linear progress / stepper */
+.project-phases {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.project-phases-linear {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Top progress bar (loading-style) */
+.project-phases-progress-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.project-phases-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-green, #059669), #34d399);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.project-phases-progress-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Scrollable steps with arrows */
+.project-phases-scroll-outer {
+  display: flex;
+  align-items: stretch;
+  gap: 32px;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.project-phases-scroll-btn {
+  flex-shrink: 0;
+  width: 28px;
+  min-width: 28px;
+  height: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.project-phases-scroll-btn:hover {
+  background: #f3f4f6;
+  color: #111;
+  border-color: #d1d5db;
+}
+
+.project-phases-scroll-btn:focus {
+  outline: 2px solid var(--primary-green, #059669);
+  outline-offset: 2px;
+}
+
+.project-phases-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.project-phases-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.project-phases-scroll-inner {
+  --phases-step-width: 130;
+  --phases-count: 5;
+  width: max(100%, calc(var(--phases-count) * var(--phases-step-width) * 1px));
+  min-width: 100%;
+  box-sizing: border-box;
+  padding-left: 56px;
+  padding-right: 56px;
+}
+
+/* Horizontal stepper track – single line with positioned nodes */
+.project-phases-track {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  --steps: 5;
+}
+
+.project-phases-track-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  z-index: 0;
+}
+
+.project-phases-track-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: var(--primary-green, #059669);
+  border-radius: 2px;
+  z-index: 1;
+  transition: width 0.35s ease;
+}
+
+.project-phase-step {
+  position: absolute;
+  --step-i: 0;
+  left: calc(var(--step-i) * 100% / max(var(--steps) - 1, 1));
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.project-phases-track[style*="--steps: 1"] .project-phase-step {
+  left: 50%;
+}
+
+.project-phase-step-node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #e5e7eb;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.project-phase-step.step-completed .project-phase-step-node {
+  background: var(--primary-green, #059669);
+  border-color: #fff;
+  color: white;
+  box-shadow: 0 0 0 2px var(--primary-green, #059669);
+}
+
+.project-phase-step.step-in-progress .project-phase-step-node {
+  background: #fef3c7;
+  border-color: #fff;
+  color: #b45309;
+  box-shadow: 0 0 0 2px #f59e0b;
+}
+
+.project-phase-step-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.project-phase-step-number {
+  line-height: 1;
+}
+
+.project-phase-step-clickable {
+  cursor: pointer;
+}
+
+.project-phase-step-clickable:hover .project-phase-step-node {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.project-phase-label-clickable {
+  cursor: pointer;
+}
+
+.project-phase-label-clickable:hover .project-phase-label-title {
+  color: var(--primary-green, #059669);
+  text-decoration: underline;
+}
+
+/* Labels row under the track – aligned with nodes */
+.project-phases-labels {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 0.35rem;
+  --steps: 5;
+}
+
+.project-phase-label-wrap {
+  position: absolute;
+  left: calc(var(--step-i) * 100% / max(var(--steps) - 1, 1));
+  top: 0;
+  transform: translateX(-50%);
+  min-width: 0;
+  width: 100px;
+  max-width: 22vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 4px;
+  text-align: center;
+  --step-i: 0;
+}
+
+.project-phases-labels .project-phase-label-wrap:first-child {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.project-phases-labels .project-phase-label-wrap:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.project-phases-labels[style*="--steps: 1"] .project-phase-label-wrap {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.project-phase-label-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b7280;
+  line-height: 1.2;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-phase-label-wrap.label-completed .project-phase-label-title {
+  color: var(--primary-green, #059669);
+}
+
+.project-phase-label-wrap.label-active .project-phase-label-title {
+  color: #b45309;
+}
+
+.project-phase-label-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.2rem;
+  min-width: 0;
+}
+
+.project-phase-label-actions .btn {
+  flex-shrink: 0;
+  min-height: 26px;
+  min-width: 3.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
 /* Phase step progress indicator */
 .project-phase-step-progress {
   position: absolute;

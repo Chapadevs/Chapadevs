@@ -66,15 +66,24 @@ async function createPhasesForProject(project) {
   return ProjectPhase.insertMany(phasesToCreate)
 }
 
-// @desc    Get available projects (not assigned, status Ready)
+// @desc    Get available projects (status Ready and team not closed)
 // @route   GET /api/assignments/available
 // @access  Private/Programmer
 export const getAvailableProjects = asyncHandler(async (req, res) => {
   const projects = await Project.find({
-    assignedProgrammerId: null,
     status: 'Ready',
+    $or: [
+      { teamClosed: false },
+      { teamClosed: { $exists: false } },
+      { teamClosed: null },
+    ],
+    // Exclude projects where this programmer has already joined
+    assignedProgrammerIds: { $ne: req.user._id },
+    assignedProgrammerId: { $ne: req.user._id },
   })
-    .populate('clientId', 'name email')
+    .populate('clientId', 'name email company status')
+    .populate('assignedProgrammerId', 'name email status')
+    .populate('assignedProgrammerIds', 'name email status')
     .sort({ createdAt: -1 })
 
   res.json(projects)
@@ -104,9 +113,16 @@ export const assignProject = asyncHandler(async (req, res) => {
     throw new Error('Project must be in Ready status to be assigned')
   }
 
+  if (project.teamClosed) {
+    res.status(400)
+    throw new Error('Project team is closed. No more programmers can be assigned.')
+  }
+
   project.assignedProgrammerId = programmerId || req.user._id
-  project.status = 'Development'
-  project.startDate = new Date()
+  // Don't change status to Development automatically - keep it Ready so others can still join
+  if (!project.startDate) {
+    project.startDate = new Date()
+  }
 
   await project.save()
   await createPhasesForProject(project)
@@ -120,8 +136,9 @@ export const assignProject = asyncHandler(async (req, res) => {
   )
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('clientId', 'name email status')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
+    .populate('assignedProgrammerIds', 'name email status')
 
   res.json(populated)
 })
@@ -139,25 +156,51 @@ export const acceptProject = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  if (
-    project.assignedProgrammerId &&
-    project.assignedProgrammerId.toString() !== req.user._id.toString()
-  ) {
-    res.status(403)
-    throw new Error('Not authorized to accept this project')
-  }
-
   if (project.status !== 'Ready') {
     res.status(400)
     throw new Error('Project must be in Ready status to be accepted')
   }
 
-  project.assignedProgrammerId = req.user._id
-  project.status = 'Development'
-  project.startDate = new Date()
+  if (project.teamClosed) {
+    res.status(400)
+    throw new Error('Project team is closed. No more programmers can join.')
+  }
+
+  // Check if already assigned to this programmer
+  if (project.assignedProgrammerId && project.assignedProgrammerId.toString() === req.user._id.toString()) {
+    res.status(400)
+    throw new Error('You are already assigned to this project')
+  }
+
+  // Track all programmers who join
+  const isFirstProgrammer = !project.assignedProgrammerId
+  if (isFirstProgrammer) {
+    project.assignedProgrammerId = req.user._id
+  }
+  
+  // Add to assignedProgrammerIds array if not already there
+  if (!project.assignedProgrammerIds) {
+    project.assignedProgrammerIds = []
+  }
+  const userIdStr = req.user._id.toString()
+  if (!project.assignedProgrammerIds.some(id => id.toString() === userIdStr)) {
+    project.assignedProgrammerIds.push(req.user._id)
+  }
+  
+  // Don't change status to Development automatically - keep it Ready so others can still join
+  if (!project.startDate) {
+    project.startDate = new Date()
+  }
 
   await project.save()
-  await createPhasesForProject(project)
+  
+  // Only create phases if this is the first programmer (to avoid duplicates)
+  if (isFirstProgrammer) {
+    const existingPhases = await ProjectPhase.countDocuments({ projectId: project._id })
+    if (existingPhases === 0) {
+      await createPhasesForProject(project)
+    }
+  }
 
   await createNotification(
     project.clientId,
@@ -170,6 +213,7 @@ export const acceptProject = asyncHandler(async (req, res) => {
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
 
   res.json(populated)
 })

@@ -259,11 +259,17 @@ export const loginUser = asyncHandler(async (req, res) => {
     throw new Error('Please verify your email before logging in. Check your inbox (and spam folder) for the verification link.')
   }
 
+  // Update status to 'online' on login
+  user.status = 'online'
+  user.lastSeen = new Date()
+  await user.save()
+
   res.json({
     _id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
+    status: user.status,
     token: generateToken(user._id),
   })
 })
@@ -286,6 +292,7 @@ export const getMe = asyncHandler(async (req, res) => {
     name: user.name,
     email: user.email,
     role: user.role,
+    status: user.status,
     skills: user.skills,
     bio: user.bio,
     hourlyRate: user.hourlyRate,
@@ -352,4 +359,21 @@ export const changePassword = asyncHandler(async (req, res) => {
     res.status(401)
     throw new Error('Current password is incorrect')
   }
+})
+
+// @desc    Logout user (set status to offline)
+// @route   POST /api/auth/logout
+// @access  Private
+export const logoutUser = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
+  const user = await User.findById(req.user._id)
+
+  if (user) {
+    user.status = 'offline'
+    user.lastSeen = new Date()
+    await user.save()
+  }
+
+  res.json({ message: 'Logged out successfully' })
 })

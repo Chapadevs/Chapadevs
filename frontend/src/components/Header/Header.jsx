@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import NotificationBell from '../NotificationBell/NotificationBell'
+import UserStatusDropdown from '../UserStatusDropdown/UserStatusDropdown'
 import './Header.css'
 
 const Header = () => {
@@ -12,8 +13,8 @@ const Header = () => {
   const platformRef = useRef(null)
   const resourcesRef = useRef(null)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/')
   }
 
@@ -180,6 +181,7 @@ const Header = () => {
                   ADMIN
                 </Link>
               )}
+              <UserStatusDropdown />
               <NotificationBell />
               <button className="header-btn header-btn--logout" onClick={handleLogout}>
                 LOGOUT

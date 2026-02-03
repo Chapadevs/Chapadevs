@@ -145,15 +145,40 @@ const Assignment = () => {
               </div>
 
               <div className="assignment-actions">
-                {user?.role === 'programmer' && (
-                  <button
-                    onClick={() => handleAccept(projectId)}
-                    className="btn btn-primary"
-                    disabled={assigning[projectId]}
-                  >
-                    {assigning[projectId] ? 'Accepting...' : 'Accept Project'}
-                  </button>
-                )}
+                {user?.role === 'programmer' && (() => {
+                  const userIdStr = (user?._id || user?.id)?.toString()
+                  const assignedIds = project.assignedProgrammerIds || []
+                  const isAlreadyJoined = project.assignedProgrammerId?.toString() === userIdStr || 
+                                         assignedIds.some(id => (id?._id || id)?.toString() === userIdStr)
+                  
+                  return (
+                    <>
+                      {(project.assignedProgrammerId || (assignedIds && assignedIds.length > 0)) && (
+                        <div className="project-assigned-notice">
+                          <span className="assigned-badge">
+                            ✓ {assignedIds.length > 0 ? `${assignedIds.length} programmer${assignedIds.length > 1 ? 's' : ''} joined` : project.assignedProgrammerId ? `Assigned to ${project.assignedProgrammerId?.name || 'a programmer'}` : 'Assigned'}
+                          </span>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleAccept(projectId)}
+                        className="btn btn-primary"
+                        disabled={assigning[projectId] || project.teamClosed || isAlreadyJoined}
+                      >
+                        {assigning[projectId] ? 'Accepting...' : 
+                         isAlreadyJoined ? 'Already Joined' :
+                         project.teamClosed ? 'Team Closed' : 
+                         project.assignedProgrammerId || (assignedIds && assignedIds.length > 0) ? 'Join Project' : 'Accept Project'}
+                      </button>
+                      {project.teamClosed && (
+                        <p className="team-closed-message">This project's team is closed. No more programmers can join.</p>
+                      )}
+                      {isAlreadyJoined && !project.teamClosed && (
+                        <p className="team-closed-message">You have already joined this project.</p>
+                      )}
+                    </>
+                  )
+                })()}
 
                 {user?.role === 'admin' && (
                   <div className="admin-assignment">

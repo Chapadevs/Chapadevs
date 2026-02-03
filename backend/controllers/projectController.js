@@ -64,6 +64,7 @@ export const getProjects = asyncHandler(async (req, res) => {
   } else if (req.user.role === 'programmer') {
     filter.$or = [
       { assignedProgrammerId: req.user._id },
+      { assignedProgrammerIds: req.user._id },
       { assignedProgrammerId: null, status: 'Ready' },
     ]
   }
@@ -96,8 +97,15 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to access assigned projects')
   }
 
-  const projects = await Project.find({ assignedProgrammerId: req.user._id })
+  const projects = await Project.find({
+    $or: [
+      { assignedProgrammerId: req.user._id },
+      { assignedProgrammerIds: req.user._id },
+    ],
+  })
     .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
     .sort({ createdAt: -1 })
 
   res.json(projects)
@@ -108,8 +116,9 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
 // @access  Private
 export const getProjectById = asyncHandler(async (req, res) => {
   const project = await Project.findById(req.params.id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('clientId', 'name email company status')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
+    .populate('assignedProgrammerIds', 'name email skills bio hourlyRate status')
     .lean()
 
   if (!project) {

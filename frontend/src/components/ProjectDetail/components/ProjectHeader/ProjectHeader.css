@@ -1,0 +1,31 @@
+.project-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.project-detail-header h1 {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.project-header-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.project-detail-back {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.8rem;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+.project-detail-back:hover {
+  color: #333;
+}

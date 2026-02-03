@@ -124,7 +124,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {user?.role === 'programmer' && <UserStatus />}
+          <UserStatus />
         </div>
       </div>
     </>
