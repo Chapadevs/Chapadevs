@@ -191,7 +191,7 @@ const ProjectDetail = () => {
             )}
 
             {activeTab === 'comments' && (
-              <CommentsTab />
+              <CommentsTab project={project} user={user} />
             )}
           </div>
 
