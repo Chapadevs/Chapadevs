@@ -33,7 +33,6 @@ const ProjectDetail = () => {
   const [generateError, setGenerateError] = useState('')
   const [expandedPreviewId, setExpandedPreviewId] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
-  const [showMoreDetails, setShowMoreDetails] = useState(false)
   const [updatingPhaseId, setUpdatingPhaseId] = useState(null)
   const [selectedPhase, setSelectedPhase] = useState(null)
   const [activeTab, setActiveTab] = useState('description')
@@ -474,39 +473,29 @@ const ProjectDetail = () => {
                 </div>
                 {(project.brandingDetails || project.specialRequirements || project.additionalComments || (project.technologies?.length > 0)) && (
                   <div className="project-more-details">
-                    <button
-                      type="button"
-                      className="project-more-details-toggle"
-                      onClick={() => setShowMoreDetails((v) => !v)}
-                      aria-expanded={showMoreDetails}
-                    >
-                      {showMoreDetails ? '▼ Hide details' : '▶ More details'}
-                    </button>
-                    {showMoreDetails && (
-                      <div className="project-more-details-content">
-                        {project.technologies?.length > 0 && (
-                          <div className="project-more-detail-row">
-                            <strong>Tech:</strong> {project.technologies.join(', ')}
-                          </div>
-                        )}
-                        {project.brandingDetails && (
-                          <div className="project-more-detail-row">
-                            <strong>Branding:</strong> {project.hasBranding && `${project.hasBranding} — `}
-                            {project.brandingDetails}
-                          </div>
-                        )}
-                        {project.specialRequirements && (
-                          <div className="project-more-detail-row">
-                            <strong>Special requirements:</strong> {project.specialRequirements}
-                          </div>
-                        )}
-                        {project.additionalComments && (
-                          <div className="project-more-detail-row">
-                            <strong>Comments:</strong> {project.additionalComments}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div className="project-more-details-content">
+                      {project.technologies?.length > 0 && (
+                        <div className="project-more-detail-row">
+                          <strong>Tech:</strong> {project.technologies.join(', ')}
+                        </div>
+                      )}
+                      {project.brandingDetails && (
+                        <div className="project-more-detail-row">
+                          <strong>Branding:</strong> {project.hasBranding && `${project.hasBranding} — `}
+                          {project.brandingDetails}
+                        </div>
+                      )}
+                      {project.specialRequirements && (
+                        <div className="project-more-detail-row">
+                          <strong>Special requirements:</strong> {project.specialRequirements}
+                        </div>
+                      )}
+                      {project.additionalComments && (
+                        <div className="project-more-detail-row">
+                          <strong>Comments:</strong> {project.additionalComments}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </section>
