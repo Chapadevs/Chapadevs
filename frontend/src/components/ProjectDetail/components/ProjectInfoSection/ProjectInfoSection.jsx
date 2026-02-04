@@ -11,7 +11,7 @@ const ProjectInfoSection = ({ project }) => {
         </div>
         {project.assignedProgrammerId && (
           <div className="info-item">
-            <strong>Assigned Programmer:</strong>
+            <strong>Programmer:</strong>
             <span>{project.assignedProgrammerId.name}</span>
           </div>
         )}

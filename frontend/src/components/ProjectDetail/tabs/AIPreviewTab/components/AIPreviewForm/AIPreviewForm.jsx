@@ -66,33 +66,45 @@ const AIPreviewForm = ({
       </div>
       <div className="project-preview-form-group">
         <label>Tech Stack</label>
-        <p className="project-preview-form-hint">Select stacks for AI analysis</p>
         <div className="tech-stack-categories">
-          {Object.entries(techStackByCategory).map(([category, options]) => (
-            <div key={category} className="tech-stack-category" role="group" aria-label={`${category} technologies`}>
-              <span className="tech-stack-category-label">{category.charAt(0).toUpperCase() + category.slice(1)}</span>
-              <div className="tech-stack-options">
-                {options.map((opt) => (
-                  <label key={opt.value} className="tech-stack-option">
-                    <input
-                      type="checkbox"
-                      value={opt.value}
-                      checked={generateFormData.techStack.includes(opt.value)}
-                      onChange={() => {
-                        setGenerateFormData((prev) => ({
-                          ...prev,
-                          techStack: prev.techStack.includes(opt.value)
-                            ? prev.techStack.filter((t) => t !== opt.value)
-                            : [...prev.techStack, opt.value],
-                        }))
-                      }}
-                    />
-                    <span>{opt.label}</span>
-                  </label>
-                ))}
+          {Object.entries(techStackByCategory).map(([category, options]) => {
+            const currentSelection = generateFormData.techStack.find((tech) =>
+              options.some((opt) => opt.value === tech)
+            ) || ''
+            
+            return (
+              <div key={category} className="tech-stack-category">
+                <label htmlFor={`preview-tech-${category}`} className="tech-stack-category-label">
+                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                </label>
+                <select
+                  id={`preview-tech-${category}`}
+                  name={`preview-tech-${category}`}
+                  className="tech-stack-select"
+                  value={currentSelection}
+                  onChange={(e) => {
+                    const selectedValue = e.target.value
+                    const otherCategoryTechs = generateFormData.techStack.filter((tech) =>
+                      !options.some((opt) => opt.value === tech)
+                    )
+                    setGenerateFormData((prev) => ({
+                      ...prev,
+                      techStack: selectedValue
+                        ? [...otherCategoryTechs, selectedValue]
+                        : otherCategoryTechs,
+                    }))
+                  }}
+                >
+                  <option value="">Select {category}</option>
+                  {options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
       {generateError && <div className="error-message">{generateError}</div>}

@@ -18,7 +18,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 1rem;
+  margin-top: 0.5rem;
 }
 
 .project-list-back {
@@ -28,8 +29,8 @@
 }
 
 .project-list-header .btn {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.8rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
 }
 
 .project-list-back:hover {
@@ -73,7 +74,7 @@
 .project-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #1976d2;
+  border-color: var(--primary-green, #059669);
 }
 
 .project-card-header {

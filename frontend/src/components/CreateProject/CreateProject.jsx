@@ -104,9 +104,6 @@ const CreateProject = () => {
       <div className="create-project-container">
       <div className="create-project-header">
         <h2>Create New Project</h2>
-        <button onClick={() => navigate('/projects')} className="btn btn-secondary">
-          Cancel
-        </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -130,13 +127,13 @@ const CreateProject = () => {
 
           <div className="form-group">
             <label htmlFor="description">Description *</label>
-            <textarea
+            <input
+              type="text"
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               required
-              rows="5"
               placeholder="Describe your project in detail"
             />
           </div>
@@ -265,46 +262,97 @@ const CreateProject = () => {
             <label>Technologies</label>
             <p className="form-hint">Select the stacks your team will use</p>
             <div className="tech-stack-categories">
-              {Object.entries(TECH_STACK_BY_CATEGORY).map(([category, options]) => (
-                <div key={category} className="tech-stack-category" role="group" aria-label={`${category} technologies`}>
-                  <span className="tech-stack-category-label">{category.charAt(0).toUpperCase() + category.slice(1)}</span>
-                  <div className="tech-stack-options">
-                    {options.map((opt) => (
-                      <label key={opt.value} className="tech-stack-option">
-                        <input
-                          type="checkbox"
-                          name="technologies"
-                          value={opt.value}
-                          checked={formData.technologies.includes(opt.value)}
-                          onChange={(e) => {
-                            const checked = e.target.checked
-                            setFormData((prev) => ({
-                              ...prev,
-                              technologies: checked
-                                ? [...prev.technologies, opt.value]
-                                : prev.technologies.filter((t) => t !== opt.value),
-                            }))
-                          }}
-                        />
-                        <span>{opt.label}</span>
-                      </label>
-                    ))}
+              {Object.entries(TECH_STACK_BY_CATEGORY).map(([category, options]) => {
+                const currentSelection = formData.technologies.find((tech) =>
+                  options.some((opt) => opt.value === tech)
+                ) || ''
+                
+                return (
+                  <div key={category} className="tech-stack-category">
+                    <label htmlFor={`tech-${category}`} className="tech-stack-category-label">
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </label>
+                    <select
+                      id={`tech-${category}`}
+                      name={`tech-${category}`}
+                      className="tech-stack-select"
+                      value={currentSelection}
+                      onChange={(e) => {
+                        const selectedValue = e.target.value
+                        const otherCategoryTechs = formData.technologies.filter((tech) =>
+                          !options.some((opt) => opt.value === tech)
+                        )
+                        setFormData((prev) => ({
+                          ...prev,
+                          technologies: selectedValue
+                            ? [...otherCategoryTechs, selectedValue]
+                            : otherCategoryTechs,
+                        }))
+                      }}
+                    >
+                      <option value="">Select {category}</option>
+                      {options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="designStyles">Design Styles (comma-separated)</label>
-            <input
-              type="text"
-              id="designStyles"
-              name="designStyles"
-              value={formData.designStyles}
-              onChange={handleChange}
-              placeholder="e.g., Modern, Minimalist, Corporate"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="designStyles">Design Styles (comma-separated)</label>
+              <input
+                type="text"
+                id="designStyles"
+                name="designStyles"
+                value={formData.designStyles}
+                onChange={handleChange}
+                placeholder="e.g., Modern, Minimalist, Corporate"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="contentStatus">Content Status</label>
+              <input
+                type="text"
+                id="contentStatus"
+                name="contentStatus"
+                value={formData.contentStatus}
+                onChange={handleChange}
+                placeholder="e.g., Ready, Need creation, Partial"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="specialRequirements">Special Requirements</label>
+              <textarea
+                id="specialRequirements"
+                name="specialRequirements"
+                value={formData.specialRequirements}
+                onChange={handleChange}
+                rows="3"
+                placeholder="Any special requirements or constraints"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="referenceWebsites">Reference Websites</label>
+              <textarea
+                id="referenceWebsites"
+                name="referenceWebsites"
+                value={formData.referenceWebsites}
+                onChange={handleChange}
+                rows="3"
+                placeholder="List websites you like or want to reference"
+              />
+            </div>
           </div>
 
           <div className="form-group">
@@ -335,42 +383,6 @@ const CreateProject = () => {
               />
             </div>
           )}
-
-          <div className="form-group">
-            <label htmlFor="contentStatus">Content Status</label>
-            <input
-              type="text"
-              id="contentStatus"
-              name="contentStatus"
-              value={formData.contentStatus}
-              onChange={handleChange}
-              placeholder="e.g., Ready, Need creation, Partial"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="referenceWebsites">Reference Websites</label>
-            <textarea
-              id="referenceWebsites"
-              name="referenceWebsites"
-              value={formData.referenceWebsites}
-              onChange={handleChange}
-              rows="3"
-              placeholder="List websites you like or want to reference"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="specialRequirements">Special Requirements</label>
-            <textarea
-              id="specialRequirements"
-              name="specialRequirements"
-              value={formData.specialRequirements}
-              onChange={handleChange}
-              rows="3"
-              placeholder="Any special requirements or constraints"
-            />
-          </div>
 
           <div className="form-group">
             <label htmlFor="additionalComments">Additional Comments</label>

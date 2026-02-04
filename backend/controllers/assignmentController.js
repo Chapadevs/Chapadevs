@@ -269,3 +269,75 @@ export const unassignProject = asyncHandler(async (req, res) => {
 
   res.json(project)
 })
+
+// @desc    Leave project (remove programmer from project)
+// @route   POST /api/assignments/:projectId/leave
+// @access  Private/Programmer
+export const leaveProject = asyncHandler(async (req, res) => {
+  const { projectId } = req.params
+  const userId = req.user._id.toString()
+
+  const project = await Project.findById(projectId)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  // Check if user is part of the project
+  const isPrimaryAssigned = project.assignedProgrammerId && 
+    project.assignedProgrammerId.toString() === userId
+  const isInTeam = project.assignedProgrammerIds && 
+    project.assignedProgrammerIds.some(id => id.toString() === userId)
+
+  if (!isPrimaryAssigned && !isInTeam) {
+    res.status(403)
+    throw new Error('You are not assigned to this project')
+  }
+
+  // Remove from primary assigned if they are the primary
+  if (isPrimaryAssigned) {
+    project.assignedProgrammerId = null
+    // If there are other programmers in the team, promote the first one to primary
+    if (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0) {
+      const remainingProgrammers = project.assignedProgrammerIds.filter(
+        id => id.toString() !== userId
+      )
+      if (remainingProgrammers.length > 0) {
+        project.assignedProgrammerId = remainingProgrammers[0]
+        project.assignedProgrammerIds = remainingProgrammers.slice(1)
+      } else {
+        project.assignedProgrammerIds = []
+      }
+    }
+  } else if (isInTeam) {
+    // Remove from assignedProgrammerIds array
+    project.assignedProgrammerIds = project.assignedProgrammerIds.filter(
+      id => id.toString() !== userId
+    )
+  }
+
+  // If no programmers left, set status back to Ready
+  if (!project.assignedProgrammerId && 
+      (!project.assignedProgrammerIds || project.assignedProgrammerIds.length === 0)) {
+    project.status = 'Ready'
+  }
+
+  await project.save()
+
+  // Create notification for client
+  await createNotification(
+    project.clientId,
+    'programmer_left',
+    'Programmer Left Project',
+    `${req.user.name} has left the project "${project.title}".`,
+    project._id
+  )
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email status')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
+    .populate('assignedProgrammerIds', 'name email status')
+
+  res.json(populated)
+})

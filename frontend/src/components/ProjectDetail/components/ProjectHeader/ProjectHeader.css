@@ -29,3 +29,27 @@
 .project-detail-back:hover {
   color: #333;
 }
+
+.project-status-button {
+  padding: 0.4rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--primary-green, #059669);
+  border-radius: 4px;
+  color: var(--primary-green, #059669);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.project-status-button:hover:not(:disabled) {
+  background: var(--primary-green, #059669);
+  color: white;
+}
+
+.project-status-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

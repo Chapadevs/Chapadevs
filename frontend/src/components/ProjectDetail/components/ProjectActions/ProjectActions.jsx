@@ -2,13 +2,9 @@ import './ProjectActions.css'
 
 const ProjectActions = ({
   canMarkReady,
-  canToggleTeamClosed,
   canDelete,
   markingReady,
-  togglingTeamClosed,
-  project,
   onMarkReady,
-  onToggleTeamClosed,
   onDelete,
 }) => {
   return (
@@ -20,15 +16,6 @@ const ProjectActions = ({
           disabled={markingReady}
         >
           {markingReady ? 'Marking...' : 'Mark as Ready'}
-        </button>
-      )}
-      {canToggleTeamClosed && (
-        <button
-          onClick={onToggleTeamClosed}
-          className={`btn ${project.teamClosed ? 'btn-success' : 'btn-warning'}`}
-          disabled={togglingTeamClosed}
-        >
-          {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Team' : 'Close Team'}
         </button>
       )}
       {canDelete && (

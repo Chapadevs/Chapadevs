@@ -143,6 +143,10 @@ export const projectAPI = {
     const response = await api.put(`/projects/${id}/ready`)
     return response.data
   },
+  markHolding: async (id) => {
+    const response = await api.put(`/projects/${id}/holding`)
+    return response.data
+  },
 
   toggleTeamClosed: async (id, teamClosed) => {
     const response = await api.put(`/projects/${id}`, { teamClosed })
@@ -229,6 +233,11 @@ export const assignmentAPI = {
 
   unassign: async (projectId) => {
     const response = await api.delete(`/assignments/${projectId}/unassign`)
+    return response.data
+  },
+
+  leave: async (projectId) => {
+    const response = await api.post(`/assignments/${projectId}/leave`)
     return response.data
   },
 }

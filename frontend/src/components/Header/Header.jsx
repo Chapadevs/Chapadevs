@@ -173,9 +173,6 @@ const Header = () => {
             </Link>
           ) : (
             <div className="user-menu">
-              <Link to="/dashboard" className="header-btn header-btn--dashboard">
-                DASHBOARD
-              </Link>
               {user?.role === 'admin' && (
                 <Link to="/admin" className="header-btn header-btn--admin">
                   ADMIN
@@ -183,6 +180,9 @@ const Header = () => {
               )}
               <UserStatusDropdown />
               <NotificationBell />
+              <Link to="/dashboard" className="header-btn header-btn--dashboard">
+                DASHBOARD
+              </Link>
               <button className="header-btn header-btn--logout" onClick={handleLogout}>
                 LOGOUT
               </button>

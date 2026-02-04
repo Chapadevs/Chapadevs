@@ -103,13 +103,18 @@ const UserStatusDropdown = () => {
         aria-haspopup="true"
         aria-label="User status"
       >
-        <span
-          className="user-status-badge"
-          style={{ color: currentStatus.color }}
-        >
-          {currentStatus.icon}
-        </span>
-        <span className="user-status-label">{currentStatus.label}</span>
+        <div className="user-status-content">
+          <span className="user-name">{user.name || user.email || 'User'}</span>
+          <div className="user-status-info">
+            <span
+              className="user-status-badge"
+              style={{ color: currentStatus.color }}
+            >
+              {currentStatus.icon}
+            </span>
+            <span className="user-status-label">{currentStatus.label}</span>
+          </div>
+        </div>
       </button>
 
       {isOpen && (

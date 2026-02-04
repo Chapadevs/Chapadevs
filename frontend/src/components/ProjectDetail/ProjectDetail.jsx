@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { projectAPI } from '../../services/api'
+import { projectAPI, assignmentAPI } from '../../services/api'
 import Header from '../Header/Header'
 import Timeline from '../Timeline/Timeline'
 import { useProjectData } from './hooks/useProjectData'
@@ -43,7 +43,9 @@ const ProjectDetail = () => {
   } = useProjectNotifications(project)
 
   const [markingReady, setMarkingReady] = useState(false)
+  const [markingHolding, setMarkingHolding] = useState(false)
   const [togglingTeamClosed, setTogglingTeamClosed] = useState(false)
+  const [leavingProject, setLeavingProject] = useState(false)
   const [activeTab, setActiveTab] = useState('description')
 
   const handleMarkReady = async () => {
@@ -63,6 +65,23 @@ const ProjectDetail = () => {
     }
   }
 
+  const handleMarkHolding = async () => {
+    if (!window.confirm('Set this project back to Holding status? This will remove it from being available for assignment.')) {
+      return
+    }
+
+    try {
+      setMarkingHolding(true)
+      setError(null)
+      const updatedProject = await projectAPI.markHolding(id)
+      setProject(updatedProject)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to set project to Holding')
+    } finally {
+      setMarkingHolding(false)
+    }
+  }
+
   const handleToggleTeamClosed = async () => {
     const newStatus = !project.teamClosed
     const action = newStatus ? 'close' : 'open'
@@ -79,6 +98,23 @@ const ProjectDetail = () => {
       setError(err.response?.data?.message || err.message || `Failed to ${action} team`)
     } finally {
       setTogglingTeamClosed(false)
+    }
+  }
+
+  const handleLeaveProject = async () => {
+    if (!window.confirm('Are you sure you want to leave this project? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setLeavingProject(true)
+      setError(null)
+      await assignmentAPI.leave(id)
+      // Navigate back to projects list after leaving
+      navigate('/projects')
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to leave project')
+      setLeavingProject(false)
     }
   }
 
@@ -126,6 +162,7 @@ const ProjectDetail = () => {
   const {
     isClientOwner,
     isAssignedProgrammer,
+    isProgrammerInProject,
     canEdit,
     canDelete,
     canMarkReady,
@@ -139,7 +176,12 @@ const ProjectDetail = () => {
     <>
       <Header />
       <div className="project-detail-container">
-        <ProjectHeader project={project} />
+        <ProjectHeader 
+          project={project} 
+          isClientOwner={isClientOwner}
+          markingHolding={markingHolding}
+          onMarkHolding={handleMarkHolding}
+        />
 
         {error && <div className="error-message">{error}</div>}
 
@@ -148,14 +190,6 @@ const ProjectDetail = () => {
             {activeTab === 'description' && (
               <DescriptionTab
                 project={project}
-                canMarkReady={canMarkReady}
-                canToggleTeamClosed={canToggleTeamClosed}
-                canDelete={canDelete}
-                markingReady={markingReady}
-                togglingTeamClosed={togglingTeamClosed}
-                onMarkReady={handleMarkReady}
-                onToggleTeamClosed={handleToggleTeamClosed}
-                onDelete={handleDelete}
               />
             )}
 
@@ -176,6 +210,9 @@ const ProjectDetail = () => {
               <ProgrammersTab
                 project={project}
                 getUserStatus={getUserStatus}
+                canToggleTeamClosed={canToggleTeamClosed}
+                togglingTeamClosed={togglingTeamClosed}
+                onToggleTeamClosed={handleToggleTeamClosed}
               />
             )}
 
@@ -204,6 +241,9 @@ const ProjectDetail = () => {
             hasProgrammersNotifications={hasProgrammersNotifications}
             hasTimelineNotifications={hasTimelineNotifications}
             hasCommentsNotifications={hasCommentsNotifications}
+            isProgrammerInProject={isProgrammerInProject}
+            leavingProject={leavingProject}
+            onLeaveProject={handleLeaveProject}
           />
         </div>
       </div>

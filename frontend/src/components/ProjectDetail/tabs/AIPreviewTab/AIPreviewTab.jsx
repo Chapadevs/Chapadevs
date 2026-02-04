@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { generateAIPreview, deleteAIPreview } from '../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../config/techStack'
@@ -8,6 +8,29 @@ import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
 import './AIPreviewTab.css'
 
 const MAX_PREVIEWS_PER_PROJECT = 5
+
+// Helper function to map project budget to form budget format
+const mapBudgetToForm = (projectBudget) => {
+  if (!projectBudget) return ''
+  const budgetStr = String(projectBudget).replace(/[$,]/g, '')
+  const budgetNum = parseFloat(budgetStr)
+  if (isNaN(budgetNum)) return ''
+  if (budgetNum < 5000) return 'Under $5,000'
+  if (budgetNum < 10000) return '$5,000 - $10,000'
+  if (budgetNum < 25000) return '$10,000 - $25,000'
+  return '$25,000+'
+}
+
+// Helper function to map project timeline to form timeline format
+const mapTimelineToForm = (projectTimeline) => {
+  if (!projectTimeline) return ''
+  const weeks = parseInt(projectTimeline, 10)
+  if (isNaN(weeks)) return ''
+  if (weeks <= 2) return '1-2 weeks'
+  if (weeks <= 4) return '2-4 weeks'
+  if (weeks <= 8) return '1-2 months'
+  return '2-3 months'
+}
 
 const AIPreviewTab = ({
   project,
@@ -21,14 +44,18 @@ const AIPreviewTab = ({
 }) => {
   const { id } = useParams()
   const [showGenerateForm, setShowGenerateForm] = useState(false)
-  const [generateFormData, setGenerateFormData] = useState({
-    prompt: '',
-    budget: '',
-    timeline: '',
-    projectType: '',
-    techStack: [],
+  
+  // Initialize form data with project data when form is shown
+  const initialFormData = useMemo(() => ({
+    prompt: project?.description || '',
+    budget: project?.budget ? mapBudgetToForm(project.budget) : '',
+    timeline: project?.timeline ? mapTimelineToForm(project.timeline) : '',
+    projectType: project?.projectType || '',
+    techStack: Array.isArray(project?.technologies) ? project.technologies : [],
     modelId: 'gemini-2.0-flash',
-  })
+  }), [project])
+  
+  const [generateFormData, setGenerateFormData] = useState(initialFormData)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState('')
   const [expandedPreviewId, setExpandedPreviewId] = useState(null)
@@ -53,7 +80,7 @@ const AIPreviewTab = ({
       await generateAIPreview(payload)
       await loadPreviews()
       setShowGenerateForm(false)
-      setGenerateFormData({ prompt: '', budget: '', timeline: '', projectType: '', techStack: [], modelId: 'gemini-2.0-flash' })
+      setGenerateFormData(initialFormData)
     } catch (err) {
       setGenerateError(err.message || 'Failed to generate preview')
     } finally {
@@ -99,7 +126,10 @@ const AIPreviewTab = ({
         <button
           type="button"
           className="btn btn-primary project-generate-preview-btn"
-          onClick={() => setShowGenerateForm(true)}
+          onClick={() => {
+            setGenerateFormData(initialFormData)
+            setShowGenerateForm(true)
+          }}
         >
           Generate new Website
         </button>
@@ -113,7 +143,11 @@ const AIPreviewTab = ({
           generateError={generateError}
           techStackByCategory={TECH_STACK_BY_CATEGORY}
           onSubmit={handleGenerateSubmit}
-          onCancel={() => { setShowGenerateForm(false); setGenerateError(''); }}
+          onCancel={() => { 
+            setShowGenerateForm(false)
+            setGenerateError('')
+            setGenerateFormData(initialFormData)
+          }}
         />
       )}
 

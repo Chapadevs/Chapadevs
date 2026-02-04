@@ -9,6 +9,9 @@ const ProjectSidebar = ({
   hasProgrammersNotifications,
   hasTimelineNotifications,
   hasCommentsNotifications,
+  isProgrammerInProject,
+  leavingProject,
+  onLeaveProject,
 }) => {
   return (
     <div className="project-sidebar">
@@ -53,6 +56,15 @@ const ProjectSidebar = ({
             {hasCommentsNotifications && <span className="project-tab-notification-badge"></span>}
           </button>
         </nav>
+        {isProgrammerInProject && (
+          <button
+            className="project-leave-button"
+            onClick={onLeaveProject}
+            disabled={leavingProject}
+          >
+            {leavingProject ? 'Leaving...' : 'Leave Project'}
+          </button>
+        )}
       </section>
     </div>
   )

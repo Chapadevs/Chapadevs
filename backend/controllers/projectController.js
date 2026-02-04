@@ -115,7 +115,7 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
 // @route   GET /api/projects/:id
 // @access  Private
 export const getProjectById = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  let project = await Project.findById(req.params.id)
     .populate('clientId', 'name email company status')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
     .populate('assignedProgrammerIds', 'name email skills bio hourlyRate status')
@@ -124,6 +124,22 @@ export const getProjectById = asyncHandler(async (req, res) => {
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
+  }
+
+  // Ensure consistency: if team is closed and has programmers, status should be Development
+  const hasProgrammers = project.assignedProgrammerId || 
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
+  
+  if (project.teamClosed && hasProgrammers && project.status === 'Ready') {
+    // Update the project status to Development
+    await Project.findByIdAndUpdate(req.params.id, { 
+      status: 'Development',
+      startDate: project.startDate || new Date()
+    })
+    project.status = 'Development'
+    if (!project.startDate) {
+      project.startDate = new Date()
+    }
   }
 
   let phases = await ProjectPhase.find({ projectId: project._id })
@@ -596,17 +612,37 @@ export const updateProject = asyncHandler(async (req, res) => {
       res.status(403)
       throw new Error('Not authorized to update this project')
     }
-    if (!['Holding', 'Ready'].includes(project.status)) {
+    // Allow updating teamClosed even in Development status
+    const isUpdatingTeamClosed = req.body.teamClosed !== undefined
+    if (!isUpdatingTeamClosed && !['Holding', 'Ready'].includes(project.status)) {
       res.status(403)
       throw new Error('Cannot update project in current status')
     }
   }
+
+  const wasTeamClosed = project.teamClosed
+  const isClosingTeam = req.body.teamClosed === true && !wasTeamClosed
+  const isOpeningTeam = req.body.teamClosed === false && wasTeamClosed
 
   Object.keys(req.body).forEach((key) => {
     if (req.body[key] !== undefined && key !== '_id' && key !== 'clientId') {
       project[key] = req.body[key]
     }
   })
+
+  // If team is being closed and project is in Ready status, automatically set to Development
+  if (isClosingTeam && project.status === 'Ready' && 
+      (project.assignedProgrammerId || (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0))) {
+    project.status = 'Development'
+    if (!project.startDate) {
+      project.startDate = new Date()
+    }
+  }
+
+  // If team is being opened and project is in Development status, change back to Ready
+  if (isOpeningTeam && project.status === 'Development') {
+    project.status = 'Ready'
+  }
 
   await project.save()
 
@@ -645,10 +681,10 @@ export const deleteProject = asyncHandler(async (req, res) => {
   res.json({ message: 'Project removed' })
 })
 
-// @desc    Mark project as Ready for assignment
-// @route   PUT /api/projects/:id/ready
+// @desc    Update project status (Ready or Holding)
+// @route   PUT /api/projects/:id/ready or PUT /api/projects/:id/holding
 // @access  Private
-export const markProjectReady = asyncHandler(async (req, res) => {
+export const updateProjectStatus = asyncHandler(async (req, res) => {
   const project = await Project.findById(req.params.id)
 
   if (!project) {
@@ -661,12 +697,29 @@ export const markProjectReady = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to update this project')
   }
 
-  if (project.status !== 'Holding') {
-    res.status(400)
-    throw new Error('Project must be in Holding status to mark as Ready')
+  // Determine target status from route path
+  const targetStatus = req.path.endsWith('/ready') ? 'Ready' : 'Holding'
+
+  // Validate status transition
+  if (targetStatus === 'Ready') {
+    if (project.status !== 'Holding') {
+      res.status(400)
+      throw new Error('Project must be in Holding status to mark as Ready')
+    }
+    project.status = 'Ready'
+  } else if (targetStatus === 'Holding') {
+    if (project.status !== 'Ready') {
+      res.status(400)
+      throw new Error('Project must be in Ready status to mark as Holding')
+    }
+    // Only allow if no programmers are assigned
+    if (project.assignedProgrammerId || (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)) {
+      res.status(400)
+      throw new Error('Cannot set project to Holding when programmers are assigned')
+    }
+    project.status = 'Holding'
   }
 
-  project.status = 'Ready'
   await project.save()
 
   const populated = await Project.findById(project._id)

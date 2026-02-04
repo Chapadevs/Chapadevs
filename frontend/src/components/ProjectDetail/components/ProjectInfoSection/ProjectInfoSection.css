@@ -19,17 +19,16 @@
   flex-direction: column;
   gap: 0.2rem;
   padding: 0.5rem 0.6rem;
-  background: #f9fafb;
   border-radius: 4px;
   border-left: 2px solid var(--primary-green, #059669);
 }
 
 .project-info-section .info-item strong {
-  color: #666;
-  font-size: 0.65rem;
+  color: var(--primary-green, #059669);
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .project-info-section .info-item span {

@@ -71,12 +71,12 @@
 .project-link h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #1976d2;
+  color: var(--primary-green, #059669);
   transition: color 0.3s ease;
 }
 
 .project-link:hover h3 {
-  color: #1565c0;
+  color: var(--primary-green-dark, #047857);
 }
 
 .status-badge {
@@ -164,8 +164,8 @@
 
 .programmer-select:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+  border-color: var(--primary-green, #059669);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
 }
 
 .programmer-select:disabled {
@@ -175,7 +175,7 @@
 
 .assigning-indicator {
   font-size: 0.875rem;
-  color: #1976d2;
+  color: var(--primary-green, #059669);
   font-style: italic;
 }
 
@@ -197,12 +197,12 @@
 }
 
 .btn-primary {
-  background-color: #1976d2;
+  background-color: var(--primary-green, #059669);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: var(--primary-green-dark, #047857);
 }
 
 .btn-secondary {

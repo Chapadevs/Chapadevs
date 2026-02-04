@@ -2,18 +2,20 @@ import TeamStatusBanner from './components/TeamStatusBanner/TeamStatusBanner'
 import TeamMemberCard from './components/TeamMemberCard/TeamMemberCard'
 import './ProgrammersTab.css'
 
-const ProgrammersTab = ({ project, getUserStatus }) => {
+const ProgrammersTab = ({ project, getUserStatus, canToggleTeamClosed, togglingTeamClosed, onToggleTeamClosed }) => {
+  // Get the primary assigned programmer ID for comparison
+  const primaryAssignedId = project.assignedProgrammerId 
+    ? (project.assignedProgrammerId._id || project.assignedProgrammerId)?.toString()
+    : null
+  
   // Collect all programmers (primary + team members), avoiding duplicates
   const allProgrammers = []
   const seenIds = new Set()
   
   // Add primary assigned programmer if exists
-  if (project.assignedProgrammerId) {
-    const primaryId = (project.assignedProgrammerId._id || project.assignedProgrammerId)?.toString()
-    if (primaryId) {
-      seenIds.add(primaryId)
-      allProgrammers.push({ ...project.assignedProgrammerId, isPrimary: true })
-    }
+  if (project.assignedProgrammerId && primaryAssignedId) {
+    seenIds.add(primaryAssignedId)
+    allProgrammers.push({ ...project.assignedProgrammerId, isPrimary: true })
   }
   
   // Add other programmers from assignedProgrammerIds array
@@ -22,14 +24,27 @@ const ProgrammersTab = ({ project, getUserStatus }) => {
       const programmerId = (programmer._id || programmer)?.toString()
       if (programmerId && !seenIds.has(programmerId)) {
         seenIds.add(programmerId)
-        allProgrammers.push({ ...programmer, isPrimary: false })
+        // Only mark as primary if this programmer's ID matches the assignedProgrammerId
+        const isPrimary = primaryAssignedId && programmerId === primaryAssignedId
+        allProgrammers.push({ ...programmer, isPrimary })
       }
     })
   }
 
   return (
     <div className="project-tab-panel">
-      <h3 className="project-tab-panel-title">Team</h3>
+      <div className="programmers-tab-header">
+        <h3 className="project-tab-panel-title">Team</h3>
+        {canToggleTeamClosed && (
+          <button
+            onClick={onToggleTeamClosed}
+            className={`btn ${project.teamClosed ? 'btn-success' : 'btn-warning'}`}
+            disabled={togglingTeamClosed}
+          >
+            {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Team' : 'Close Team'}
+          </button>
+        )}
+      </div>
       
       <TeamStatusBanner project={project} />
       

@@ -115,27 +115,29 @@ const CommentsTab = ({ project, user }) => {
       </div>
 
       <form className="chat-input-form" onSubmit={handleSubmit}>
-        <textarea
-          className="chat-input"
-          value={messageContent}
-          onChange={(e) => setMessageContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
-          rows={3}
-          disabled={sending}
-          maxLength={5000}
-        />
-        <div className="chat-input-footer">
-          <span className="chat-input-counter">
-            {messageContent.length}/5000
-          </span>
-          <button
-            type="submit"
-            className="chat-send-button"
-            disabled={!messageContent.trim() || sending}
-          >
-            {sending ? 'Sending...' : 'Send'}
-          </button>
+        <div className="chat-input-wrapper">
+          <textarea
+            className="chat-input"
+            value={messageContent}
+            onChange={(e) => setMessageContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your message"
+            rows={3}
+            disabled={sending}
+            maxLength={5000}
+          />
+          <div className="chat-input-footer">
+            <span className="chat-input-counter">
+              {messageContent.length}/5000
+            </span>
+            <button
+              type="submit"
+              className="chat-send-button"
+              disabled={!messageContent.trim() || sending}
+            >
+              {sending ? 'Sending...' : 'Send'}
+            </button>
+          </div>
         </div>
       </form>
     </div>

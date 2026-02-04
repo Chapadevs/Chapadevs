@@ -5,6 +5,7 @@ import {
   getAvailableProjects,
   acceptProject,
   rejectProject,
+  leaveProject,
 } from '../controllers/assignmentController.js'
 import { protect, authorize } from '../middleware/authMiddleware.js'
 
@@ -18,6 +19,7 @@ router.get('/available', authorize('programmer', 'admin'), getAvailableProjects)
 router.post('/:projectId/assign', authorize('programmer', 'admin'), assignProject)
 router.post('/:projectId/accept', authorize('programmer', 'admin'), acceptProject)
 router.post('/:projectId/reject', authorize('programmer', 'admin'), rejectProject)
+router.post('/:projectId/leave', authorize('programmer', 'admin'), leaveProject)
 router.delete('/:projectId/unassign', authorize('programmer', 'admin'), unassignProject)
 
 export default router
