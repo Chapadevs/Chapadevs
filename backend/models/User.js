@@ -69,6 +69,16 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    passwordChangeToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    passwordChangeExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
     status: {
       type: String,
       enum: ['online', 'away', 'busy', 'offline'],
@@ -77,6 +87,22 @@ const userSchema = new mongoose.Schema(
     lastSeen: {
       type: Date,
       default: Date.now,
+    },
+    avatar: {
+      type: String,
+      default: null,
+    },
+    company: {
+      type: String,
+      default: null,
+    },
+    phone: {
+      type: String,
+      default: null,
+    },
+    industry: {
+      type: String,
+      default: null,
     },
   },
   {

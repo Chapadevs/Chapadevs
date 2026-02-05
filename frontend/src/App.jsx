@@ -10,13 +10,15 @@ import Register from './pages/Register/Register'
 import VerifyEmail from './pages/VerifyEmail/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword/ForgotPassword'
 import ResetPassword from './pages/ResetPassword/ResetPassword'
+import ConfirmPasswordChange from './pages/ConfirmPasswordChange/ConfirmPasswordChange'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Profile from './pages/Profile/Profile'
+import UserProfileView from './pages/UserProfileView/UserProfileView'
 import ChangePassword from './pages/Settings/ChangePassword'
-import ProjectList from './components/ProjectList/ProjectList'
-import CreateProject from './components/CreateProject/CreateProject'
-import ProjectDetail from './components/ProjectDetail/ProjectDetail'
-import Assignment from './components/Assignment/Assignment'
+import ProjectList from './pages/projects/ProjectList/ProjectList'
+import CreateProject from './pages/projects/CreateProject/CreateProject'
+import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
+import Assignment from './pages/projects/Assignment/Assignment'
 import './styles.css'
 
 function App() {
@@ -32,6 +34,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/confirm-password-change" element={<ConfirmPasswordChange />} />
           <Route
             path="/dashboard"
             element={
@@ -45,6 +48,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users/:id"
+            element={
+              <ProtectedRoute>
+                <UserProfileView />
               </ProtectedRoute>
             }
           />

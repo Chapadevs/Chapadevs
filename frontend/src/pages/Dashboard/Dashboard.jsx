@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
 import Header from '../../components/Header/Header'
-import UserStatus from '../../components/UserStatus/UserStatus'
 import NotificationBadge from '../../components/NotificationBadge/NotificationBadge'
 import { getAIPreviewUsage } from '../../services/api'
 import './Dashboard.css'
@@ -60,10 +59,10 @@ const Dashboard = () => {
       <div className="dashboard-container">
         <div className="dashboard-header">
           <div className="dashboard-header-left">
+            <h1>Dashboard<NotificationBadge /></h1>
             <span className={`role-badge ${roleBadgeClass} dashboard-role-badge`}>
               {user?.role === 'user' ? 'CLIENT' : user?.role?.toUpperCase()}
             </span>
-            <h1>Dashboard<NotificationBadge /></h1>
             {user?.company && (
               <div className="dashboard-user-info">
                 <span className="dashboard-user-meta">{user.company}</span>
@@ -79,10 +78,7 @@ const Dashboard = () => {
                 <h3>Profile</h3>
                 <div className="dashboard-actions">
                   <Link to="/profile" className="dashboard-link">
-                    Edit Profile
-                  </Link>
-                  <Link to="/settings/change-password" className="dashboard-link">
-                    Change Password
+                    Manage Profile
                   </Link>
                 </div>
               </section>
@@ -123,8 +119,6 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-
-          <UserStatus />
         </div>
       </div>
     </>

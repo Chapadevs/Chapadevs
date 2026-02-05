@@ -1,0 +1,20 @@
+.programmers-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.project-tab-panel {
+  padding: 0.75rem;
+  color: #666;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.project-tab-panel-title {
+  margin: 0;
+  color: var(--primary-green, #059669);
+  font-size: 1rem;
+  font-weight: 600;
+}

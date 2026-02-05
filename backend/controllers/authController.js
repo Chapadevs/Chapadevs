@@ -4,7 +4,13 @@ import generateToken from '../utils/generateToken.js'
 import asyncHandler from 'express-async-handler'
 import mongoose from 'mongoose'
 import { sendMail } from '../services/emailService.js'
-import { getWelcomeEmail, getPasswordResetEmail } from '../utils/emailTemplates.js'
+import { getWelcomeEmail, getPasswordResetEmail, getPasswordChangeEmail } from '../utils/emailTemplates.js'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Helper to check database connection
 const checkDBConnection = () => {
@@ -270,6 +276,13 @@ export const loginUser = asyncHandler(async (req, res) => {
     email: user.email,
     role: user.role,
     status: user.status,
+    avatar: user.avatar,
+    company: user.company,
+    phone: user.phone,
+    industry: user.industry,
+    skills: user.skills,
+    bio: user.bio,
+    hourlyRate: user.hourlyRate,
     token: generateToken(user._id),
   })
 })
@@ -293,6 +306,10 @@ export const getMe = asyncHandler(async (req, res) => {
     email: user.email,
     role: user.role,
     status: user.status,
+    avatar: user.avatar,
+    company: user.company,
+    phone: user.phone,
+    industry: user.industry,
     skills: user.skills,
     bio: user.bio,
     hourlyRate: user.hourlyRate,
@@ -316,9 +333,83 @@ export const updateProfile = asyncHandler(async (req, res) => {
   user.name = req.body.name || user.name
   user.email = req.body.email || user.email
 
+  // Handle avatar (base64 data URL - convert to file and save)
+  if (req.body.avatar !== undefined && req.body.avatar) {
+    try {
+      // Check if it's a base64 data URL
+      if (req.body.avatar.startsWith('data:image/')) {
+        // Extract base64 data and image type
+        const matches = req.body.avatar.match(/^data:image\/(\w+);base64,(.+)$/)
+        if (matches) {
+          const imageType = matches[1] || 'jpeg'
+          const base64Data = matches[2]
+          
+          // Create uploads/avatars directory if it doesn't exist
+          const uploadDir = path.join(__dirname, '../uploads/avatars')
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true })
+          }
+
+          // Generate unique filename
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+          const filename = `${uniqueSuffix}.${imageType}`
+          const filePath = path.join(uploadDir, filename)
+
+          // Delete old avatar if it exists
+          if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
+            const oldFilePath = path.join(__dirname, '..', user.avatar)
+            if (fs.existsSync(oldFilePath)) {
+              try {
+                fs.unlinkSync(oldFilePath)
+              } catch (err) {
+                console.error('Error deleting old avatar:', err)
+              }
+            }
+          }
+
+          // Convert base64 to buffer and save file
+          const imageBuffer = Buffer.from(base64Data, 'base64')
+          fs.writeFileSync(filePath, imageBuffer)
+
+          // Store the URL path
+          user.avatar = `/uploads/avatars/${filename}`
+        } else {
+          // If it's not a valid base64 data URL, clear the avatar
+          user.avatar = null
+        }
+      } else if (req.body.avatar === '' || req.body.avatar === null) {
+        // Delete old avatar if clearing
+        if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
+          const oldFilePath = path.join(__dirname, '..', user.avatar)
+          if (fs.existsSync(oldFilePath)) {
+            try {
+              fs.unlinkSync(oldFilePath)
+            } catch (err) {
+              console.error('Error deleting old avatar:', err)
+            }
+          }
+        }
+        user.avatar = null
+      } else {
+        // If it's already a path, keep it
+        user.avatar = req.body.avatar
+      }
+    } catch (error) {
+      console.error('Error saving avatar:', error)
+      // Don't fail the entire update if avatar save fails
+    }
+  }
+
+  // Handle client/user fields
+  if (req.body.company !== undefined) user.company = req.body.company
+  if (req.body.phone !== undefined) user.phone = req.body.phone
+  if (req.body.industry !== undefined) user.industry = req.body.industry
+  
+  // Bio is available for all users
+  if (req.body.bio !== undefined) user.bio = req.body.bio
+
   if (user.role === 'programmer') {
     if (req.body.skills !== undefined) user.skills = req.body.skills
-    if (req.body.bio !== undefined) user.bio = req.body.bio
     if (req.body.hourlyRate !== undefined) user.hourlyRate = req.body.hourlyRate
   }
 
@@ -329,36 +420,127 @@ export const updateProfile = asyncHandler(async (req, res) => {
     name: updatedUser.name,
     email: updatedUser.email,
     role: updatedUser.role,
+    avatar: updatedUser.avatar,
+    company: updatedUser.company,
+    phone: updatedUser.phone,
+    industry: updatedUser.industry,
     skills: updatedUser.skills,
     bio: updatedUser.bio,
     hourlyRate: updatedUser.hourlyRate,
   })
 })
 
-// @desc    Change password
+const PASSWORD_CHANGE_EXPIRY_MS = 60 * 60 * 1000 // 1 hour
+
+// @desc    Request password change (sends confirmation email)
 // @route   PUT /api/auth/change-password
 // @access  Private
 export const changePassword = asyncHandler(async (req, res) => {
   checkDBConnection()
   
-  const { currentPassword, newPassword } = req.body
+  const { currentPassword } = req.body
 
-  if (!currentPassword || !newPassword) {
+  if (!currentPassword) {
     res.status(400)
-    throw new Error('Please provide current and new password')
+    throw new Error('Please provide your current password')
   }
 
-  const user = await User.findById(req.user._id).select('+password')
+  const user = await User.findById(req.user._id).select('+password +passwordChangeToken +passwordChangeExpires')
 
-  if (user && (await user.matchPassword(currentPassword))) {
-    user.password = newPassword
-    await user.save()
-
-    res.json({ message: 'Password updated successfully' })
-  } else {
+  if (!user || !(await user.matchPassword(currentPassword))) {
     res.status(401)
     throw new Error('Current password is incorrect')
   }
+
+  // Generate token and expiry
+  const passwordChangeToken = crypto.randomBytes(32).toString('hex')
+  const passwordChangeExpires = new Date(Date.now() + PASSWORD_CHANGE_EXPIRY_MS)
+  
+  // Store new password temporarily (will be hashed when saved after confirmation)
+  // We'll store it in a temporary field or use the token to look it up
+  // For security, we'll require the new password again in the confirmation step
+  user.passwordChangeToken = passwordChangeToken
+  user.passwordChangeExpires = passwordChangeExpires
+  await user.save({ validateBeforeSave: false })
+
+  // Send confirmation email
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '')
+  const confirmUrl = `${frontendUrl}/confirm-password-change?token=${passwordChangeToken}`
+  const { text, html, subject } = getPasswordChangeEmail({ 
+    name: user.name, 
+    confirmUrl 
+  })
+  
+  // Store new password hash temporarily - we'll use a different approach
+  // Instead, we'll require the user to enter the new password again in the confirmation page
+  // For now, we'll encode it in the token URL or require it in the confirmation endpoint
+  
+  const emailResult = await sendMail({
+    to: user.email,
+    subject,
+    text,
+    html
+  })
+  
+  if (!emailResult.success) {
+    console.error('Password change email failed:', emailResult.error)
+  }
+
+  res.json({ 
+    message: 'Please check your email to confirm the password change. The confirmation link expires in 1 hour.',
+    email: user.email
+  })
+})
+
+// @desc    Confirm password change with token from email
+// @route   POST /api/auth/confirm-password-change
+// @access  Public
+export const confirmPasswordChange = asyncHandler(async (req, res) => {
+  checkDBConnection()
+
+  let rawToken = req.body.token
+  if (typeof rawToken !== 'string') rawToken = ''
+  let token = rawToken.trim()
+  try {
+    const decoded = decodeURIComponent(token)
+    if (decoded !== token) token = decoded.trim()
+  } catch (_) { /* keep token as-is */ }
+
+  const newPassword = (req.body.newPassword || '').trim()
+  
+  if (!token) {
+    res.status(400)
+    throw new Error('Confirmation token is required.')
+  }
+  
+  if (!newPassword || newPassword.length < 6) {
+    res.status(400)
+    throw new Error('New password must be at least 6 characters.')
+  }
+
+  const user = await User.findOne({
+    passwordChangeToken: token
+  }).select('+passwordChangeToken +passwordChangeExpires +password')
+
+  if (!user) {
+    res.status(400)
+    throw new Error('Invalid or expired confirmation link. Request a new password change from your profile.')
+  }
+  
+  if (user.passwordChangeExpires && new Date() > user.passwordChangeExpires) {
+    res.status(400)
+    throw new Error('Confirmation link has expired. Request a new password change from your profile.')
+  }
+
+  // Update password (will be hashed by pre-save hook)
+  user.password = newPassword
+  user.passwordChangeToken = undefined
+  user.passwordChangeExpires = undefined
+  await user.save()
+
+  res.status(200).json({
+    message: 'Password changed successfully. You can now log in with your new password.'
+  })
 })
 
 // @desc    Logout user (set status to offline)
@@ -376,4 +558,23 @@ export const logoutUser = asyncHandler(async (req, res) => {
   }
 
   res.json({ message: 'Logged out successfully' })
+})
+
+// @desc    Delete user's own profile
+// @route   DELETE /api/auth/profile
+// @access  Private
+export const deleteProfile = asyncHandler(async (req, res) => {
+  checkDBConnection()
+  
+  const user = await User.findById(req.user._id)
+
+  if (!user) {
+    res.status(404)
+    throw new Error('User not found')
+  }
+
+  // Delete user account
+  await user.deleteOne()
+
+  res.json({ message: 'Account deleted successfully' })
 })

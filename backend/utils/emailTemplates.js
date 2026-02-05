@@ -193,6 +193,45 @@ export function getPasswordResetEmail(opts) {
   return { text, html, subject }
 }
 
+/**
+ * Build password change confirmation email.
+ * @param {Object} opts - { name, confirmUrl }
+ * @returns {{ text: string, html: string, subject: string }}
+ */
+export function getPasswordChangeEmail(opts) {
+  const { name, confirmUrl } = opts
+  const subject = 'Confirm your password change'
+
+  const text = [
+    `Hi ${name},`,
+    '',
+    'You requested to change your password. Click the link below to confirm and set your new password:',
+    confirmUrl,
+    'This link expires in 1 hour.',
+    '',
+    'If you did not request this, you can ignore this email. Your password will not change.',
+    '',
+    'Best regards,',
+    FROM_NAME
+  ].join('\n')
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>${escapeHtml(subject)}</title></head>
+<body style="font-family: sans-serif; max-width: 560px;">
+  <p>Hi ${escapeHtml(name)},</p>
+  <p>You requested to change your password. Click the link below to confirm and set your new password:</p>
+  <p><a href="${escapeHtml(confirmUrl)}">Confirm password change</a></p>
+  <p style="color:#666;">This link expires in 1 hour.</p>
+  <p>If you did not request this, you can ignore this email. Your password will not change.</p>
+  <p>Best regards,<br/><strong>${escapeHtml(FROM_NAME)}</strong></p>
+</body>
+</html>`.trim()
+
+  return { text, html, subject }
+}
+
 function escapeHtml(str) {
   if (str == null) return ''
   return String(str)

@@ -82,6 +82,7 @@ export const getProjects = asyncHandler(async (req, res) => {
 // @access  Private
 export const getMyProjects = asyncHandler(async (req, res) => {
   const projects = await Project.find({ clientId: req.user._id })
+    .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
     .sort({ createdAt: -1 })
 

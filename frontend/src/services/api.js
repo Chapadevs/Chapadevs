@@ -62,9 +62,20 @@ export const authAPI = {
     return response.data
   },
 
-  changePassword: async (currentPassword, newPassword) => {
+  deleteProfile: async () => {
+    const response = await api.delete('/auth/profile')
+    return response.data
+  },
+
+  changePassword: async (currentPassword) => {
     const response = await api.put('/auth/change-password', {
       currentPassword,
+    })
+    return response.data
+  },
+  confirmPasswordChange: async (token, newPassword) => {
+    const response = await api.post('/auth/confirm-password-change', {
+      token,
       newPassword,
     })
     return response.data
@@ -256,6 +267,11 @@ export const userAPI = {
 
   getUserStatuses: async (userIds) => {
     const response = await api.post('/users/statuses', { userIds })
+    return response.data
+  },
+
+  getUserProfile: async (userId) => {
+    const response = await api.get(`/users/${userId}/profile`)
     return response.data
   },
 }
