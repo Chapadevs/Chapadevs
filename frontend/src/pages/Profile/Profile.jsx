@@ -433,9 +433,9 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Section 1: Basic Information */}
-              <div className="form-section">
-                <h3>Basic Information</h3>
+              {/* Profile fields: Basic + role-specific in one section */}
+              <div className="form-section form-section--unified">
+                <h3>Profile Information</h3>
                 <div className="profile-form-grid">
                   <div className="form-group">
                     <label htmlFor="name">Full Name *</label>
@@ -464,99 +464,87 @@ const Profile = () => {
                       disabled={loading}
                     />
                   </div>
+
+                  {isClient && (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor="company">Company</label>
+                        <input
+                          type="text"
+                          id="company"
+                          name="company"
+                          value={formData.company}
+                          onChange={handleChange}
+                          placeholder="Your Company Name"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="phone">Phone</label>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="+1 (555) 123-4567"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="industry">Industry</label>
+                        <input
+                          type="text"
+                          id="industry"
+                          name="industry"
+                          value={formData.industry}
+                          onChange={handleChange}
+                          placeholder="e.g., Technology, Healthcare, Finance"
+                          disabled={loading}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {isProgrammer && (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor="skills">Skills (comma-separated)</label>
+                        <input
+                          type="text"
+                          id="skills"
+                          name="skills"
+                          value={formData.skills}
+                          onChange={handleChange}
+                          placeholder="React, Node.js, Python"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="hourlyRate">Hourly Rate</label>
+                        <input
+                          type="number"
+                          id="hourlyRate"
+                          name="hourlyRate"
+                          value={formData.hourlyRate}
+                          onChange={handleChange}
+                          placeholder="e.g., 50"
+                          min="0"
+                          step="0.01"
+                          disabled={loading}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-
-              {/* Section 2: Client Information */}
-              {isClient && (
-                <div className="form-section">
-                  <h3>Client Information</h3>
-                  <div className="profile-form-grid">
-                    <div className="form-group">
-                      <label htmlFor="company">Company</label>
-                      <input
-                        type="text"
-                        id="company"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        placeholder="Your Company Name"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="phone">Phone</label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+1 (555) 123-4567"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="industry">Industry</label>
-                      <input
-                        type="text"
-                        id="industry"
-                        name="industry"
-                        value={formData.industry}
-                        onChange={handleChange}
-                        placeholder="e.g., Technology, Healthcare, Finance"
-                        disabled={loading}
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              )}
-
-              {/* Section 3: Programmer Information */}
-              {isProgrammer && (
-                <div className="form-section">
-                  <h3>Programmer Information</h3>
-                  <div className="profile-form-grid">
-                    <div className="form-group">
-                      <label htmlFor="skills">Skills (comma-separated)</label>
-                      <input
-                        type="text"
-                        id="skills"
-                        name="skills"
-                        value={formData.skills}
-                        onChange={handleChange}
-                        placeholder="React, Node.js, Python"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="hourlyRate">Hourly Rate</label>
-                      <input
-                        type="number"
-                        id="hourlyRate"
-                        name="hourlyRate"
-                        value={formData.hourlyRate}
-                        onChange={handleChange}
-                        placeholder="e.g., 50"
-                        min="0"
-                        step="0.01"
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
             </form>
 
             {/* Section 4: Security - Password Change */}
             <form onSubmit={handlePasswordSubmit} className="password-form-section">
               <div className="form-section">
                 <h3>Security</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                <p className="form-section-description">
                   To change your password, we'll send a confirmation email to your registered email address.
                 </p>
                 {passwordError && (
@@ -600,13 +588,13 @@ const Profile = () => {
             </form>
 
             {/* Delete Account Section */}
-            <div className="form-section" style={{ marginTop: '2rem', borderTop: '2px solid #fee2e2' }}>
-              <h3 style={{ color: '#dc2626' }}>Danger Zone</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+            <div className="form-section form-section--danger">
+              <h3>Danger Zone</h3>
+              <p className="form-section-description">
                 Once you delete your account, there is no going back. Please be certain.
               </p>
               {deleteError && (
-                <div className="error-message" style={{ marginBottom: '1rem' }}>
+                <div className="error-message form-section-error">
                   {deleteError}
                 </div>
               )}
@@ -621,7 +609,7 @@ const Profile = () => {
             </div>
 
             {/* Update Profile Button - Moved to bottom */}
-            <div className="profile-form-actions" style={{ marginTop: '1rem' }}>
+            <div className="profile-form-actions">
               <button
                 type="submit"
                 form="profile-form"

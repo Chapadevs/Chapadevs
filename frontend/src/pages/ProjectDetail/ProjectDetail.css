@@ -17,10 +17,12 @@
 }
 
 .project-main {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  background: var(--background, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0;
   padding: 2rem;
+  min-height: 400px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .project-section {
@@ -36,6 +38,11 @@
   margin: 0 0 1rem 0;
   color: var(--primary-green, #059669);
   font-size: 1.25rem;
+}
+
+/* Unified section titles – same style as Comments/Team tabs */
+.project-tab-panel-title {
+  margin-bottom: 0.5rem;
 }
 
 .project-section p {
@@ -62,8 +69,8 @@
 }
 
 .status-holding {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
 }
 
 .status-ready {
@@ -72,8 +79,8 @@
 }
 
 .status-development {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
 }
 
 .status-completed {

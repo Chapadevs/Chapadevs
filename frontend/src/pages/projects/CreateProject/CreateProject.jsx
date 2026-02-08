@@ -103,7 +103,7 @@ const CreateProject = () => {
       <Header />
       <div className="create-project-container">
       <div className="create-project-header">
-        <h2>Create New Project</h2>
+        <h2>New Project</h2>
       </div>
 
       {error && <div className="error-message">{error}</div>}

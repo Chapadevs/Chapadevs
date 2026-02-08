@@ -11,8 +11,6 @@
 }
 
 .generator-header h3 {
-  font-size: 1.5rem;
-  color: #1a1a1a;
   margin-bottom: 0.5rem;
 }
 
@@ -235,10 +233,6 @@
   margin-bottom: 1.5rem;
 }
 
-.result-header h3 {
-  font-size: 1.5rem;
-  color: #1a1a1a;
-}
 
 .result-badges {
   display: flex;
@@ -521,8 +515,6 @@
 }
 
 .preview-header h3 {
-  font-size: 1.5rem;
-  color: #1a1a1a;
   margin-bottom: 0.5rem;
 }
 

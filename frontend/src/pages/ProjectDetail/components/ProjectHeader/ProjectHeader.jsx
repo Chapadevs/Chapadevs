@@ -1,10 +1,23 @@
 import { Link } from 'react-router-dom'
 import './ProjectHeader.css'
 
-const ProjectHeader = ({ project, isClientOwner, canDelete, onDelete, markingHolding, markingReady, onMarkHolding, onMarkReady }) => {
+const ProjectHeader = ({
+  project,
+  isClientOwner,
+  canDelete,
+  onDelete,
+  markingHolding,
+  markingReady,
+  onMarkHolding,
+  onMarkReady,
+  isProgrammerInProject,
+  leavingProject,
+  onLeaveProject,
+}) => {
   const canSwitchToHolding = isClientOwner && project.status === 'Ready'
   const canSwitchToReady = isClientOwner && project.status === 'Holding'
-  const showStatusSwitch = project.status === 'Ready' || project.status === 'Holding'
+  const showStatusSwitch = isClientOwner && (project.status === 'Ready' || project.status === 'Holding')
+  const showLeaveButton = isProgrammerInProject && onLeaveProject
   const isBusy = markingReady || markingHolding
 
   const handleSwitchToReady = () => {
@@ -41,6 +54,16 @@ const ProjectHeader = ({ project, isClientOwner, canDelete, onDelete, markingHol
                 Ready
               </button>
             </div>
+          )}
+          {showLeaveButton && (
+            <button
+              type="button"
+              className="project-header-leave-btn"
+              onClick={onLeaveProject}
+              disabled={leavingProject}
+            >
+              {leavingProject ? 'Leaving...' : 'Leave Project'}
+            </button>
           )}
           {canDelete && onDelete && (
             <button

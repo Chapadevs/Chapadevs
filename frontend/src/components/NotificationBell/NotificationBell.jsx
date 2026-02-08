@@ -68,6 +68,18 @@ const NotificationBell = () => {
     }
   }
 
+  const renderMessageWithHighlight = (message) => {
+    if (!message || typeof message !== 'string') return message
+    const parts = message.split(/"([^"]*)"/)
+    return parts.map((part, i) =>
+      i % 2 === 1 ? (
+        <span key={i} className="notification-item-message-project">{part}</span>
+      ) : (
+        part
+      )
+    )
+  }
+
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -108,7 +120,7 @@ const NotificationBell = () => {
           <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
         </svg>
         {unreadCount > 0 && (
-          <span className="notification-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          <span className="notification-bell-badge" aria-label={`${unreadCount} unread notifications`} />
         )}
       </button>
 
@@ -142,10 +154,21 @@ const NotificationBell = () => {
                   >
                     <div className="notification-item-content">
                       <div className="notification-item-header">
-                        <h4 className="notification-item-title">{notification.title}</h4>
+                        <h4 className="notification-item-title">
+                          {notification.title.startsWith('New message in ') ? (
+                            <>
+                              <span className="notification-item-title-prefix">New message in </span>
+                              <span className="notification-item-title-project">
+                                {notification.projectId?.title ?? notification.title.slice(14)}
+                              </span>
+                            </>
+                          ) : (
+                            notification.title
+                          )}
+                        </h4>
                         {isUnread && <span className="notification-item-unread-dot"></span>}
                       </div>
-                      <p className="notification-item-message">{notification.message}</p>
+                      <p className="notification-item-message">{renderMessageWithHighlight(notification.message)}</p>
                       <div className="notification-item-footer">
                         <span className="notification-item-time">
                           {formatDate(notification.createdAt || notification.created_at)}

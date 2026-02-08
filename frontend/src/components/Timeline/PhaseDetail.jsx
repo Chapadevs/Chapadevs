@@ -185,9 +185,24 @@ const PhaseDetail = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="project-phase-modal-header">
-          <h2 id="phase-modal-title" className="project-phase-modal-title">
-            {localPhase.title}
-          </h2>
+          <div className="project-phase-modal-header-content">
+            <h2 id="phase-modal-title" className="project-phase-modal-title">
+              {localPhase.title}
+            </h2>
+            {subStepsProgress !== null && (
+              <div className="project-phase-modal-progress">
+                <div className="project-phase-modal-progress-bar">
+                  <div
+                    className="project-phase-modal-progress-fill"
+                    style={{ width: `${subStepsProgress}%` }}
+                  />
+                </div>
+                <span className="project-phase-modal-progress-label">
+                  {Math.round(subStepsProgress)}% complete
+                </span>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             className="project-phase-modal-close"
@@ -282,13 +297,6 @@ const PhaseDetail = ({
                         `${estimatedDays} day${estimatedDays !== 1 ? 's' : ''} (estimated)`
                       ) : null}
                     </span>
-                  </div>
-                )}
-
-                {subStepsProgress !== null && (
-                  <div className="phase-meta-item">
-                    <strong>Progress:</strong>
-                    <span>{Math.round(subStepsProgress)}% complete</span>
                   </div>
                 )}
 

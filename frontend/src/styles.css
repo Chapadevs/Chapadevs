@@ -70,6 +70,19 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 1rem;
 }
 
+/* Unified h3 style (design pattern) */
+h3 {
+  font-family: "Code Bold", monospace;
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary-green);
+}
+
 /* Container */
 .container {
   max-width: 1200px;

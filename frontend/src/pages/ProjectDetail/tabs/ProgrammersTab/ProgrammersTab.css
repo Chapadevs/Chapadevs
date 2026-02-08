@@ -2,11 +2,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.programmers-tab-header .project-tab-panel-title {
-  font-size: 1.35rem;
+  margin-bottom: 0.5rem;
 }
 
 .programmers-tab-header .btn {
@@ -23,8 +19,11 @@
 }
 
 .project-tab-panel-title {
-  margin: 0;
-  color: var(--primary-green, #059669);
-  font-size: 1rem;
-  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.programmers-tab-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #e5e7eb);
 }

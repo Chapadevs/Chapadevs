@@ -18,6 +18,7 @@ import ChangePassword from './pages/Settings/ChangePassword'
 import ProjectList from './pages/projects/ProjectList/ProjectList'
 import CreateProject from './pages/projects/CreateProject/CreateProject'
 import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
+import Team from './pages/Team/Team'
 import Assignment from './pages/projects/Assignment/Assignment'
 import './styles.css'
 
@@ -28,6 +29,7 @@ function App() {
         <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/team" element={<Team />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

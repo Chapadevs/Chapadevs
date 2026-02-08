@@ -81,19 +81,18 @@
   justify-content: space-between;
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background: #fafafa;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--primary-green, #059669);
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: color 0.2s;
 }
 
 .project-preview-analysis-toggle:hover {
-  background: #f0f0f0;
-  border-color: #d0d0d0;
+  color: var(--primary-green-dark, #047857);
 }
 
 .project-preview-analysis-toggle-icon {

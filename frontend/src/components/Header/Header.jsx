@@ -10,8 +10,10 @@ const Header = () => {
   const navigate = useNavigate()
   const [platformOpen, setPlatformOpen] = useState(false)
   const [resourcesOpen, setResourcesOpen] = useState(false)
+  const [exploreOpen, setExploreOpen] = useState(false)
   const platformRef = useRef(null)
   const resourcesRef = useRef(null)
+  const exploreRef = useRef(null)
 
   const handleLogout = async () => {
     await logout()
@@ -20,6 +22,7 @@ const Header = () => {
 
   const closePlatform = () => setPlatformOpen(false)
   const closeResources = () => setResourcesOpen(false)
+  const closeExplore = () => setExploreOpen(false)
 
   useEffect(() => {
     if (!platformOpen) return
@@ -57,6 +60,24 @@ const Header = () => {
     }
   }, [resourcesOpen])
 
+  useEffect(() => {
+    if (!exploreOpen) return
+    const handleClickOutside = (e) => {
+      if (exploreRef.current && !exploreRef.current.contains(e.target)) {
+        closeExplore()
+      }
+    }
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') closeExplore()
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [exploreOpen])
+
   const handlePlatformKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -68,6 +89,13 @@ const Header = () => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       setResourcesOpen((prev) => !prev)
+    }
+  }
+
+  const handleExploreKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setExploreOpen((prev) => !prev)
     }
   }
 
@@ -117,8 +145,8 @@ const Header = () => {
                 <Link to="/#services" className="resources-dropdown-link" role="menuitem" onClick={closePlatform}>
                   Our Services
                 </Link>
-                <Link to="/#team" className="resources-dropdown-link" role="menuitem" onClick={closePlatform}>
-                  Team
+                <Link to="/#faq" className="resources-dropdown-link" role="menuitem" onClick={closePlatform}>
+                  FAQ
                 </Link>
               </div>
             </div>
@@ -149,15 +177,6 @@ const Header = () => {
               aria-hidden={!resourcesOpen}
             >
               <div className="resources-dropdown-group">
-                <span className="resources-dropdown-label">Platform</span>
-                <Link to="/#ai" className="resources-dropdown-link" role="menuitem" onClick={closeResources}>
-                  How we work (AI)
-                </Link>
-                <Link to="/#faq" className="resources-dropdown-link" role="menuitem" onClick={closeResources}>
-                  FAQ
-                </Link>
-              </div>
-              <div className="resources-dropdown-group">
                 <span className="resources-dropdown-label">Get in touch</span>
                 <Link to="/contact" className="resources-dropdown-link" role="menuitem" onClick={closeResources}>
                   Contact
@@ -165,9 +184,41 @@ const Header = () => {
               </div>
             </div>
           </div>
-          <Link to="/assignments" className="header-btn header-btn--explore">
-            EXPLORE
-          </Link>
+          <div
+            className="explore-wrapper"
+            ref={exploreRef}
+            onMouseEnter={() => setExploreOpen(true)}
+            onMouseLeave={() => setExploreOpen(false)}
+          >
+            <button
+              type="button"
+              className="header-btn header-btn--explore"
+              aria-expanded={exploreOpen}
+              aria-haspopup="true"
+              aria-controls="explore-dropdown"
+              id="explore-trigger"
+              onClick={() => setExploreOpen((prev) => !prev)}
+              onKeyDown={handleExploreKeyDown}
+            >
+              EXPLORE
+            </button>
+            <div
+              id="explore-dropdown"
+              className={`explore-dropdown ${exploreOpen ? 'explore-dropdown--open' : ''}`}
+              role="menu"
+              aria-labelledby="explore-trigger"
+              aria-hidden={!exploreOpen}
+            >
+              <div className="resources-dropdown-group">
+                <Link to="/assignments" className="resources-dropdown-link" role="menuitem" onClick={closeExplore}>
+                  Available projects
+                </Link>
+                <Link to="/team" className="resources-dropdown-link" role="menuitem" onClick={closeExplore}>
+                  Team
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
         <nav className="header-navigation" aria-label="Account and actions">
           {!isAuthenticated ? (
@@ -181,11 +232,11 @@ const Header = () => {
                   ADMIN
                 </Link>
               )}
-              <UserStatusDropdown />
-              <Link to="/dashboard" className="header-btn header-btn--dashboard">
-                DASHBOARD
-              </Link>
               <NotificationBell />
+              <Link to="/projects" className="header-btn header-btn--profile">
+                PROJECTS
+              </Link>
+              <UserStatusDropdown />
               <button
                 type="button"
                 className="header-btn header-btn--logout"

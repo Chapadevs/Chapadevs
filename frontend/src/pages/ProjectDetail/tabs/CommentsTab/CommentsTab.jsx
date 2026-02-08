@@ -135,9 +135,9 @@ const CommentsTab = ({ project, user }) => {
                       {senderRole !== 'user' && (
                         <span className="chat-message-role">{senderRole}</span>
                       )}
-                      <span className="chat-message-time">{formatTime(message.createdAt)}</span>
                     </div>
                     <div className="chat-message-text">{message.content}</div>
+                    <span className="chat-message-time">{formatTime(message.createdAt)}</span>
                   </div>
                 </div>
               )

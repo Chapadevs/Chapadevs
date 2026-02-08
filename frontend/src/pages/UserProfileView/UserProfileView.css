@@ -170,9 +170,7 @@
 }
 
 .form-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: var(--primary-green, #059669);
-  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group {

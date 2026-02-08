@@ -20,15 +20,18 @@
 }
 
 .project-detail-back {
-  color: #666;
+  color: var(--primary-green);
   text-decoration: none;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  font-family: 'Creato Display Medium', serif;
+  font-weight: 800;
   display: inline-block;
   margin-bottom: 0.5rem;
+  transition: color 0.2s ease;
 }
 
 .project-detail-back:hover {
-  color: #333;
+  color: var(--primary-green-dark);
 }
 
 .project-status-switch {
@@ -91,4 +94,29 @@
   background: #fef2f2;
   border-color: #dc2626;
   color: #dc2626;
+}
+
+.project-header-leave-btn {
+  padding: 0.35rem 0.65rem;
+  border: 2px solid #dc2626;
+  border-radius: 0;
+  background: transparent;
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.project-header-leave-btn:hover:not(:disabled) {
+  background: #ef4444;
+  color: white;
+}
+
+.project-header-leave-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

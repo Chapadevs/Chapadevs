@@ -126,12 +126,7 @@
 }
 
 .team-name {
-  font-family: 'Code Bold', monospace;
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #111827;
   margin-bottom: 0.5rem;
-  letter-spacing: 0.05em;
 }
 
 .team-role {

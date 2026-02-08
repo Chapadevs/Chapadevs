@@ -44,15 +44,6 @@ const ProgrammersTab = ({
     <div className="project-tab-panel">
       <div className="programmers-tab-header">
         <h3 className="project-tab-panel-title">Team</h3>
-        {canToggleTeamClosed && (
-          <button
-            onClick={onToggleTeamClosed}
-            className={`btn ${project.teamClosed ? 'btn-success' : 'btn-warning'}`}
-            disabled={togglingTeamClosed}
-          >
-            {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Team' : 'Close Team'}
-          </button>
-        )}
       </div>
       
       <TeamStatusBanner project={project} />
@@ -90,6 +81,18 @@ const ProgrammersTab = ({
             removingProgrammerId={removingProgrammerId}
           />
         ))
+      )}
+
+      {canToggleTeamClosed && (
+        <div className="programmers-tab-footer">
+          <button
+            onClick={onToggleTeamClosed}
+            className={`btn ${project.teamClosed ? 'btn-success' : 'btn-warning'}`}
+            disabled={togglingTeamClosed}
+          >
+            {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Team' : 'Close Team'}
+          </button>
+        </div>
       )}
     </div>
   )

@@ -6,6 +6,70 @@
   flex-direction: column;
 }
 
+.project-phase-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.project-phase-modal-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-phase-modal-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.project-phase-modal-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.project-phase-modal-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--background-gray, #f3f4f6);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.project-phase-modal-progress-fill {
+  height: 100%;
+  background: var(--primary-green, #059669);
+  transition: width 0.2s ease;
+}
+
+.project-phase-modal-progress-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+}
+
+.project-phase-modal-close {
+  flex-shrink: 0;
+  padding: 0.25rem;
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.project-phase-modal-close:hover {
+  color: var(--text-primary, #111827);
+}
+
 .project-phase-modal-tabs {
   display: flex;
   border-bottom: 1px solid #e0e0e0;
@@ -50,18 +114,45 @@
 .project-phase-modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
+}
+
+.project-phase-modal-status-badge {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0;
+}
+
+.project-phase-modal-status-badge.status-not-started {
+  background: var(--background-gray, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  border-left: 4px solid var(--text-light, #9ca3af);
+}
+
+.project-phase-modal-status-badge.status-in-progress {
+  background: var(--background-light-green, #ecfdf5);
+  color: var(--primary-green-dark, #047857);
+  border-left: 4px solid var(--primary-green, #059669);
+}
+
+.project-phase-modal-status-badge.status-completed {
+  background: var(--background-light-green, #ecfdf5);
+  color: var(--primary-green-dark, #047857);
+  border-left: 4px solid var(--primary-green, #059669);
 }
 
 .phase-overview {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem;
 }
 
 .phase-overview-status {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -85,14 +176,15 @@
 
 .phase-overview-description {
   color: #666;
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
+  font-size: 0.9rem;
 }
 
 .phase-overview-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.4rem;
 }
 
 .phase-meta-item {
@@ -110,24 +202,26 @@
 }
 
 .phase-deliverables {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .phase-deliverables ul {
-  margin: 0.5rem 0 0 1.5rem;
+  margin: 0.25rem 0 0 1.25rem;
   padding: 0;
   color: #666;
+  font-size: 0.9rem;
 }
 
 .phase-deliverables li {
-  margin: 0.25rem 0;
+  margin: 0.15rem 0;
 }
 
 .phase-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding-top: 1rem;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
   border-top: 1px solid #e0e0e0;
 }
 

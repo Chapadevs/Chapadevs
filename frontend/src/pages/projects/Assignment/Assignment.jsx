@@ -3,7 +3,6 @@ import { useAuth } from '../../../context/AuthContext'
 import { assignmentAPI, userAPI, projectAPI } from '../../../services/api'
 import { Link } from 'react-router-dom'
 import Header from '../../../components/Header/Header'
-import NotificationBadge from '../../../components/NotificationBadge/NotificationBadge'
 import './Assignment.css'
 
 const Assignment = () => {
@@ -23,18 +22,15 @@ const Assignment = () => {
       setLoading(true)
       setError(null)
       
-      if (user?.role === 'programmer') {
-        const projects = await assignmentAPI.getAvailable()
-        setAvailableProjects(projects)
-      } else if (user?.role === 'admin') {
+      if (user?.role === 'admin') {
         const [projects, programmersData] = await Promise.all([
-          assignmentAPI.getAvailable(),
+          assignmentAPI.getAvailablePublic(),
           userAPI.getProgrammers(),
         ])
         setAvailableProjects(projects)
         setProgrammers(programmersData)
       } else {
-        // Public: show available projects to guests and non-programmer roles
+        // Use public endpoint for everyone (guests, clients, programmers) – same project list
         const projects = await assignmentAPI.getAvailablePublic()
         setAvailableProjects(projects)
       }
@@ -93,7 +89,6 @@ const Assignment = () => {
       <div className="assignment-header">
         <h2>
           {user?.role === 'admin' ? 'Project Assignments' : 'Available Projects'}
-          {user && <NotificationBadge />}
         </h2>
         {user?.role !== 'admin' && (
           <p className="assignment-subtitle">
@@ -120,7 +115,7 @@ const Assignment = () => {
             <div key={projectId} className="assignment-card">
               <div className="assignment-card-header">
                 <Link to={`/projects/${projectId}`} className="project-link">
-                  <h3>{project.title}</h3>
+                  <h1>{project.title}</h1>
                 </Link>
                 <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
                   {project.status}
@@ -174,10 +169,10 @@ const Assignment = () => {
                         className="btn btn-primary"
                         disabled={assigning[projectId] || project.teamClosed || isAlreadyJoined}
                       >
-                        {assigning[projectId] ? 'Accepting...' : 
+                        {assigning[projectId] ? 'Joining...' : 
                          isAlreadyJoined ? 'Already Joined' :
                          project.teamClosed ? 'Team Closed' : 
-                         project.assignedProgrammerId || (assignedIds && assignedIds.length > 0) ? 'Join Project' : 'Accept Project'}
+                         'Join'}
                       </button>
                       {project.teamClosed && (
                         <p className="team-closed-message">This project's team is closed. No more programmers can join.</p>
@@ -219,7 +214,7 @@ const Assignment = () => {
                   to={`/projects/${projectId}`}
                   className="btn btn-secondary"
                 >
-                  View Details
+                  Details
                 </Link>
               </div>
             </div>

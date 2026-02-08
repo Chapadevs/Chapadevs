@@ -18,7 +18,7 @@ import './ProjectDetail.css'
 
 const MAX_PREVIEWS_PER_PROJECT = 5
 
-const ProjectDetail = () => {
+function ProjectDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -202,6 +202,9 @@ const ProjectDetail = () => {
           markingReady={markingReady}
           onMarkHolding={handleMarkHolding}
           onMarkReady={handleMarkReady}
+          isProgrammerInProject={isProgrammerInProject}
+          leavingProject={leavingProject}
+          onLeaveProject={handleLeaveProject}
         />
 
         {error && <div className="error-message">{error}</div>}
@@ -246,7 +249,6 @@ const ProjectDetail = () => {
                   project={project} 
                   previews={previews}
                   onPhaseUpdate={handlePhaseUpdate}
-                  onSwitchToPreviews={() => setActiveTab('ai-preview')}
                 />
               </div>
             )}
@@ -265,9 +267,6 @@ const ProjectDetail = () => {
             hasProgrammersNotifications={hasProgrammersNotifications}
             hasTimelineNotifications={hasTimelineNotifications}
             hasCommentsNotifications={hasCommentsNotifications}
-            isProgrammerInProject={isProgrammerInProject}
-            leavingProject={leavingProject}
-            onLeaveProject={handleLeaveProject}
           />
         </div>
       </div>
@@ -275,4 +274,4 @@ const ProjectDetail = () => {
   )
 }
 
-export default ProjectDetail
+export { ProjectDetail as default }

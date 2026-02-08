@@ -104,15 +104,21 @@ export const getAvailableProjects = asyncHandler(async (req, res) => {
       { teamClosed: null },
     ],
     // Exclude projects where this programmer has already joined
-    assignedProgrammerIds: { $ne: req.user._id },
+    assignedProgrammerIds: { $nin: [req.user._id] },
     assignedProgrammerId: { $ne: req.user._id },
   })
     .populate('clientId', 'name email company status')
     .populate('assignedProgrammerId', 'name email status')
     .populate('assignedProgrammerIds', 'name email status')
     .sort({ createdAt: -1 })
+    .lean()
 
-  res.json(projects)
+  const normalized = projects.map((p) => ({
+    ...p,
+    client: p.clientId,
+    id: p._id,
+  }))
+  res.json(normalized)
 })
 
 // @desc    Assign project to programmer

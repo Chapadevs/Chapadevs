@@ -5,20 +5,14 @@
 }
 
 .project-sidebar-tabs {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  background: var(--background, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0;
   padding: 0.75rem;
 }
 
 .project-sidebar-tabs h3 {
-  margin: 0 0 0.75rem 0;
-  color: #059669;
-  font-size: 0.85rem;
-  padding: 0.3rem 0.5rem;
-  background: rgba(5, 150, 105, 0.08);
-  border-radius: 4px;
-  border-left: 2px solid #059669;
+  margin-bottom: 0.75rem;
 }
 
 .project-tab-nav {
@@ -34,28 +28,29 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
-  background: #f9fafb;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  color: #666;
-  font-size: 0.8rem;
-  font-weight: 500;
+  background: var(--background-gray, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0;
+  color: var(--text-secondary, #374151);
+  font-family: 'Creato Display Medium', serif;
+  font-size: 0.85rem;
+  font-weight: 800;
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
 }
 
 .project-tab-link:hover {
-  background: #f3f4f6;
-  border-color: var(--primary-green, #059669);
-  color: #333;
+  background: rgba(5, 150, 105, 0.06);
+  border-color: var(--primary-green);
+  color: var(--text-primary);
 }
 
 .project-tab-link.active {
   background: rgba(5, 150, 105, 0.1);
-  border-color: var(--primary-green, #059669);
-  color: var(--primary-green, #059669);
-  font-weight: 600;
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+  font-weight: 800;
 }
 
 .project-tab-notification-badge {
@@ -76,30 +71,4 @@
   50% {
     opacity: 0.5;
   }
-}
-
-.project-leave-button {
-  width: 100%;
-  padding: 0.6rem 0.75rem;
-  margin-top: 0.75rem;
-  background: transparent;
-  border: 1px solid #ef4444;
-  border-radius: 4px;
-  color: #ef4444;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.project-leave-button:hover:not(:disabled) {
-  background: #ef4444;
-  color: white;
-}
-
-.project-leave-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }

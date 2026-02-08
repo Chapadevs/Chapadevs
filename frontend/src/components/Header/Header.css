@@ -78,40 +78,56 @@
 }
 
 .header-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 0.5rem;
   border: none;
   border-radius: 0;
   background: transparent;
   color: #059669;
   font-family: 'Creato Display Medium', serif;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition: color 0.2s ease;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-width: 90px;
-  height: 42px;
-  line-height: 22px;
+  width: 100px;
+  min-width: 100px;
+  height: 36px;
+  line-height: 1;
   box-sizing: border-box;
   white-space: nowrap;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Normalize button so it matches link size (no extra UA padding/height) */
+button.header-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: 'Creato Display Medium', serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  min-height: 36px;
+  max-height: 36px;
 }
 
 .header-btn:hover {
-  background: rgba(5, 150, 105, 0.1);
   color: #047857;
 }
 
 .header-btn:active {
-  background: rgba(5, 150, 105, 0.15);
+  color: #065f46;
 }
 
 .header-btn:focus {
   outline: none;
-  background: rgba(5, 150, 105, 0.08);
 }
 .header-btn:focus-visible {
   outline: 1px solid #059669;
@@ -124,26 +140,38 @@
   transform: none;
 }
 
+.header-btn--profile {
+  width: auto;
+  min-width: 72px;
+}
+
 .header-btn--logout {
-  min-width: 42px;
-  padding: 0 0.5rem;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  padding: 0 0.35rem;
 }
 
 .header-btn-logout-icon {
   display: block;
   color: currentColor;
+  width: 20px;
+  height: 20px;
 }
 
 .header-btn--login {
   background: #059669;
   color: #FFFFFF !important;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 0.5rem;
   font-weight: 800;
-  font-size: 0.85rem;
-  min-width: 90px;
-  height: 42px;
-  line-height: 22px;
+  font-size: 0.75rem;
+  width: auto;
+  min-width: 72px;
+  height: 36px;
+  line-height: 20px;
   box-sizing: border-box;
 }
 
@@ -164,11 +192,9 @@
 
 .header-btn--platform {
   appearance: none;
-  font: inherit;
 }
 
 .platform-wrapper:hover .header-btn--platform {
-  background: rgba(5, 150, 105, 0.1);
   color: #047857;
 }
 
@@ -213,7 +239,6 @@
 }
 
 .resources-wrapper:hover .header-btn--resources {
-  background: rgba(5, 150, 105, 0.1);
   color: #047857;
 }
 
@@ -295,6 +320,50 @@
   outline-offset: 2px;
 }
 
+/* Explore dropdown */
+.explore-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.header-btn--explore {
+  appearance: none;
+  font: inherit;
+}
+
+.explore-wrapper:hover .header-btn--explore {
+  color: #047857;
+}
+
+.explore-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  min-width: 220px;
+  padding: 0.75rem 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.explore-dropdown--open,
+.explore-wrapper:hover .explore-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
 @media (max-width: 768px) {
   .header-content {
     padding: 0 1rem;
@@ -314,8 +383,14 @@
     left: 0;
   }
 
+  .explore-dropdown {
+    min-width: 200px;
+    left: 0;
+  }
+
   .header-btn--platform {
-    min-width: 80px;
+    width: 88px;
+    min-width: 88px;
   }
   
   .logo-section {
@@ -333,7 +408,8 @@
   
   .header-btn {
     padding: 0.4rem 0.75rem;
-    min-width: 80px;
+    width: 88px;
+    min-width: 88px;
     height: 38px;
     font-size: 0.75rem;
     line-height: 20px;
@@ -341,13 +417,15 @@
   }
 
   .header-btn--resources {
-    min-width: 80px;
+    width: 88px;
+    min-width: 88px;
   }
   
   .header-btn--login {
     background: #059669;
     color: #FFFFFF !important;
     padding: 0.4rem 0.75rem;
+    width: auto;
     min-width: 80px;
     height: 38px;
     font-size: 0.75rem;
@@ -376,8 +454,14 @@
     padding: 0.5rem 0;
   }
 
+  .explore-dropdown {
+    min-width: 180px;
+    padding: 0.5rem 0;
+  }
+
   .header-btn--platform {
-    min-width: 70px;
+    width: 72px;
+    min-width: 72px;
   }
 
   .resources-dropdown-link {
@@ -400,7 +484,8 @@
   
   .header-btn {
     padding: 0.35rem 0.6rem;
-    min-width: 65px;
+    width: 72px;
+    min-width: 72px;
     height: 34px;
     font-size: 0.65rem;
     line-height: 18px;
@@ -408,13 +493,15 @@
   }
 
   .header-btn--resources {
-    min-width: 70px;
+    width: 72px;
+    min-width: 72px;
   }
   
   .header-btn--login {
     background: #059669;
     color: #FFFFFF !important;
     padding: 0.35rem 0.6rem;
+    width: auto;
     min-width: 65px;
     height: 34px;
     font-size: 0.65rem;

@@ -34,6 +34,26 @@ Use CSS variables from `styles.css`. Do not introduce new greens or colors outsi
 - **Body**: `font-family: 'Coolvetica', Arial, Helvetica, sans-serif`
 - **Buttons**: `font-weight: 800`
 
+## Section Title (h3)
+
+All h3 elements use the same unified style site-wide:
+
+```css
+h3 {
+  font-family: "Code Bold", monospace;
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary-green);
+}
+```
+
+Defined in `styles.css`. Component CSS should only override layout (e.g. `margin-bottom`) when needed.
+
 ## Page Title (h1)
 
 Use for main page titles (e.g. Dashboard, Projects). Sharp green accent bar on the left:
@@ -132,3 +152,4 @@ Reference pattern for nav and header buttons:
 - [ ] Font families match: Code Bold / Creato Display Medium / Coolvetica
 - [ ] No neon or off-palette greens (#00ff87, etc.)
 - [ ] Page titles (h1) use green left-border accent, Code Bold, uppercase
+- [ ] All h3 use the unified style (green, left border, Code Bold, uppercase)

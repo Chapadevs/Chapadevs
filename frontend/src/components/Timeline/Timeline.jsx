@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import PhaseDetail from './PhaseDetail'
 import './Timeline.css'
 
-const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews }) => {
+const Timeline = ({ project, previews = [], onPhaseUpdate }) => {
   const { user } = useAuth()
   const [selectedPhase, setSelectedPhase] = useState(null)
   const phasesScrollRef = useRef(null)
@@ -49,42 +49,10 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
     setSelectedPhase(null)
   }
 
-  const previewsCount = previews?.length || 0
-  const completedPreviews = previews?.filter((p) => p.status === 'completed').length || 0
-
   return (
     <>
       <section className="project-section project-phases">
-        <h2>Development Progress</h2>
-        
-        {/* AI Preview Context Section */}
-        <div className="timeline-ai-preview-context">
-          <div className="timeline-preview-status">
-            <span className="preview-count-badge">
-              {previewsCount} AI Preview{previewsCount !== 1 ? 's' : ''} Generated
-            </span>
-            {isAssignedProgrammer && previewsCount > 0 && onSwitchToPreviews && (
-              <button
-                type="button"
-                className="btn btn-sm btn-secondary timeline-preview-link"
-                onClick={onSwitchToPreviews}
-              >
-                View AI Previews →
-              </button>
-            )}
-          </div>
-          {previewsCount === 0 && project.status === 'Development' && (
-            <p className="timeline-preview-hint">
-              ⚠️ No AI previews available. Phases were created from project templates.
-            </p>
-          )}
-          {previewsCount > 0 && (
-            <p className="timeline-preview-info">
-              {isClientOwner && 'Your AI previews inform the development phases below.'}
-              {isAssignedProgrammer && !isClientOwner && 'Review the AI previews to understand project requirements before starting development.'}
-            </p>
-          )}
-        </div>
+        <h3 className="project-tab-panel-title">Development Progress</h3>
 
         <div className="project-phases-linear">
           <div className="project-phases-progress-bar">
@@ -114,7 +82,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
               <div
                 className="project-phases-scroll-inner"
                 style={{
-                  '--phases-step-width': 130,
+                  '--phases-step-width': 90,
                   '--phases-count': phases.length,
                 }}
               >
@@ -137,6 +105,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
                     const phaseId = phase._id || phase.id
                     const isCompleted = phase.status === 'completed'
                     const isInProgress = phase.status === 'in_progress'
+                    const isLocked = index > 0 && phases.slice(0, index).some((p) => p.status !== 'completed')
                     const subStepsProgress =
                       phase.subSteps && phase.subSteps.length > 0
                         ? (phase.subSteps.filter((s) => s.completed).length /
@@ -147,7 +116,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
                     return (
                       <div
                         key={phaseId}
-                        className={`project-phase-step project-phase-step-clickable ${
+                        className={`project-phase-step ${isLocked ? 'step-locked' : 'project-phase-step-clickable'} ${
                           isCompleted
                             ? 'step-completed'
                             : isInProgress
@@ -155,13 +124,13 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
                             : 'step-pending'
                         }`}
                         style={{ '--step-i': index }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handlePhaseClick(phase)}
+                        role={isLocked ? 'img' : 'button'}
+                        tabIndex={isLocked ? -1 : 0}
+                        onClick={() => !isLocked && handlePhaseClick(phase)}
                         onKeyDown={(e) =>
-                          e.key === 'Enter' && handlePhaseClick(phase)
+                          !isLocked && e.key === 'Enter' && handlePhaseClick(phase)
                         }
-                        aria-label={`View details: ${phase.title}`}
+                        aria-label={isLocked ? `Locked: complete previous phase first - ${phase.title}` : `View details: ${phase.title}`}
                       >
                         <div className="project-phase-step-node">
                           {isCompleted ? (
@@ -197,13 +166,13 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
                     const phaseId = phase._id || phase.id
                     const isCompleted = phase.status === 'completed'
                     const isInProgress = phase.status === 'in_progress'
-                    const estimatedDays = phase.estimatedDurationDays
-                    const actualDays = phase.actualDurationDays
+                    const isLocked = index > 0 && phases.slice(0, index).some((p) => p.status !== 'completed')
+                    const weekNumber = phase.order || index + 1
 
                     return (
                       <div
                         key={phaseId}
-                        className={`project-phase-label-wrap project-phase-label-clickable ${
+                        className={`project-phase-label-wrap ${isLocked ? 'label-locked' : 'project-phase-label-clickable'} ${
                           isCompleted
                             ? 'label-completed'
                             : isInProgress
@@ -211,26 +180,17 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
                             : ''
                         }`}
                         style={{ '--step-i': index }}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => handlePhaseClick(phase)}
+                        role={isLocked ? 'img' : 'button'}
+                        tabIndex={isLocked ? -1 : 0}
+                        onClick={() => !isLocked && handlePhaseClick(phase)}
                         onKeyDown={(e) =>
-                          e.key === 'Enter' && handlePhaseClick(phase)
+                          !isLocked && e.key === 'Enter' && handlePhaseClick(phase)
                         }
-                        aria-label={`View details: ${phase.title}`}
+                        aria-label={isLocked ? `Locked: complete previous phase first - ${phase.title}` : `View details: ${phase.title}`}
                       >
                         <span className="project-phase-label-title">
-                          {phase.title}
+                          Week {weekNumber}
                         </span>
-                        {(estimatedDays || actualDays) && (
-                          <span className="project-phase-label-duration">
-                            {actualDays
-                              ? `${actualDays}d`
-                              : estimatedDays
-                              ? `~${estimatedDays}d`
-                              : ''}
-                          </span>
-                        )}
                       </div>
                     )
                   })}
@@ -246,6 +206,74 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onSwitchToPreviews })
               ›
             </button>
           </div>
+        </div>
+
+        <div className="project-phases-grid">
+          {phases.map((phase, index) => {
+            const phaseId = phase._id || phase.id
+            const isCompleted = phase.status === 'completed'
+            const isInProgress = phase.status === 'in_progress'
+            const isLocked = index > 0 && phases.slice(0, index).some((p) => p.status !== 'completed')
+            const subSteps = phase.subSteps || []
+            const completedSubSteps = subSteps.filter((s) => s.completed).length
+            const subStepsProgress = subSteps.length > 0 ? Math.round((completedSubSteps / subSteps.length) * 100) : null
+            const weekNumber = phase.order || index + 1
+            const statusLabel = isCompleted ? 'Completed' : isInProgress ? 'In Progress' : isLocked ? 'Locked' : 'Pending'
+
+            return (
+              <div
+                key={phaseId}
+                className={`project-phase-card ${isLocked ? 'phase-card-locked' : 'phase-card-clickable'} ${
+                  isCompleted ? 'phase-card-completed' : isInProgress ? 'phase-card-in-progress' : 'phase-card-pending'
+                }`}
+                role={isLocked ? 'article' : 'button'}
+                tabIndex={isLocked ? -1 : 0}
+                onClick={() => !isLocked && handlePhaseClick(phase)}
+                onKeyDown={(e) => !isLocked && e.key === 'Enter' && handlePhaseClick(phase)}
+                aria-label={isLocked ? `Locked: ${phase.title}` : `View details: ${phase.title}`}
+              >
+                <div className="project-phase-card-header">
+                  <span className="project-phase-card-week">Week {weekNumber}</span>
+                  <span className={`project-phase-card-status project-phase-card-status--${phase.status || 'not_started'}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+                <h4 className="project-phase-card-title">{phase.title || `Phase ${weekNumber}`}</h4>
+                {phase.description && (
+                  <p className="project-phase-card-description">{phase.description}</p>
+                )}
+                {subSteps.length > 0 && (
+                  <div className="project-phase-card-progress">
+                    <div className="project-phase-card-progress-bar">
+                      <div
+                        className="project-phase-card-progress-fill"
+                        style={{ width: `${subStepsProgress}%` }}
+                      />
+                    </div>
+                    <span className="project-phase-card-progress-label">
+                      {completedSubSteps} of {subSteps.length} sub-steps
+                    </span>
+                  </div>
+                )}
+                {(phase.estimatedDurationDays || phase.actualDurationDays) && (
+                  <div className="project-phase-card-duration">
+                    {phase.actualDurationDays != null && (
+                      <span>{phase.actualDurationDays} day{phase.actualDurationDays !== 1 ? 's' : ''} actual</span>
+                    )}
+                    {phase.estimatedDurationDays != null && (
+                      <span>
+                        {phase.actualDurationDays != null ? ' · ' : ''}
+                        {phase.estimatedDurationDays} day{phase.estimatedDurationDays !== 1 ? 's' : ''} estimated
+                      </span>
+                    )}
+                  </div>
+                )}
+                {phase.requiresClientApproval && !phase.clientApproved && (
+                  <span className="project-phase-card-approval-badge" title="Requires client approval">⚠ Pending approval</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       </section>
 

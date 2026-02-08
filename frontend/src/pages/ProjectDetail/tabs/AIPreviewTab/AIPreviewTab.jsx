@@ -115,7 +115,7 @@ const AIPreviewTab = ({
 
   return (
     <section className="project-section project-section-previews">
-      <h2>AI Previews</h2>
+      <h3 className="project-tab-panel-title">AI Previews</h3>
       <p className="project-previews-intro">
         {previews.length} / {MAX_PREVIEWS_PER_PROJECT} previews.
         {isClientOwner && ' Generate up to 5 AI previews for this project. Programmers can view and use the code once assigned.'}

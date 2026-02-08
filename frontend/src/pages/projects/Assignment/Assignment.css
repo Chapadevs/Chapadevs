@@ -90,18 +90,21 @@
   min-width: 0;
 }
 
-.project-link h3 {
+.project-link h1 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   font-family: "Code Bold", monospace;
+  font-weight: 800;
   color: var(--primary-green);
   transition: color 0.2s ease;
   line-height: 1.3;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary-green);
 }
 
-.project-link:hover h3 {
+.project-link:hover h1 {
   color: var(--primary-green-dark);
 }
 

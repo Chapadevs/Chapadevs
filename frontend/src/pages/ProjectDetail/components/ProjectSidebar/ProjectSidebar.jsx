@@ -9,9 +9,6 @@ const ProjectSidebar = ({
   hasProgrammersNotifications,
   hasTimelineNotifications,
   hasCommentsNotifications,
-  isProgrammerInProject,
-  leavingProject,
-  onLeaveProject,
 }) => {
   return (
     <div className="project-sidebar">
@@ -30,7 +27,7 @@ const ProjectSidebar = ({
               className={`project-tab-link ${activeTab === 'ai-preview' ? 'active' : ''}`}
               onClick={() => onTabChange('ai-preview')}
             >
-              AI Preview
+              Previews
               {hasAIPreviewNotifications && <span className="project-tab-notification-badge"></span>}
             </button>
           )}
@@ -38,33 +35,24 @@ const ProjectSidebar = ({
             className={`project-tab-link ${activeTab === 'programmers' ? 'active' : ''}`}
             onClick={() => onTabChange('programmers')}
           >
-            Team
+            Project's Team
             {hasProgrammersNotifications && <span className="project-tab-notification-badge"></span>}
           </button>
           <button
             className={`project-tab-link ${activeTab === 'timeline' ? 'active' : ''}`}
             onClick={() => onTabChange('timeline')}
           >
-            Development Progress
+            Workspace
             {hasTimelineNotifications && <span className="project-tab-notification-badge"></span>}
           </button>
           <button
             className={`project-tab-link ${activeTab === 'comments' ? 'active' : ''}`}
             onClick={() => onTabChange('comments')}
           >
-            Comments
+            Chat
             {hasCommentsNotifications && <span className="project-tab-notification-badge"></span>}
           </button>
         </nav>
-        {isProgrammerInProject && (
-          <button
-            className="project-leave-button"
-            onClick={onLeaveProject}
-            disabled={leavingProject}
-          >
-            {leavingProject ? 'Leaving...' : 'Leave Project'}
-          </button>
-        )}
       </section>
     </div>
   )

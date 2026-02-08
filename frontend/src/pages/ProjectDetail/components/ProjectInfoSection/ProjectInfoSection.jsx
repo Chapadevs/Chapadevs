@@ -3,7 +3,7 @@ import './ProjectInfoSection.css'
 const ProjectInfoSection = ({ project }) => {
   return (
     <section className="project-section project-info-section">
-      <h2>Project Information</h2>
+      <h3 className="project-tab-panel-title">Project Information</h3>
       <div className="project-info-grid">
         <div className="info-item">
           <strong>Client:</strong>
