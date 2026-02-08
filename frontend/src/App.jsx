@@ -1,25 +1,25 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
-import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
-import RoleProtectedRoute from './components/ProtectedRoute/RoleProtectedRoute'
+import ProtectedRoute from './components/layout-components/ProtectedRoute/ProtectedRoute'
+import RoleProtectedRoute from './components/layout-components/ProtectedRoute/RoleProtectedRoute'
 import Home from './pages/Home/Home'
 import Contact from './pages/Contact/Contact'
-import Login from './pages/Login/Login'
-import Register from './pages/Register/Register'
-import VerifyEmail from './pages/VerifyEmail/VerifyEmail'
-import ForgotPassword from './pages/ForgotPassword/ForgotPassword'
-import ResetPassword from './pages/ResetPassword/ResetPassword'
-import ConfirmPasswordChange from './pages/ConfirmPasswordChange/ConfirmPasswordChange'
-import Dashboard from './pages/Dashboard/Dashboard'
-import Profile from './pages/Profile/Profile'
+import Login from './pages/authentication-pages/Login/Login'
+import Register from './pages/authentication-pages/Register/Register'
+import VerifyEmail from './pages/authentication-pages/VerifyEmail/VerifyEmail'
+import ForgotPassword from './pages/authentication-pages/ForgotPassword/ForgotPassword'
+import ResetPassword from './pages/authentication-pages/ResetPassword/ResetPassword'
+import ConfirmPasswordChange from './pages/authentication-pages/ConfirmPasswordChange/ConfirmPasswordChange'
+import Dashboard from './pages/dashboard-pages/Dashboard/Dashboard'
+import Profile from './pages/dashboard-pages/Profile/Profile'
 import UserProfileView from './pages/UserProfileView/UserProfileView'
-import ChangePassword from './pages/Settings/ChangePassword'
-import ProjectList from './pages/projects/ProjectList/ProjectList'
-import CreateProject from './pages/projects/CreateProject/CreateProject'
-import ProjectDetail from './pages/ProjectDetail/ProjectDetail'
+import ChangePassword from './pages/authentication-pages/ChangePassword/ChangePassword'
+import ProjectList from './pages/project-pages/ProjectList/ProjectList'
+import CreateProject from './pages/project-pages/CreateProject/CreateProject'
+import ProjectDetail from './pages/project-pages/ProjectDetail/ProjectDetail'
 import Team from './pages/Team/Team'
-import Assignment from './pages/projects/Assignment/Assignment'
+import Assignment from './pages/Assignment/Assignment'
 import './styles.css'
 
 function App() {
@@ -101,7 +101,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/assignments" element={<Assignment />} />
+          <Route
+            path="/assignments"
+            element={
+              <ProtectedRoute>
+                <Assignment />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
       </NotificationProvider>

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { userAPI } from '../../services/api'
-import Header from '../../components/Header/Header'
+import { isClient, isProgrammer } from '../../config/roles'
+import Header from '../../components/layout-components/Header/Header'
 import './UserProfileView.css'
 
 const UserProfileView = () => {
@@ -91,8 +92,8 @@ const UserProfileView = () => {
     )
   }
 
-  const isProgrammer = profileUser.role === 'programmer'
-  const isClient = profileUser.role === 'client' || profileUser.role === 'user'
+  const profileIsProgrammer = isProgrammer(profileUser)
+  const profileIsClient = isClient(profileUser)
   const avatarUrl = getAvatarUrl(profileUser.avatar)
 
   return (
@@ -129,9 +130,9 @@ const UserProfileView = () => {
             <div className="profile-header">
               <h1>{profileUser.name}</h1>
               <p>
-                {isProgrammer
+                {profileIsProgrammer
                   ? 'Programmer'
-                  : isClient
+                  : profileIsClient
                     ? 'Client'
                     : profileUser.role}
               </p>
@@ -158,7 +159,7 @@ const UserProfileView = () => {
             </div>
 
             {/* Client Information */}
-            {isClient && (profileUser.company || profileUser.phone || profileUser.industry) && (
+            {profileIsClient && (profileUser.company || profileUser.phone || profileUser.industry) && (
               <div className="form-section">
                 <h3>Client Information</h3>
                 <div className="profile-form-grid">
@@ -191,7 +192,7 @@ const UserProfileView = () => {
             )}
 
             {/* Programmer Information */}
-            {isProgrammer && (
+            {profileIsProgrammer && (
               <div className="form-section">
                 <h3>Programmer Information</h3>
                 <div className="profile-form-grid">
