@@ -2,22 +2,40 @@
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  min-height: calc(100vh - 70px);
+  background-color: var(--background-gray);
 }
 
 .assignment-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .assignment-header h2 {
-  margin: 0;
-  color: #333;
+  font-family: "Code Bold", monospace;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+  padding-left: 1rem;
+  border-left: 4px solid var(--primary-green);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.assignment-header .assignment-subtitle {
+  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 0 1rem;
+  padding-left: 1rem;
+  border-left: 4px solid transparent;
 }
 
 .assignment-loading,
 .assignment-empty {
   text-align: center;
-  padding: 3rem;
-  color: #666;
+  padding: 3rem 2rem;
+  color: var(--text-secondary);
+  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
 }
 
 .assignment-empty p {
@@ -29,36 +47,39 @@
   max-width: 480px;
   margin: 1rem auto 0 !important;
   line-height: 1.5;
-  color: #888;
+  color: var(--text-light);
 }
 
 .error-message {
   background-color: #ffebee;
-  color: #d32f2f;
+  color: #c62828;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 0;
   margin-bottom: 1.5rem;
+  border-left: 4px solid #c62828;
 }
 
 .assignment-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
 }
 
 .assignment-card {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
 }
 
 .assignment-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   gap: 1rem;
 }
 
@@ -66,83 +87,141 @@
   text-decoration: none;
   color: inherit;
   flex: 1;
+  min-width: 0;
 }
 
 .project-link h3 {
   margin: 0;
-  font-size: 1.25rem;
-  color: var(--primary-green, #059669);
-  transition: color 0.3s ease;
+  font-size: 1.15rem;
+  font-family: "Code Bold", monospace;
+  color: var(--primary-green);
+  transition: color 0.2s ease;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .project-link:hover h3 {
-  color: var(--primary-green-dark, #047857);
+  color: var(--primary-green-dark);
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-family: "Creato Display Medium", serif;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .status-holding {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .status-ready {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border: 1px solid var(--primary-green-light);
 }
 
 .status-development {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border: 1px solid var(--primary-green-light);
 }
 
 .status-completed {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .status-cancelled {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: var(--background-gray);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+}
+
+.status-default {
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .project-description {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
   line-height: 1.5;
+  font-size: 0.9rem;
+  flex: 1;
 }
 
 .project-meta {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0.35rem;
 }
 
 .meta-item {
-  margin-bottom: 0.5rem;
+  margin: 0;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .meta-item strong {
-  color: #333;
-  margin-right: 0.5rem;
+  color: var(--text-primary);
+  margin-right: 0.35rem;
+  font-weight: 600;
 }
 
 .assignment-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
   padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.assignment-actions .btn {
+  font-family: "Creato Display Medium", serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 0;
+  border: 2px solid var(--primary-green);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.assignment-actions .btn-primary {
+  background: var(--primary-green);
+  color: #fff;
+}
+
+.assignment-actions .btn-primary:hover:not(:disabled) {
+  background: var(--primary-green-dark);
+  border-color: var(--primary-green-dark);
+  color: #fff;
+}
+
+.assignment-actions .btn-secondary {
+  background: var(--background);
+  color: var(--primary-green);
+}
+
+.assignment-actions .btn-secondary:hover {
+  background: rgba(5, 150, 105, 0.08);
+  color: var(--primary-green-dark);
 }
 
 .admin-assignment {
@@ -153,19 +232,19 @@
 
 .programmer-select {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  background-color: white;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  font-size: 0.9rem;
+  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
+  background: var(--background);
   cursor: pointer;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 
 .programmer-select:focus {
   outline: none;
-  border-color: var(--primary-green, #059669);
-  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+  border-color: var(--primary-green);
 }
 
 .programmer-select:disabled {
@@ -175,17 +254,17 @@
 
 .assigning-indicator {
   font-size: 0.875rem;
-  color: var(--primary-green, #059669);
+  color: var(--primary-green);
   font-style: italic;
 }
 
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   text-decoration: none;
   display: inline-block;
   text-align: center;
@@ -197,22 +276,24 @@
 }
 
 .btn-primary {
-  background-color: var(--primary-green, #059669);
-  color: white;
+  background-color: var(--primary-green);
+  color: #fff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-green-dark, #047857);
+  background-color: var(--primary-green-dark);
 }
 
 .btn-secondary {
-  background-color: #f5f5f5;
-  color: #333;
-  border: 1px solid #ccc;
+  background-color: var(--background);
+  color: var(--text-primary);
+  border: 2px solid var(--border);
 }
 
 .btn-secondary:hover {
-  background-color: #e0e0e0;
+  background-color: var(--background-gray);
+  border-color: var(--primary-green);
+  color: var(--primary-green);
 }
 
 .project-assigned-notice {
@@ -221,18 +302,19 @@
 
 .assigned-badge {
   display: inline-block;
-  padding: 0.4rem 0.8rem;
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border-radius: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--primary-green-light);
 }
 
 .team-closed-message {
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: #d32f2f;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -243,5 +325,10 @@
 
   .assignment-card-header {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .assignment-header h2 {
+    font-size: 1.5rem;
   }
 }

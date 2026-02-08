@@ -34,8 +34,8 @@ const Dashboard = () => {
         return {
           title: 'Projects',
           links: [
-            { to: '/projects', label: 'My Assigned Projects' },
-            { to: '/assignments', label: 'Available Projects' },
+            { to: '/projects', label: 'My Projects' },
+            { to: '/assignments', label: 'Explore Projects' },
           ],
         }
       case 'client':
@@ -78,7 +78,7 @@ const Dashboard = () => {
                 <h3>Profile</h3>
                 <div className="dashboard-actions">
                   <Link to="/profile" className="dashboard-link">
-                    Manage Profile
+                    Edit
                   </Link>
                 </div>
               </section>

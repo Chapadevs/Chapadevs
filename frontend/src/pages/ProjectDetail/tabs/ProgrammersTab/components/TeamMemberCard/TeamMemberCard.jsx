@@ -1,19 +1,34 @@
 import { useNavigate } from 'react-router-dom'
 import './TeamMemberCard.css'
 
-const TeamMemberCard = ({ member, role, status, isPrimary }) => {
+const TeamMemberCard = ({
+  member,
+  role,
+  status,
+  isPrimary,
+  isClientOwner,
+  onRemoveProgrammer,
+  removingProgrammerId,
+}) => {
   const navigate = useNavigate()
-  const memberId = member._id || member
+  const memberId = (member._id || member)?.toString?.() || member._id || member
 
   const handleCardClick = (e) => {
-    // Don't navigate if clicking on a link or button
-    if (e.target.tagName === 'A' || e.target.closest('a')) {
+    if (e.target.tagName === 'A' || e.target.closest('a') || e.target.closest('button')) {
       return
     }
     if (memberId) {
       navigate(`/users/${memberId}`)
     }
   }
+
+  const handleRemoveClick = (e) => {
+    e.stopPropagation()
+    if (onRemoveProgrammer && memberId) onRemoveProgrammer(memberId)
+  }
+
+  const isRemoving = removingProgrammerId && (removingProgrammerId.toString() === memberId.toString())
+  const showRemoveButton = role === 'Programmer' && isClientOwner && onRemoveProgrammer
 
   return (
     <div className="team-member-card" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
@@ -76,6 +91,18 @@ const TeamMemberCard = ({ member, role, status, isPrimary }) => {
           <div className="team-member-detail">
             <strong>Hourly Rate:</strong>
             <span className="team-member-rate">${member.hourlyRate}/hr</span>
+          </div>
+        )}
+        {showRemoveButton && (
+          <div className="team-member-actions">
+            <button
+              type="button"
+              className="team-member-remove-btn"
+              onClick={handleRemoveClick}
+              disabled={isRemoving}
+            >
+              {isRemoving ? 'Removing...' : 'Remove from project'}
+            </button>
           </div>
         )}
       </div>

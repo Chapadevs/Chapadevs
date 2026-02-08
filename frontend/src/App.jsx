@@ -99,16 +99,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/assignments"
-            element={
-              <ProtectedRoute>
-                <RoleProtectedRoute allowedRoles={['programmer', 'admin']}>
-                  <Assignment />
-                </RoleProtectedRoute>
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/assignments" element={<Assignment />} />
         </Routes>
       </BrowserRouter>
       </NotificationProvider>

@@ -16,7 +16,7 @@ const Assignment = () => {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [user?.role])
 
   const loadData = async () => {
     try {
@@ -33,6 +33,10 @@ const Assignment = () => {
         ])
         setAvailableProjects(projects)
         setProgrammers(programmersData)
+      } else {
+        // Public: show available projects to guests and non-programmer roles
+        const projects = await assignmentAPI.getAvailablePublic()
+        setAvailableProjects(projects)
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to load data')
@@ -88,9 +92,14 @@ const Assignment = () => {
       <div className="assignment-container">
       <div className="assignment-header">
         <h2>
-          {user?.role === 'programmer' ? 'Available Projects' : 'Project Assignments'}
-          <NotificationBadge />
+          {user?.role === 'admin' ? 'Project Assignments' : 'Available Projects'}
+          {user && <NotificationBadge />}
         </h2>
+        {user?.role !== 'admin' && (
+          <p className="assignment-subtitle">
+            Projects ready for developers to join. Sign in to apply.
+          </p>
+        )}
       </div>
 
       {error && <div className="error-message">{error}</div>}

@@ -46,6 +46,7 @@ const ProjectDetail = () => {
   const [markingHolding, setMarkingHolding] = useState(false)
   const [togglingTeamClosed, setTogglingTeamClosed] = useState(false)
   const [leavingProject, setLeavingProject] = useState(false)
+  const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
   const [activeTab, setActiveTab] = useState('description')
 
   const handleMarkReady = async () => {
@@ -118,6 +119,22 @@ const ProjectDetail = () => {
     }
   }
 
+  const handleRemoveProgrammer = async (programmerId) => {
+    if (!window.confirm('Remove this programmer from the project? They will be notified.')) {
+      return
+    }
+    try {
+      setRemovingProgrammerId(programmerId)
+      setError(null)
+      const updatedProject = await assignmentAPI.removeProgrammer(id, programmerId)
+      setProject(updatedProject)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to remove programmer')
+    } finally {
+      setRemovingProgrammerId(null)
+    }
+  }
+
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
       return
@@ -179,6 +196,8 @@ const ProjectDetail = () => {
         <ProjectHeader 
           project={project} 
           isClientOwner={isClientOwner}
+          canDelete={canDelete}
+          onDelete={handleDelete}
           markingHolding={markingHolding}
           markingReady={markingReady}
           onMarkHolding={handleMarkHolding}
@@ -215,6 +234,9 @@ const ProjectDetail = () => {
                 canToggleTeamClosed={canToggleTeamClosed}
                 togglingTeamClosed={togglingTeamClosed}
                 onToggleTeamClosed={handleToggleTeamClosed}
+                isClientOwner={isClientOwner}
+                onRemoveProgrammer={handleRemoveProgrammer}
+                removingProgrammerId={removingProgrammerId}
               />
             )}
 

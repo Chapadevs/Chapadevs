@@ -27,7 +27,7 @@ export const calculatePermissions = (user, project) => {
     (isAssignedProgrammer || isInTeam)
   
   const canEdit = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Ready'].includes(project.status)
-  const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Development'].includes(project.status)
+  const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Ready', 'Development'].includes(project.status)
   const canMarkReady = (user?.role === 'client' || user?.role === 'user') && isClientOwner && project.status === 'Holding'
   // Allow toggling team closed/open when status is Ready or Development (if team is closed, status will be Development)
   const canToggleTeamClosed = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') && 

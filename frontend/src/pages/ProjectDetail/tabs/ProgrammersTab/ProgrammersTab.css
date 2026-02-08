@@ -5,6 +5,16 @@
   margin-bottom: 1.5rem;
 }
 
+.programmers-tab-header .project-tab-panel-title {
+  font-size: 1.35rem;
+}
+
+.programmers-tab-header .btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  min-height: auto;
+}
+
 .project-tab-panel {
   padding: 0.75rem;
   color: #666;

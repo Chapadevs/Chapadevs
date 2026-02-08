@@ -1,20 +1,18 @@
 import { Link } from 'react-router-dom'
-import { getStatusBadgeClass } from '../../utils/projectUtils'
 import './ProjectHeader.css'
 
-const ProjectHeader = ({ project, isClientOwner, markingHolding, markingReady, onMarkHolding, onMarkReady }) => {
-  // Check if project has any assigned programmers
-  const hasProgrammers = project.assignedProgrammerId || 
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
-  
-  // Show "Set to Holding" button if Ready status, client owner, and no programmers assigned
-  const showHoldingButton = isClientOwner && 
-    project.status === 'Ready' && 
-    !hasProgrammers
+const ProjectHeader = ({ project, isClientOwner, canDelete, onDelete, markingHolding, markingReady, onMarkHolding, onMarkReady }) => {
+  const canSwitchToHolding = isClientOwner && project.status === 'Ready'
+  const canSwitchToReady = isClientOwner && project.status === 'Holding'
+  const showStatusSwitch = project.status === 'Ready' || project.status === 'Holding'
+  const isBusy = markingReady || markingHolding
 
-  // Show "Mark as Ready" button if Holding status and client owner
-  const showReadyButton = isClientOwner && 
-    project.status === 'Holding'
+  const handleSwitchToReady = () => {
+    if (project.status !== 'Ready' && canSwitchToReady && !isBusy) onMarkReady()
+  }
+  const handleSwitchToHolding = () => {
+    if (project.status !== 'Holding' && canSwitchToHolding && !isBusy) onMarkHolding()
+  }
 
   return (
     <div className="project-detail-header">
@@ -22,25 +20,36 @@ const ProjectHeader = ({ project, isClientOwner, markingHolding, markingReady, o
         <Link to="/projects" className="project-detail-back">← Back to Projects</Link>
         <h1>{project.title}</h1>
         <div className="project-header-meta">
-          <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
-            {project.status}
-          </span>
-          {showReadyButton && (
-            <button
-              className="project-status-button"
-              onClick={onMarkReady}
-              disabled={markingReady}
-            >
-              {markingReady ? 'Marking...' : 'Mark as Ready'}
-            </button>
+          {showStatusSwitch && (
+            <div className="project-status-switch" role="group" aria-label="Project status">
+              <button
+                type="button"
+                className={`project-status-switch-option ${project.status === 'Holding' ? 'active' : ''}`}
+                onClick={handleSwitchToHolding}
+                disabled={isBusy || (project.status === 'Ready' && !canSwitchToHolding)}
+                aria-pressed={project.status === 'Holding'}
+              >
+                On Hold
+              </button>
+              <button
+                type="button"
+                className={`project-status-switch-option ${project.status === 'Ready' ? 'active' : ''}`}
+                onClick={handleSwitchToReady}
+                disabled={isBusy || (project.status === 'Holding' && !canSwitchToReady)}
+                aria-pressed={project.status === 'Ready'}
+              >
+                Ready
+              </button>
+            </div>
           )}
-          {showHoldingButton && (
+          {canDelete && onDelete && (
             <button
-              className="project-status-button"
-              onClick={onMarkHolding}
-              disabled={markingHolding}
+              type="button"
+              className="project-header-delete-btn"
+              onClick={onDelete}
+              aria-label="Delete project"
             >
-              {markingHolding ? 'Changing...' : 'Set to Holding'}
+              Delete project
             </button>
           )}
         </div>

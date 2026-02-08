@@ -225,6 +225,11 @@ export const assignmentAPI = {
     return response.data
   },
 
+  getAvailablePublic: async () => {
+    const response = await api.get('/assignments/available/public')
+    return response.data
+  },
+
   assign: async (projectId, programmerId) => {
     const response = await api.post(`/assignments/${projectId}/assign`, {
       programmerId,
@@ -249,6 +254,13 @@ export const assignmentAPI = {
 
   leave: async (projectId) => {
     const response = await api.post(`/assignments/${projectId}/leave`)
+    return response.data
+  },
+
+  removeProgrammer: async (projectId, programmerId) => {
+    const response = await api.post(`/assignments/${projectId}/remove-programmer`, {
+      programmerId,
+    })
     return response.data
   },
 }

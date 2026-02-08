@@ -138,24 +138,15 @@ export function buildWebsitePrompt(prompt, userInputs) {
     businessName = 'Your Business';
   }
   
-  // Determine business type
+  // Determine business type (only business and ecommerce)
   const businessType = lowerPrompt.includes('ecommerce') || lowerPrompt.includes('store') || lowerPrompt.includes('selling') || lowerPrompt.includes('shop')
-    ? 'e-commerce' 
-    : lowerPrompt.includes('portfolio')
-    ? 'portfolio'
-    : lowerPrompt.includes('blog')
-    ? 'blog'
+    ? 'e-commerce'
     : 'business';
-  
-  // Create feature suggestions based on business type
-  let featureSuggestions = '';
-  if (businessType === 'e-commerce') {
-    featureSuggestions = 'Features should include: Product Catalog, Shopping Cart, Secure Checkout, Customer Reviews, Order Tracking, Payment Options';
-  } else if (businessType === 'portfolio') {
-    featureSuggestions = 'Features should include: Project Showcase, Skills Display, Contact Form, Resume/CV Section, Testimonials';
-  } else {
-    featureSuggestions = 'Features should include: Services Offered, About Section, Contact Information, Testimonials, Call-to-Action';
-  }
+
+  // Create main content suggestions based on business type
+  const mainContentSuggestions = businessType === 'e-commerce'
+    ? 'Product showcase grid (6-12 items with image, name, price) - use https://picsum.photos or https://placehold.co for images'
+    : 'Services offered (4-6 cards with icon, title, description)';
   
   return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED, PRODUCTION-READY React component.
 
@@ -171,12 +162,13 @@ PROJECT DETAILS:
 
 CRITICAL REQUIREMENTS:
 1. USE THE EXACT BUSINESS NAME "${businessName}" in the hero title, not truncated or generic text
-2. Create a COMPLETE, PROFESSIONAL landing page with at least 4 sections
-3. Use the color scheme: ${colorScheme} - apply these colors throughout (gradients, buttons, accents)
-4. Style should be ${style} - if playful/fun, use rounded corners, animations, bright colors. If professional, use clean lines, muted tones.
-5. Generate REAL, SPECIFIC content - NO placeholders, NO "Lorem Ipsum", NO truncated text
-6. For e-commerce: Include product categories, shopping features, pricing sections
-7. Make it visually stunning with proper spacing, shadows, hover effects
+2. Create a MULTI-PAGE website with: HomePage, AboutPage, ServicesPage/ProductsPage, ContactPage
+3. Use useState for currentPage ('home', 'about', 'services', 'contact') and switch pages via onClick - do NOT use href with # or anchor links
+4. Use the color scheme: ${colorScheme} - apply these colors throughout (gradients, buttons, accents)
+5. Style should be ${style} - if playful/fun, use rounded corners, animations, bright colors. If professional, use clean lines, muted tones.
+6. Generate REAL, SPECIFIC content - NO placeholders, NO "Lorem Ipsum", NO truncated text
+7. NAV LINKS: Use button or onClick with e.preventDefault() and e.stopPropagation() - NEVER use href="#..." for navigation (prevents parent app navigation in iframe)
+8. Make it visually stunning with proper spacing, shadows, hover effects
 
 IMAGES (CRITICAL):
 - For product/category cards or any <img>, use ONLY these URLs. No other domains or fake paths.
@@ -193,27 +185,41 @@ TECHNICAL REQUIREMENTS:
 - Proper semantic HTML structure
 - Clean, well-formatted code
 
-COMPONENT MUST INCLUDE:
-1. Hero Section:
-   - Title: Use "${businessName}" or a complete, professional business name extracted from description
-   - Subtitle: Complete sentence describing the business (not truncated)
-   - CTA Button with hover effects
-   - Use gradient background with colors: ${colorScheme}
+MULTI-PAGE STRUCTURE:
+- Header (shared): Logo, nav buttons for Home, About, Services/Products, Contact - use onClick with setCurrentPage, NOT href
+- HomePage: Hero + featured content (testimonials or highlights)
+- AboutPage: Company story, stats, mission
+- ServicesPage/ProductsPage: ${mainContentSuggestions}
+- ContactPage: Contact form or contact info
+- Footer (shared): Copyright, quick links (also use onClick, NOT href)
 
-2. Features Section (4-6 features):
-   ${featureSuggestions}
-   - Each feature card with icon, title, description
-   - Hover effects with transform and shadow
-   - Grid layout (responsive: 1 col mobile, 2 tablet, 3 desktop)
+NAV LINKS CRITICAL: Use button elements with onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPage('home'); }} - NEVER use <a href="#..."> or anchor links. This prevents navigation escaping to the parent app.
 
-3. Additional Section (choose based on business type):
-   - E-commerce: Product showcase or categories
-   - Portfolio: Project gallery or skills
-   - Business: Services or testimonials
+0. Header/Navbar (fixed or sticky):
+   - Logo: button with onClick to setCurrentPage('home')
+   - Nav: buttons for Home, About, Services/Products, Contact - each calls setCurrentPage
+   - Optional CTA button for Contact
+   - Responsive: hamburger menu on mobile (sm/md breakpoints)
 
-4. Footer:
-   - Copyright with business name: "${businessName}"
-   - Links or contact info
+1. HomePage (currentPage === 'home'):
+   - Hero: Title "${businessName}", subtitle, CTA button
+   - Use gradient background: ${colorScheme}
+   - Featured content (testimonials or highlights)
+
+2. AboutPage (currentPage === 'about'):
+   - Company story, mission, stats
+   - Real, specific content (not Lorem Ipsum)
+
+3. ServicesPage/ProductsPage (currentPage === 'services'):
+   - Business: 4-6 service cards with icon, title, description - hover effects
+   - E-commerce: 6-12 product cards with image, name, price - grid layout
+
+4. ContactPage (currentPage === 'contact'):
+   - Contact form or contact info
+
+5. Footer (shared):
+   - Copyright: "${businessName}"
+   - Quick links: buttons with onClick setCurrentPage (NOT href)
 
 COLOR IMPLEMENTATION:
 - Use Tailwind color classes: bg-${colorScheme.split(',')[0].trim().split('-')[0]}-${colorScheme.split(',')[0].trim().split('-')[1] || '600'}
@@ -308,11 +314,13 @@ REQUIREMENTS:
 
 TEMPLATE STRUCTURE (${template.type}):
 ${sectionsDesc}
+Pages: ${template.pages ? template.pages.join(', ') : 'home, about, services, contact'}
+
+MULTI-PAGE REQUIREMENT: Use useState('home') for currentPage. Define HomePage, AboutPage, ServicesPage/ProductsPage, ContactPage components. Render {currentPage === 'home' && <HomePage />} etc. Nav links MUST use button with onClick that calls setCurrentPage - NEVER use href="#..." or anchor links. Use e.preventDefault() and e.stopPropagation() on all nav clicks to prevent parent app navigation in iframe.
 
 STYLING:
 - Colors: ${colorScheme} (use Tailwind classes)
 - Style: ${style}
-- Single page only (no navigation to other pages, but can have links)
 
 OUTPUT FORMAT (JSON only, no markdown):
 CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
@@ -359,26 +367,28 @@ CRITICAL CODE REQUIREMENTS:
 - Component MUST be named: App
 - Use function App() { ... } OR const App = () => { ... }
 - Export: export default App;
-- ALL helper components (icons, sub-components) MUST be defined BEFORE the App component
-- Helper components must use: const ComponentName = () => { ... } syntax
-- ALL components must be in the same scope (no separate files)
+- MULTI-PAGE: useState('home') for currentPage. HomePage, AboutPage, ServicesPage, ContactPage as inner components. Render {currentPage === 'home' && <HomePage />} etc.
+- NAV LINKS: Use <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPage('home'); }}> - NEVER <a href="#..."> or anchor links
+- ALL helper components (icons, sub-components) MUST be defined BEFORE or inside App
 - Tailwind CSS classes only
 - Responsive (sm:, md:, lg: breakpoints)
 - Images: Use https://picsum.photos/400/300?random=SEED or https://placehold.co/400x300?text=TEXT
 - NO placeholders, NO Lorem Ipsum
 - NO markdown code blocks in code field
-- Single page with all sections
-- If using icon components, define them BEFORE using them in arrays/objects
 
 CODE STRUCTURE EXAMPLE:
-const Icon1 = () => <svg>...</svg>;
-const Icon2 = () => <svg>...</svg>;
 function App() {
-  const features = [
-    { icon: <Icon1 />, title: '...' },
-    { icon: <Icon2 />, title: '...' }
-  ];
-  return <div>...</div>;
+  const [currentPage, setCurrentPage] = useState('home');
+  const handleNav = (e, page) => { e.preventDefault(); e.stopPropagation(); setCurrentPage(page); };
+  const HomePage = () => <div>...</div>;
+  const AboutPage = () => <div>...</div>;
+  return (
+    <div>
+      <header><button onClick={(e) => handleNav(e, 'home')}>Home</button>...</header>
+      {currentPage === 'home' && <HomePage />}
+      {currentPage === 'about' && <AboutPage />}
+    </div>
+  );
 }
 export default App;
 

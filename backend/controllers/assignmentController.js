@@ -66,6 +66,32 @@ async function createPhasesForProject(project) {
   return ProjectPhase.insertMany(phasesToCreate)
 }
 
+// @desc    Get available projects (status Ready and team not closed) – public, no auth
+// @route   GET /api/assignments/available/public
+// @access  Public
+export const getAvailableProjectsPublic = asyncHandler(async (req, res) => {
+  const projects = await Project.find({
+    status: 'Ready',
+    $or: [
+      { teamClosed: false },
+      { teamClosed: { $exists: false } },
+      { teamClosed: null },
+    ],
+  })
+    .populate('clientId', 'name company')
+    .populate('assignedProgrammerId', 'name')
+    .populate('assignedProgrammerIds', 'name')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  const normalized = projects.map((p) => ({
+    ...p,
+    client: p.clientId,
+    id: p._id,
+  }))
+  res.json(normalized)
+})
+
 // @desc    Get available projects (status Ready and team not closed)
 // @route   GET /api/assignments/available
 // @access  Private/Programmer
@@ -331,6 +357,86 @@ export const leaveProject = asyncHandler(async (req, res) => {
     'programmer_left',
     'Programmer Left Project',
     `${req.user.name} has left the project "${project.title}".`,
+    project._id
+  )
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email status')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
+    .populate('assignedProgrammerIds', 'name email status')
+
+  res.json(populated)
+})
+
+// @desc    Remove a programmer from the project (client owner or admin)
+// @route   POST /api/assignments/:projectId/remove-programmer
+// @access  Private (client owner or admin)
+export const removeProgrammerFromProject = asyncHandler(async (req, res) => {
+  const { projectId } = req.params
+  const { programmerId } = req.body
+
+  if (!programmerId) {
+    res.status(400)
+    throw new Error('programmerId is required')
+  }
+
+  const project = await Project.findById(projectId)
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const clientIdStr = (project.clientId?._id || project.clientId)?.toString()
+  const isClientOwner = clientIdStr && clientIdStr === req.user._id.toString()
+  const isAdmin = req.user.role === 'admin'
+  if (!isClientOwner && !isAdmin) {
+    res.status(403)
+    throw new Error('Only the project client or an admin can remove a programmer from the project')
+  }
+
+  const userId = programmerId.toString()
+
+  const isPrimaryAssigned = project.assignedProgrammerId &&
+    project.assignedProgrammerId.toString() === userId
+  const isInTeam = project.assignedProgrammerIds &&
+    project.assignedProgrammerIds.some((id) => id.toString() === userId)
+
+  if (!isPrimaryAssigned && !isInTeam) {
+    res.status(404)
+    throw new Error('Programmer is not assigned to this project')
+  }
+
+  if (isPrimaryAssigned) {
+    project.assignedProgrammerId = null
+    if (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0) {
+      const remaining = project.assignedProgrammerIds.filter((id) => id.toString() !== userId)
+      if (remaining.length > 0) {
+        project.assignedProgrammerId = remaining[0]
+        project.assignedProgrammerIds = remaining.slice(1)
+      } else {
+        project.assignedProgrammerIds = []
+      }
+    }
+  } else if (isInTeam) {
+    project.assignedProgrammerIds = project.assignedProgrammerIds.filter(
+      (id) => id.toString() !== userId
+    )
+  }
+
+  if (
+    !project.assignedProgrammerId &&
+    (!project.assignedProgrammerIds || project.assignedProgrammerIds.length === 0)
+  ) {
+    project.status = 'Ready'
+  }
+
+  await project.save()
+
+  await createNotification(
+    programmerId,
+    'removed_from_project',
+    'Removed from Project',
+    `You have been removed from the project "${project.title}".`,
     project._id
   )
 

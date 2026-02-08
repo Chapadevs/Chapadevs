@@ -96,21 +96,35 @@ const CommentsTab = ({ project, user }) => {
               const senderName = message.senderId?.name || message.senderId?.email || 'Unknown'
               const senderRole = message.senderId?.role || 'user'
               const senderId = message.senderId?._id || message.senderId
-              
+              const senderAvatar = message.senderId?.avatar
+              const initials = senderName.split(/\s+/).map((s) => s[0]).join('').toUpperCase().slice(0, 2)
+
               const handleSenderClick = (e) => {
                 e.preventDefault()
                 if (senderId) {
                   navigate(`/users/${senderId}`)
                 }
               }
-              
+
               return (
                 <div key={message._id || message.id} className={`chat-message ${own ? 'own' : 'other'}`}>
+                  <div
+                    className="chat-message-avatar"
+                    onClick={senderId ? handleSenderClick : undefined}
+                    role={senderId ? 'button' : undefined}
+                    aria-label={senderId ? `View ${senderName}` : undefined}
+                  >
+                    {senderAvatar ? (
+                      <img src={senderAvatar} alt="" />
+                    ) : (
+                      <span className="chat-message-avatar-initials">{initials}</span>
+                    )}
+                  </div>
                   <div className="chat-message-content">
                     <div className="chat-message-header">
                       {senderId ? (
-                        <span 
-                          className="chat-message-sender chat-message-sender-link" 
+                        <span
+                          className="chat-message-sender chat-message-sender-link"
                           onClick={handleSenderClick}
                         >
                           {senderName}

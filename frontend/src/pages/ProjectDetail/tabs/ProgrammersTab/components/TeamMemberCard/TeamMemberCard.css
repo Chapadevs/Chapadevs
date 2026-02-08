@@ -150,6 +150,37 @@
   font-weight: 500;
 }
 
+.team-member-actions {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.team-member-remove-btn {
+  padding: 0.4rem 0.75rem;
+  border: 2px solid var(--primary-green, #059669);
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary-green, #059669);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.team-member-remove-btn:hover:not(:disabled) {
+  background: var(--primary-green, #059669);
+  color: #fff;
+}
+
+.team-member-remove-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .team-member-empty {
   text-align: center;
   padding: 2rem 1rem;

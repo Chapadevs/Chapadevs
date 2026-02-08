@@ -2,7 +2,16 @@ import TeamStatusBanner from './components/TeamStatusBanner/TeamStatusBanner'
 import TeamMemberCard from './components/TeamMemberCard/TeamMemberCard'
 import './ProgrammersTab.css'
 
-const ProgrammersTab = ({ project, getUserStatus, canToggleTeamClosed, togglingTeamClosed, onToggleTeamClosed }) => {
+const ProgrammersTab = ({
+  project,
+  getUserStatus,
+  canToggleTeamClosed,
+  togglingTeamClosed,
+  onToggleTeamClosed,
+  isClientOwner,
+  onRemoveProgrammer,
+  removingProgrammerId,
+}) => {
   // Get the primary assigned programmer ID for comparison
   const primaryAssignedId = project.assignedProgrammerId 
     ? (project.assignedProgrammerId._id || project.assignedProgrammerId)?.toString()
@@ -71,11 +80,14 @@ const ProgrammersTab = ({ project, getUserStatus, canToggleTeamClosed, togglingT
       ) : (
         allProgrammers.map((programmer, index) => (
           <TeamMemberCard
-            key={index}
+            key={programmer._id || programmer.id || index}
             member={programmer}
             role="Programmer"
             status={getUserStatus(programmer)}
             isPrimary={programmer.isPrimary}
+            isClientOwner={isClientOwner}
+            onRemoveProgrammer={onRemoveProgrammer}
+            removingProgrammerId={removingProgrammerId}
           />
         ))
       )}
