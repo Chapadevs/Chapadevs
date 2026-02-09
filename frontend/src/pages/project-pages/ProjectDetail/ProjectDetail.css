@@ -73,6 +73,11 @@
   color: var(--text-secondary);
 }
 
+.status-open {
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+}
+
 .status-ready {
   background-color: #d1ecf1;
   color: #0c5460;

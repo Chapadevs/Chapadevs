@@ -3,6 +3,7 @@ import { isAdmin } from '../../../../config/roles'
 export const getStatusBadgeClass = (status) => {
   const statusMap = {
     'Holding': 'status-holding',
+    'Open': 'status-open',
     'Ready': 'status-ready',
     'Development': 'status-development',
     'Completed': 'status-completed',
@@ -29,13 +30,48 @@ export const calculatePermissions = (user, project) => {
   const isProgrammerInProject = (user?.role === 'programmer' || user?.role === 'admin') &&
     (isAssignedProgrammer || isInTeam)
 
-  const canEdit = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Ready'].includes(project.status)
-  const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Ready', 'Development'].includes(project.status)
-  const canMarkReady = (user?.role === 'client' || user?.role === 'user') && isClientOwner && project.status === 'Holding'
-  // Allow toggling team closed/open when status is Ready or Development (if team is closed, status will be Development)
+  const hasProgrammers = project.assignedProgrammerId ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
+  const isOpen = project.status === 'Open'
+  const isReadyForDev = project.status === 'Ready'
+
+  // All team members must have confirmed ready before client can mark project ready
+  const teamIds = new Set()
+  if (project.assignedProgrammerId) {
+    teamIds.add((project.assignedProgrammerId?._id || project.assignedProgrammerId)?.toString())
+  }
+  ;(project.assignedProgrammerIds || []).forEach((p) => {
+    teamIds.add((p?._id || p)?.toString())
+  })
+  const confirmedIds = new Set((project.readyConfirmedBy || []).map((id) => (id?._id || id)?.toString()))
+  const allTeamConfirmedReady = teamIds.size > 0 && [...teamIds].every((id) => id && confirmedIds.has(id))
+  const hasUserConfirmedReady = userIdStr && confirmedIds.has(userIdStr)
+
+  const canEdit = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Open', 'Ready'].includes(project.status)
+  const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Open', 'Ready', 'Development'].includes(project.status)
+  // Open/Close team: Holding (show Open) or Open (show Close)
   const canToggleTeamClosed = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
-    (project.status === 'Ready' || (project.status === 'Development' && project.teamClosed))
+    (project.status === 'Holding' || project.status === 'Open')
+  // Mark Ready: client, when Open + has programmers (disabled until all team confirmed)
+  const canMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
+    isClientOwner &&
+    isOpen &&
+    hasProgrammers
+  // Confirm ready: programmer in team, project Open, not yet confirmed
+  const canConfirmReady = isProgrammerInProject && isOpen && !project.teamClosed && !hasUserConfirmedReady
+
+  // Start Development: programmer, when Ready + team closed
+  const canStartDevelopment = (user?.role === 'programmer' || user?.role === 'admin') &&
+    isProgrammerInProject &&
+    isReadyForDev
+  // Stop Development: client or programmer in project, when Development
+  const canStopDevelopment = project.status === 'Development' &&
+    (isClientOwner || isProgrammerInProject || admin)
+  // Set to On Hold: client, when Ready (return to Holding)
+  const canSetToHolding = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
+    isClientOwner &&
+    project.status === 'Ready'
 
   // Phase/timeline permissions (programmer or admin)
   const canChangePhaseStatus = isAssignedProgrammer || admin
@@ -52,7 +88,12 @@ export const calculatePermissions = (user, project) => {
     canEdit,
     canDelete,
     canMarkReady,
+    canConfirmReady,
+    allTeamConfirmedReady,
     canToggleTeamClosed,
+    canStartDevelopment,
+    canStopDevelopment,
+    canSetToHolding,
     canChangePhaseStatus,
     canUpdateSubSteps,
     canSaveNotes,

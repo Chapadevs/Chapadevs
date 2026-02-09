@@ -5,9 +5,6 @@ import './ProgrammersTab.css'
 const ProgrammersTab = ({
   project,
   getUserStatus,
-  canToggleTeamClosed,
-  togglingTeamClosed,
-  onToggleTeamClosed,
   isClientOwner,
   onRemoveProgrammer,
   removingProgrammerId,
@@ -62,9 +59,9 @@ const ProgrammersTab = ({
       {allProgrammers.length === 0 ? (
         <div className="team-member-empty">
           <p>No programmer has been assigned to this project yet.</p>
-          {project.status === 'Ready' && (
+          {project.status === 'Open' && (
             <p className="team-member-empty-hint">
-              This project is ready for assignment. Programmers can accept it from the Assignments page.
+              This project is open for assignment. Programmers can join from the Assignments page.
             </p>
           )}
         </div>
@@ -81,18 +78,6 @@ const ProgrammersTab = ({
             removingProgrammerId={removingProgrammerId}
           />
         ))
-      )}
-
-      {canToggleTeamClosed && (
-        <div className="programmers-tab-footer">
-          <button
-            onClick={onToggleTeamClosed}
-            className={`btn ${project.teamClosed ? 'btn-success' : 'btn-warning'}`}
-            disabled={togglingTeamClosed}
-          >
-            {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Team' : 'Close Team'}
-          </button>
-        </div>
       )}
     </div>
   )

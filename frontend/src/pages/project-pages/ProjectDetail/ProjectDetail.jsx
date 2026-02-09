@@ -1,8 +1,10 @@
-import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { isProgrammer } from '../../../config/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
+import ProjectDescriptionModal from './components/ProjectDescriptionModal/ProjectDescriptionModal'
 import Timeline from '../../../components/project-components/Timeline/Timeline'
 import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
@@ -21,6 +23,7 @@ const MAX_PREVIEWS_PER_PROJECT = 5
 function ProjectDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const {
     project,
@@ -43,14 +46,20 @@ function ProjectDetail() {
   } = useProjectNotifications(project)
 
   const [markingReady, setMarkingReady] = useState(false)
+  const [confirmingReady, setConfirmingReady] = useState(false)
   const [markingHolding, setMarkingHolding] = useState(false)
   const [togglingTeamClosed, setTogglingTeamClosed] = useState(false)
+  const [startingDevelopment, setStartingDevelopment] = useState(false)
+  const [stoppingDevelopment, setStoppingDevelopment] = useState(false)
   const [leavingProject, setLeavingProject] = useState(false)
   const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
   const [activeTab, setActiveTab] = useState('description')
+  const [descriptionPreview, setDescriptionPreview] = useState(null)
+  const [descriptionFetching, setDescriptionFetching] = useState(false)
+  const [descriptionFetchAttempted, setDescriptionFetchAttempted] = useState(false)
 
   const handleMarkReady = async () => {
-    if (!window.confirm('Mark this project as Ready for assignment?')) {
+    if (!window.confirm('Mark this project as Ready? This will close the team and allow programmers to start development.')) {
       return
     }
 
@@ -66,29 +75,28 @@ function ProjectDetail() {
     }
   }
 
-  const handleMarkHolding = async () => {
-    if (!window.confirm('Set this project back to Holding status? This will remove it from being available for assignment.')) {
-      return
-    }
+  const handleConfirmReady = async () => {
+    if (!window.confirm("Confirm you're ready to start development on this project?")) return
 
     try {
-      setMarkingHolding(true)
+      setConfirmingReady(true)
       setError(null)
-      const updatedProject = await projectAPI.markHolding(id)
+      const updatedProject = await projectAPI.confirmReady(id)
       setProject(updatedProject)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to set project to Holding')
+      setError(err.response?.data?.message || err.message || "Failed to confirm ready")
     } finally {
-      setMarkingHolding(false)
+      setConfirmingReady(false)
     }
   }
 
   const handleToggleTeamClosed = async () => {
     const newStatus = !project.teamClosed
     const action = newStatus ? 'close' : 'open'
-    if (!window.confirm(`${newStatus ? 'Close' : 'Open'} the team for this project? ${newStatus ? 'This will prevent other programmers from joining.' : 'This will allow other programmers to join.'}`)) {
-      return
-    }
+    const message = newStatus
+      ? 'Close the team and return to On Hold? This will remove the project from the available list. Programmers already assigned will remain assigned.'
+      : 'Open the team? This will allow programmers to join the project.'
+    if (!window.confirm(message)) return
 
     try {
       setTogglingTeamClosed(true)
@@ -99,6 +107,51 @@ function ProjectDetail() {
       setError(err.response?.data?.message || err.message || `Failed to ${action} team`)
     } finally {
       setTogglingTeamClosed(false)
+    }
+  }
+
+  const handleStartDevelopment = async () => {
+    if (!window.confirm('Start development for this project?')) return
+
+    try {
+      setStartingDevelopment(true)
+      setError(null)
+      const updatedProject = await projectAPI.startDevelopment(id)
+      setProject(updatedProject)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to start development')
+    } finally {
+      setStartingDevelopment(false)
+    }
+  }
+
+  const handleStopDevelopment = async () => {
+    if (!window.confirm('Stop development and return to Ready? Programmers can start development again when ready.')) return
+
+    try {
+      setStoppingDevelopment(true)
+      setError(null)
+      const updatedProject = await projectAPI.stopDevelopment(id)
+      setProject(updatedProject)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to stop development')
+    } finally {
+      setStoppingDevelopment(false)
+    }
+  }
+
+  const handleMarkHolding = async () => {
+    if (!window.confirm('Set this project to On Hold? You can open the team again later to allow more programmers to join.')) return
+
+    try {
+      setMarkingHolding(true)
+      setError(null)
+      const updatedProject = await projectAPI.markHolding(id)
+      setProject(updatedProject)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to set project to On Hold')
+    } finally {
+      setMarkingHolding(false)
     }
   }
 
@@ -159,11 +212,70 @@ function ProjectDetail() {
     loadProject()
   }
 
+  const isNotAuthorized = error && typeof error === 'string' && error.toLowerCase().includes('not authorized')
+  const hasDescriptionFromState = location.state?.description != null || location.state?.title != null
+  const isProgrammerUnauthorized = error && !project && isProgrammer(user) && isNotAuthorized
+  const hasDescription = hasDescriptionFromState || descriptionPreview
+  const showDescriptionModal = isProgrammerUnauthorized && hasDescription
+
+  useEffect(() => {
+    if (
+      isProgrammerUnauthorized && id &&
+      !hasDescriptionFromState && !descriptionPreview && !descriptionFetchAttempted
+    ) {
+      setDescriptionFetchAttempted(true)
+      setDescriptionFetching(true)
+      assignmentAPI
+        .getProjectDescriptionPublic(id)
+        .then((data) => setDescriptionPreview(data))
+        .catch(() => {})
+        .finally(() => setDescriptionFetching(false))
+    }
+  }, [error, project, user, id, hasDescriptionFromState, descriptionPreview, descriptionFetchAttempted, isNotAuthorized])
+
+  const handleDescriptionModalClose = () => {
+    setDescriptionPreview(null)
+    navigate('/assignments')
+  }
+
   if (loading) {
     return <div className="project-detail-loading">Loading project...</div>
   }
 
   if (error && !project) {
+    if (showDescriptionModal) {
+      const basicInfo = {
+        title: location.state?.title ?? descriptionPreview?.title,
+        description: location.state?.description ?? descriptionPreview?.description,
+        status: location.state?.status ?? descriptionPreview?.status,
+        projectType: location.state?.projectType ?? descriptionPreview?.projectType,
+        budget: location.state?.budget ?? descriptionPreview?.budget,
+        timeline: location.state?.timeline ?? descriptionPreview?.timeline,
+        priority: location.state?.priority ?? descriptionPreview?.priority,
+        client: location.state?.client ?? descriptionPreview?.client,
+      }
+      return (
+        <>
+          <Header />
+          <div className="project-detail-container">
+            <ProjectDescriptionModal
+              basicInfo={basicInfo}
+              onClose={handleDescriptionModalClose}
+            />
+          </div>
+        </>
+      )
+    }
+    if (isProgrammerUnauthorized && descriptionFetching) {
+      return (
+        <>
+          <Header />
+          <div className="project-detail-container">
+            <div className="project-detail-loading">Loading project description...</div>
+          </div>
+        </>
+      )
+    }
     return (
       <div className="project-detail-container">
         <div className="error-message">{error}</div>
@@ -183,7 +295,12 @@ function ProjectDetail() {
     canEdit,
     canDelete,
     canMarkReady,
+    canConfirmReady,
+    allTeamConfirmedReady,
     canToggleTeamClosed,
+    canStartDevelopment,
+    canStopDevelopment,
+    canSetToHolding,
   } = calculatePermissions(user, project)
 
   const canGeneratePreviews = isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT
@@ -198,10 +315,25 @@ function ProjectDetail() {
           isClientOwner={isClientOwner}
           canDelete={canDelete}
           onDelete={handleDelete}
-          markingHolding={markingHolding}
           markingReady={markingReady}
-          onMarkHolding={handleMarkHolding}
           onMarkReady={handleMarkReady}
+          canMarkReady={canMarkReady}
+          allTeamConfirmedReady={allTeamConfirmedReady}
+          canConfirmReady={canConfirmReady}
+          confirmingReady={confirmingReady}
+          onConfirmReady={handleConfirmReady}
+          canToggleTeamClosed={canToggleTeamClosed}
+          togglingTeamClosed={togglingTeamClosed}
+          onToggleTeamClosed={handleToggleTeamClosed}
+          canStartDevelopment={canStartDevelopment}
+          startingDevelopment={startingDevelopment}
+          onStartDevelopment={handleStartDevelopment}
+          canStopDevelopment={canStopDevelopment}
+          stoppingDevelopment={stoppingDevelopment}
+          onStopDevelopment={handleStopDevelopment}
+          canSetToHolding={canSetToHolding}
+          markingHolding={markingHolding}
+          onMarkHolding={handleMarkHolding}
           isProgrammerInProject={isProgrammerInProject}
           leavingProject={leavingProject}
           onLeaveProject={handleLeaveProject}
@@ -234,9 +366,6 @@ function ProjectDetail() {
               <ProgrammersTab
                 project={project}
                 getUserStatus={getUserStatus}
-                canToggleTeamClosed={canToggleTeamClosed}
-                togglingTeamClosed={togglingTeamClosed}
-                onToggleTeamClosed={handleToggleTeamClosed}
                 isClientOwner={isClientOwner}
                 onRemoveProgrammer={handleRemoveProgrammer}
                 removingProgrammerId={removingProgrammerId}
@@ -249,6 +378,7 @@ function ProjectDetail() {
                   project={project} 
                   previews={previews}
                   onPhaseUpdate={handlePhaseUpdate}
+                  onTimelineConfirmed={loadProject}
                 />
               </div>
             )}

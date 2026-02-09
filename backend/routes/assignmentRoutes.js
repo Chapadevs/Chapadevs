@@ -4,6 +4,7 @@ import {
   unassignProject,
   getAvailableProjects,
   getAvailableProjectsPublic,
+  getProjectDescriptionPublic,
   acceptProject,
   rejectProject,
   leaveProject,
@@ -15,6 +16,8 @@ const router = express.Router()
 
 // Public: list available projects (no login required)
 router.get('/available/public', getAvailableProjectsPublic)
+// Public: get project description for available projects (programmer preview)
+router.get('/projects/:id/description', getProjectDescriptionPublic)
 
 // All other routes are protected
 router.use(protect)

@@ -1,83 +1,13 @@
 import Project from '../models/Project.js'
 import ProjectPhase from '../models/ProjectPhase.js'
 import { createNotification } from './notificationController.js'
-import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
-import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
-import { checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import asyncHandler from 'express-async-handler'
 
-async function createPhasesForProject(project) {
-  let definitions = await getPhasesFromAIAnalysis(project._id)
-  if (!definitions?.length) {
-    const template = getPhasesForProjectType(project.projectType)
-    definitions = template.map((d) => ({
-      title: d.title,
-      description: d.description ?? null,
-      order: d.order,
-      deliverables: [],
-      weeks: null, // No weeks info from template
-    }))
-  }
-
-  // Create phases with enhanced fields
-  const phasesToCreate = await Promise.all(
-    definitions.map(async (d) => {
-      // Convert weeks to estimated duration in days (1 week = 7 days)
-      const estimatedDurationDays = d.weeks ? d.weeks * 7 : null
-
-      // Determine if phase requires client approval
-      const requiresApproval = checkClientApprovalRequired({ title: d.title })
-
-      // Get client questions for this phase
-      let clientQuestions = []
-      try {
-        clientQuestions = await extractClientQuestionsFromPreview(project._id, d.title)
-      } catch (error) {
-        // Fallback to default questions if extraction fails
-        clientQuestions = getDefaultQuestionsForPhase(d.title)
-      }
-
-      // Create initial sub-steps from deliverables
-      const subSteps = (d.deliverables || []).map((deliverable, index) => ({
-        title: deliverable,
-        completed: false,
-        order: index + 1,
-        notes: '',
-      }))
-
-      return {
-        projectId: project._id,
-        title: d.title,
-        description: d.description ?? null,
-        order: d.order,
-        status: 'not_started',
-        deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
-        estimatedDurationDays,
-        requiresClientApproval: requiresApproval,
-        clientApproved: false,
-        clientQuestions,
-        subSteps,
-        notes: '',
-        attachments: [],
-      }
-    })
-  )
-
-  return ProjectPhase.insertMany(phasesToCreate)
-}
-
-// @desc    Get available projects (status Ready and team not closed) – public, no auth
+// @desc    Get available projects (status Open – programmers can join)
 // @route   GET /api/assignments/available/public
 // @access  Public
 export const getAvailableProjectsPublic = asyncHandler(async (req, res) => {
-  const projects = await Project.find({
-    status: 'Ready',
-    $or: [
-      { teamClosed: false },
-      { teamClosed: { $exists: false } },
-      { teamClosed: null },
-    ],
-  })
+  const projects = await Project.find({ status: 'Open' })
     .populate('clientId', 'name company')
     .populate('assignedProgrammerId', 'name')
     .populate('assignedProgrammerIds', 'name')
@@ -92,17 +22,45 @@ export const getAvailableProjectsPublic = asyncHandler(async (req, res) => {
   res.json(normalized)
 })
 
-// @desc    Get available projects (status Ready and team not closed)
+// @desc    Get project basic info and description for public/available projects (for programmer preview)
+// @route   GET /api/assignments/projects/:id/description
+// @access  Public
+export const getProjectDescriptionPublic = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const project = await Project.findById(id)
+    .select('title description status teamClosed projectType budget timeline priority')
+    .populate('clientId', 'name company')
+    .lean()
+
+  if (!project) {
+    return res.status(404).json({ message: 'Project not found' })
+  }
+
+  const isAvailable = project.status === 'Open'
+
+  if (!isAvailable) {
+    return res.status(403).json({ message: 'Project description is not available' })
+  }
+
+  const client = project.clientId
+  res.json({
+    title: project.title,
+    description: project.description,
+    status: project.status,
+    projectType: project.projectType,
+    budget: project.budget,
+    timeline: project.timeline,
+    priority: project.priority,
+    client: client ? { name: client.name, company: client.company } : null,
+  })
+})
+
+// @desc    Get available projects (status Open – programmers can join)
 // @route   GET /api/assignments/available
 // @access  Private/Programmer
 export const getAvailableProjects = asyncHandler(async (req, res) => {
   const projects = await Project.find({
-    status: 'Ready',
-    $or: [
-      { teamClosed: false },
-      { teamClosed: { $exists: false } },
-      { teamClosed: null },
-    ],
+    status: 'Open',
     // Exclude projects where this programmer has already joined
     assignedProgrammerIds: { $nin: [req.user._id] },
     assignedProgrammerId: { $ne: req.user._id },
@@ -140,30 +98,24 @@ export const assignProject = asyncHandler(async (req, res) => {
     throw new Error('Project is already assigned')
   }
 
-  if (project.status !== 'Ready') {
+  if (project.status !== 'Open') {
     res.status(400)
-    throw new Error('Project must be in Ready status to be assigned')
-  }
-
-  if (project.teamClosed) {
-    res.status(400)
-    throw new Error('Project team is closed. No more programmers can be assigned.')
+    throw new Error('Project must be in Open status to be assigned')
   }
 
   project.assignedProgrammerId = programmerId || req.user._id
-  // Don't change status to Development automatically - keep it Ready so others can still join
+  // Keep status Open so other programmers can still join
   if (!project.startDate) {
     project.startDate = new Date()
   }
 
   await project.save()
-  await createPhasesForProject(project)
 
   await createNotification(
     project.clientId,
     'project_assigned',
     'Project Assigned',
-    `Your project "${project.title}" has been assigned to a programmer and is now in development.`,
+    `A programmer has joined your project "${project.title}".`,
     project._id
   )
 
@@ -188,14 +140,9 @@ export const acceptProject = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  if (project.status !== 'Ready') {
+  if (project.status !== 'Open') {
     res.status(400)
-    throw new Error('Project must be in Ready status to be accepted')
-  }
-
-  if (project.teamClosed) {
-    res.status(400)
-    throw new Error('Project team is closed. No more programmers can join.')
+    throw new Error('Project must be in Open status to be accepted')
   }
 
   // Check if already assigned to this programmer
@@ -218,21 +165,16 @@ export const acceptProject = asyncHandler(async (req, res) => {
   if (!project.assignedProgrammerIds.some(id => id.toString() === userIdStr)) {
     project.assignedProgrammerIds.push(req.user._id)
   }
+
+  // New member joined: reset ready confirmations so all must reconfirm
+  project.readyConfirmedBy = []
   
-  // Don't change status to Development automatically - keep it Ready so others can still join
+  // Keep status Open so other programmers can still join
   if (!project.startDate) {
     project.startDate = new Date()
   }
 
   await project.save()
-  
-  // Only create phases if this is the first programmer (to avoid duplicates)
-  if (isFirstProgrammer) {
-    const existingPhases = await ProjectPhase.countDocuments({ projectId: project._id })
-    if (existingPhases === 0) {
-      await createPhasesForProject(project)
-    }
-  }
 
   await createNotification(
     project.clientId,
@@ -264,7 +206,7 @@ export const rejectProject = asyncHandler(async (req, res) => {
   }
 
   project.assignedProgrammerId = null
-  project.status = 'Ready'
+  project.status = 'Open'
 
   await project.save()
   await ProjectPhase.deleteMany({ projectId: project._id })
@@ -294,7 +236,7 @@ export const unassignProject = asyncHandler(async (req, res) => {
   }
 
   project.assignedProgrammerId = null
-  project.status = 'Ready'
+  project.status = 'Open'
 
   await project.save()
   await ProjectPhase.deleteMany({ projectId: project._id })
@@ -349,10 +291,20 @@ export const leaveProject = asyncHandler(async (req, res) => {
     )
   }
 
-  // If no programmers left, set status back to Ready
+  // Remove from readyConfirmedBy when leaving
+  if (project.readyConfirmedBy && project.readyConfirmedBy.length > 0) {
+    project.readyConfirmedBy = project.readyConfirmedBy.filter(
+      id => id.toString() !== userId
+    )
+  }
+
+  // If no programmers left: stay Open if was Open, else set to Ready
   if (!project.assignedProgrammerId && 
       (!project.assignedProgrammerIds || project.assignedProgrammerIds.length === 0)) {
-    project.status = 'Ready'
+    if (project.status === 'Development') {
+      project.status = 'Ready'
+    }
+    // If was Open, stay Open so client can get new programmers
   }
 
   await project.save()
@@ -429,11 +381,20 @@ export const removeProgrammerFromProject = asyncHandler(async (req, res) => {
     )
   }
 
+  // Remove from readyConfirmedBy when removed from project
+  if (project.readyConfirmedBy && project.readyConfirmedBy.length > 0) {
+    project.readyConfirmedBy = project.readyConfirmedBy.filter(
+      (id) => id.toString() !== userId
+    )
+  }
+
   if (
     !project.assignedProgrammerId &&
     (!project.assignedProgrammerIds || project.assignedProgrammerIds.length === 0)
   ) {
-    project.status = 'Ready'
+    if (project.status === 'Development') {
+      project.status = 'Ready'
+    }
   }
 
   await project.save()

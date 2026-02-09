@@ -19,7 +19,7 @@ const ProjectSidebar = ({
             className={`project-tab-link ${activeTab === 'description' ? 'active' : ''}`}
             onClick={() => onTabChange('description')}
           >
-            Description
+            Requirements
             {hasDescriptionNotifications && <span className="project-tab-notification-badge"></span>}
           </button>
           {showAIPreviewsSection && (
@@ -35,7 +35,7 @@ const ProjectSidebar = ({
             className={`project-tab-link ${activeTab === 'programmers' ? 'active' : ''}`}
             onClick={() => onTabChange('programmers')}
           >
-            Project's Team
+            Team
             {hasProgrammersNotifications && <span className="project-tab-notification-badge"></span>}
           </button>
           <button

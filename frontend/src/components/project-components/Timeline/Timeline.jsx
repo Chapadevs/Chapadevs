@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../../context/AuthContext'
 import { calculatePermissions } from '../../../pages/project-pages/ProjectDetail/utils/projectUtils'
+import { projectAPI } from '../../../services/api'
 import PhaseDetail from './PhaseDetail'
 import './Timeline.css'
 
-const Timeline = ({ project, previews = [], onPhaseUpdate }) => {
+const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }) => {
   const { user } = useAuth()
   const [selectedPhase, setSelectedPhase] = useState(null)
   const phasesScrollRef = useRef(null)
@@ -12,17 +13,138 @@ const Timeline = ({ project, previews = [], onPhaseUpdate }) => {
   const permissions = project && user ? calculatePermissions(user, project) : null
   const isClientOwner = permissions?.isClientOwner ?? false
   const isAssignedProgrammer = permissions?.isAssignedProgrammer ?? false
+  const canConfirmTimeline = permissions?.isProgrammerOrAdmin ?? false
 
-  if (!project?.phases || project.phases.length === 0) {
+  const [proposal, setProposal] = useState([])
+  const [proposalLoading, setProposalLoading] = useState(false)
+  const [proposalError, setProposalError] = useState(null)
+  const [confirming, setConfirming] = useState(false)
+  const [editingProposal, setEditingProposal] = useState([])
+
+  const projectId = project?._id || project?.id
+  const hasNoPhases = !project?.phases || project.phases.length === 0
+  const showReviewTimeline = hasNoPhases && canConfirmTimeline
+
+  useEffect(() => {
+    if (!showReviewTimeline || !projectId) return
+    let cancelled = false
+    setProposalLoading(true)
+    setProposalError(null)
+    projectAPI
+      .getPhaseProposal(projectId)
+      .then((data) => {
+        if (!cancelled) {
+          setProposal(Array.isArray(data) ? data : [])
+          setEditingProposal(Array.isArray(data) ? data.map((p) => ({ ...p })) : [])
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setProposalError(err.response?.data?.message || err.message || 'Failed to load proposal')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProposalLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [showReviewTimeline, projectId])
+
+  const handleProposalFieldChange = (index, field, value) => {
+    setEditingProposal((prev) => {
+      const next = prev.map((p, i) => (i === index ? { ...p, [field]: value } : p))
+      if (field === 'order') {
+        const num = parseInt(value, 10)
+        if (!Number.isNaN(num)) next[index].order = num
+      }
+      return next
+    })
+  }
+
+  const handleConfirmTimeline = async () => {
+    if (!projectId || editingProposal.length === 0) return
+    setConfirming(true)
+    setProposalError(null)
+    try {
+      const payload = editingProposal.map((p) => ({
+        title: p.title || '',
+        description: p.description ?? null,
+        order: typeof p.order === 'number' ? p.order : parseInt(p.order, 10) || 0,
+        deliverables: Array.isArray(p.deliverables) ? p.deliverables : [],
+        weeks: p.weeks != null ? p.weeks : null,
+      }))
+      await projectAPI.confirmPhases(projectId, payload)
+      onTimelineConfirmed?.()
+    } catch (err) {
+      setProposalError(err.response?.data?.message || err.message || 'Failed to confirm timeline')
+    } finally {
+      setConfirming(false)
+    }
+  }
+
+  if (hasNoPhases && !canConfirmTimeline) {
     return (
       <div className="timeline-empty">
         <p>No phases have been created for this project yet.</p>
-        {project?.status === 'Development' && (
-          <p className="timeline-empty-hint">
-            Phases will be automatically created when a programmer is assigned to the project.
-          </p>
-        )}
+        <p className="timeline-empty-hint">
+          The assigned programmer will review and confirm the timeline from this Workspace.
+        </p>
       </div>
+    )
+  }
+
+  if (showReviewTimeline) {
+    return (
+      <section className="project-section project-phases">
+        <h3 className="project-tab-panel-title">Review timeline</h3>
+        <p className="timeline-proposal-intro">
+          Review the proposed phases below. Edit title, description, or order as needed, then confirm to create the timeline.
+        </p>
+        {proposalLoading && <p className="timeline-proposal-loading">Loading proposal...</p>}
+        {proposalError && <div className="error-message">{proposalError}</div>}
+        {!proposalLoading && editingProposal.length > 0 && (
+          <>
+            <ul className="timeline-proposal-list">
+              {editingProposal.map((phase, index) => (
+                <li key={index} className="timeline-proposal-item">
+                  <label className="timeline-proposal-label">
+                    <span>Order</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={phase.order ?? index + 1}
+                      onChange={(e) => handleProposalFieldChange(index, 'order', e.target.value)}
+                    />
+                  </label>
+                  <label className="timeline-proposal-label">
+                    <span>Title</span>
+                    <input
+                      type="text"
+                      value={phase.title || ''}
+                      onChange={(e) => handleProposalFieldChange(index, 'title', e.target.value)}
+                    />
+                  </label>
+                  <label className="timeline-proposal-label">
+                    <span>Description</span>
+                    <input
+                      type="text"
+                      value={phase.description ?? ''}
+                      onChange={(e) => handleProposalFieldChange(index, 'description', e.target.value)}
+                    />
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleConfirmTimeline}
+              disabled={confirming}
+            >
+              {confirming ? 'Confirming...' : 'Confirm timeline'}
+            </button>
+          </>
+        )}
+      </section>
     )
   }
 

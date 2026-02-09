@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { getStatusBadgeClass } from '../../utils/projectUtils'
 import './ProjectHeader.css'
 
 const ProjectHeader = ({
@@ -6,54 +7,102 @@ const ProjectHeader = ({
   isClientOwner,
   canDelete,
   onDelete,
-  markingHolding,
   markingReady,
-  onMarkHolding,
   onMarkReady,
+  canMarkReady,
+  allTeamConfirmedReady,
+  canConfirmReady,
+  confirmingReady,
+  onConfirmReady,
+  canToggleTeamClosed,
+  togglingTeamClosed,
+  onToggleTeamClosed,
+  canStartDevelopment,
+  startingDevelopment,
+  onStartDevelopment,
+  canStopDevelopment,
+  stoppingDevelopment,
+  onStopDevelopment,
+  canSetToHolding,
+  markingHolding,
+  onMarkHolding,
   isProgrammerInProject,
   leavingProject,
   onLeaveProject,
 }) => {
-  const canSwitchToHolding = isClientOwner && project.status === 'Ready'
-  const canSwitchToReady = isClientOwner && project.status === 'Holding'
-  const showStatusSwitch = isClientOwner && (project.status === 'Ready' || project.status === 'Holding')
   const showLeaveButton = isProgrammerInProject && onLeaveProject
-  const isBusy = markingReady || markingHolding
-
-  const handleSwitchToReady = () => {
-    if (project.status !== 'Ready' && canSwitchToReady && !isBusy) onMarkReady()
-  }
-  const handleSwitchToHolding = () => {
-    if (project.status !== 'Holding' && canSwitchToHolding && !isBusy) onMarkHolding()
-  }
 
   return (
     <div className="project-detail-header">
       <div>
         <Link to="/projects" className="project-detail-back">← Back to Projects</Link>
-        <h1>{project.title}</h1>
+        <div className="project-header-title-row">
+          <h1>{project.title}</h1>
+          <span className={`project-header-status-badge ${getStatusBadgeClass(project.status)}`}>
+            {project.status}
+          </span>
+        </div>
         <div className="project-header-meta">
-          {showStatusSwitch && (
-            <div className="project-status-switch" role="group" aria-label="Project status">
-              <button
-                type="button"
-                className={`project-status-switch-option ${project.status === 'Holding' ? 'active' : ''}`}
-                onClick={handleSwitchToHolding}
-                disabled={isBusy || (project.status === 'Ready' && !canSwitchToHolding)}
-                aria-pressed={project.status === 'Holding'}
-              >
-                On Hold
-              </button>
-              <button
-                type="button"
-                className={`project-status-switch-option ${project.status === 'Ready' ? 'active' : ''}`}
-                onClick={handleSwitchToReady}
-                disabled={isBusy || (project.status === 'Holding' && !canSwitchToReady)}
-                aria-pressed={project.status === 'Ready'}
-              >
-                Ready
-              </button>
-            </div>
+          {canToggleTeamClosed && onToggleTeamClosed && (
+            <button
+              type="button"
+              className={`project-header-team-toggle-btn ${project.status === 'Open' ? 'btn-close' : 'btn-open'}`}
+              onClick={onToggleTeamClosed}
+              disabled={togglingTeamClosed}
+            >
+              {togglingTeamClosed ? 'Updating...' : project.status === 'Open' ? 'Close Team' : 'Open Team'}
+            </button>
+          )}
+          {canConfirmReady && onConfirmReady && (
+            <button
+              type="button"
+              className="project-header-confirm-ready-btn"
+              onClick={onConfirmReady}
+              disabled={confirmingReady}
+            >
+              {confirmingReady ? 'Confirming...' : "I'm Ready"}
+            </button>
+          )}
+          {canMarkReady && onMarkReady && (
+            <button
+              type="button"
+              className="project-header-mark-ready-btn"
+              onClick={onMarkReady}
+              disabled={markingReady || !allTeamConfirmedReady}
+              title={!allTeamConfirmedReady ? 'All team members must confirm they are ready first' : undefined}
+            >
+              {markingReady ? 'Marking...' : 'Mark Ready'}
+            </button>
+          )}
+          {canStartDevelopment && onStartDevelopment && (
+            <button
+              type="button"
+              className="project-header-start-dev-btn"
+              onClick={onStartDevelopment}
+              disabled={startingDevelopment}
+            >
+              {startingDevelopment ? 'Starting...' : 'Start Development'}
+            </button>
+          )}
+          {canStopDevelopment && onStopDevelopment && (
+            <button
+              type="button"
+              className="project-header-stop-dev-btn"
+              onClick={onStopDevelopment}
+              disabled={stoppingDevelopment}
+            >
+              {stoppingDevelopment ? 'Stopping...' : 'Stop Development'}
+            </button>
+          )}
+          {canSetToHolding && onMarkHolding && (
+            <button
+              type="button"
+              className="project-header-on-hold-btn"
+              onClick={onMarkHolding}
+              disabled={markingHolding}
+            >
+              {markingHolding ? 'Updating...' : 'Set to On Hold'}
+            </button>
           )}
           {showLeaveButton && (
             <button

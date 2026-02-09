@@ -6,9 +6,25 @@
   gap: 1rem;
 }
 
+.project-header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
 .project-detail-header h1 {
-  margin: 0.5rem 0;
-  color: #333;
+  font-family: "Code Bold", monospace;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 4px solid var(--primary-green);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex: 1;
+  min-width: 0;
 }
 
 .project-header-meta {
@@ -17,6 +33,59 @@
   align-items: center;
   margin-top: 0.5rem;
   flex-wrap: wrap;
+}
+
+.project-header-status-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.project-header-status-badge.status-holding {
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.project-header-status-badge.status-open {
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border: 1px solid var(--primary-green-light);
+}
+
+.project-header-status-badge.status-ready {
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border: 1px solid var(--primary-green-light);
+}
+
+.project-header-status-badge.status-development {
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border: 1px solid var(--primary-green-light);
+}
+
+.project-header-status-badge.status-completed {
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.project-header-status-badge.status-cancelled {
+  background-color: var(--background-gray);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+}
+
+.project-header-status-badge.status-default {
+  background-color: var(--background-gray);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .project-detail-back {
@@ -34,43 +103,170 @@
   color: var(--primary-green-dark);
 }
 
-.project-status-switch {
-  display: inline-flex;
-  border: 2px solid var(--border, #e5e7eb);
+.project-header-team-toggle-btn {
+  padding: 0.35rem 0.75rem;
   border-radius: 0;
-  overflow: hidden;
-}
-
-.project-status-switch-option {
-  padding: 0.35rem 0.65rem;
-  border: none;
-  border-radius: 0;
-  background: var(--background, #fff);
-  color: var(--text-secondary, #374151);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 800;
   font-family: 'Creato Display Medium', serif;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.project-status-switch-option:not(:last-child) {
-  border-right: 2px solid var(--border, #e5e7eb);
+.project-header-team-toggle-btn.btn-close {
+  border: 2px solid #d97706;
+  background: #fff;
+  color: #d97706;
 }
 
-.project-status-switch-option:hover:not(:disabled):not(.active) {
-  background: rgba(5, 150, 105, 0.08);
-  color: var(--primary-green, #059669);
-}
-
-.project-status-switch-option.active {
-  background: var(--primary-green, #059669);
+.project-header-team-toggle-btn.btn-close:hover:not(:disabled) {
+  background: #d97706;
   color: #fff;
 }
 
-.project-status-switch-option:disabled {
+.project-header-team-toggle-btn.btn-open {
+  border: 2px solid var(--primary-green);
+  background: var(--primary-green);
+  color: #fff;
+}
+
+.project-header-team-toggle-btn.btn-open:hover:not(:disabled) {
+  background: var(--primary-green-dark);
+  border-color: var(--primary-green-dark);
+  color: #fff;
+}
+
+.project-header-team-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-header-mark-ready-btn {
+  padding: 0.35rem 0.75rem;
+  border: 2px solid var(--primary-green);
+  border-radius: 0;
+  background: var(--primary-green);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.project-header-mark-ready-btn:hover:not(:disabled) {
+  background: var(--primary-green-dark);
+  border-color: var(--primary-green-dark);
+  color: #fff;
+}
+
+.project-header-mark-ready-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-header-confirm-ready-btn {
+  padding: 0.35rem 0.75rem;
+  border: 2px solid var(--primary-green);
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary-green);
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.project-header-confirm-ready-btn:hover:not(:disabled) {
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--primary-green-dark);
+}
+
+.project-header-confirm-ready-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-header-start-dev-btn {
+  padding: 0.35rem 0.75rem;
+  border: 2px solid var(--primary-green);
+  border-radius: 0;
+  background: var(--primary-green);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.project-header-start-dev-btn:hover:not(:disabled) {
+  background: var(--primary-green-dark);
+  border-color: var(--primary-green-dark);
+  color: #fff;
+}
+
+.project-header-start-dev-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-header-stop-dev-btn {
+  padding: 0.35rem 0.75rem;
+  border: 2px solid #d97706;
+  border-radius: 0;
+  background: #fff;
+  color: #d97706;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.project-header-stop-dev-btn:hover:not(:disabled) {
+  background: #d97706;
+  color: #fff;
+}
+
+.project-header-stop-dev-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.project-header-on-hold-btn {
+  padding: 0.35rem 0.75rem;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.project-header-on-hold-btn:hover:not(:disabled) {
+  background: var(--background-gray);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.project-header-on-hold-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

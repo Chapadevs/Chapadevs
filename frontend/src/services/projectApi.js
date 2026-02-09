@@ -26,6 +26,16 @@ export const projectAPI = {
     return response.data
   },
 
+  getPhaseProposal: async (projectId) => {
+    const response = await api.get(`/projects/${projectId}/phases/proposal`)
+    return response.data
+  },
+
+  confirmPhases: async (projectId, definitions) => {
+    const response = await api.post(`/projects/${projectId}/phases/confirm`, definitions)
+    return response.data
+  },
+
   create: async (projectData) => {
     const response = await api.post('/projects', projectData)
     return response.data
@@ -41,8 +51,13 @@ export const projectAPI = {
     return response.data
   },
 
+  confirmReady: async (id) => {
+    const response = await api.put(`/projects/${id}/confirm-ready`)
+    return response.data
+  },
+
   markReady: async (id) => {
-    const response = await api.put(`/projects/${id}/ready`)
+    const response = await api.put(`/projects/${id}/mark-ready`)
     return response.data
   },
 
@@ -53,6 +68,16 @@ export const projectAPI = {
 
   toggleTeamClosed: async (id, teamClosed) => {
     const response = await api.put(`/projects/${id}`, { teamClosed })
+    return response.data
+  },
+
+  startDevelopment: async (id) => {
+    const response = await api.put(`/projects/${id}/start-development`)
+    return response.data
+  },
+
+  stopDevelopment: async (id) => {
+    const response = await api.put(`/projects/${id}/stop-development`)
     return response.data
   },
 

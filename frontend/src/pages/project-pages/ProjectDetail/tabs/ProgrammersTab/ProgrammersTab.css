@@ -21,9 +21,3 @@
 .project-tab-panel-title {
   margin-bottom: 0.5rem;
 }
-
-.programmers-tab-footer {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border, #e5e7eb);
-}

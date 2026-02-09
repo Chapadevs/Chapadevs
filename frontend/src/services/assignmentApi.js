@@ -11,6 +11,11 @@ export const assignmentAPI = {
     return response.data
   },
 
+  getProjectDescriptionPublic: async (projectId) => {
+    const response = await api.get(`/assignments/projects/${projectId}/description`)
+    return response.data
+  },
+
   assign: async (projectId, programmerId) => {
     const response = await api.post(`/assignments/${projectId}/assign`, {
       programmerId,

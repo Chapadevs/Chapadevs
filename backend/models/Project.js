@@ -29,7 +29,7 @@ const projectSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Holding', 'Ready', 'Development', 'Completed', 'Cancelled'],
+      enum: ['Holding', 'Open', 'Ready', 'Development', 'Completed', 'Cancelled'],
       default: 'Holding',
     },
     priority: {
@@ -118,6 +118,11 @@ const projectSchema = new mongoose.Schema(
     teamClosed: {
       type: Boolean,
       default: false,
+    },
+    readyConfirmedBy: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
     },
   },
   {

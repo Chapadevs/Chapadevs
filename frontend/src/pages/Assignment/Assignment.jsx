@@ -71,6 +71,7 @@ const Assignment = () => {
   const getStatusBadgeClass = (status) => {
     const statusMap = {
       'Holding': 'status-holding',
+      'Open': 'status-open',
       'Ready': 'status-ready',
       'Development': 'status-development',
       'Completed': 'status-completed',
@@ -104,8 +105,7 @@ const Assignment = () => {
         <div className="assignment-empty">
           <p>No available projects at the moment.</p>
           <p className="assignment-empty-hint">
-            Projects appear here after a client marks them as <strong>Ready</strong> for assignment.
-            Clients can do this from the project detail page (open a project → &quot;Mark as Ready&quot;).
+            Projects appear here after a client <strong>opens the team</strong>. Clients can do this from the project detail page (open a project → &quot;Open Team&quot;).
           </p>
         </div>
       ) : (
@@ -115,7 +115,22 @@ const Assignment = () => {
             return (
             <div key={projectId} className="assignment-card">
               <div className="assignment-card-header">
-                <Link to={`/projects/${projectId}`} className="project-link">
+                <Link
+                  to={{
+                    pathname: `/projects/${projectId}`,
+                    state: {
+                      description: project.description,
+                      title: project.title,
+                      status: project.status,
+                      projectType: project.projectType,
+                      budget: project.budget,
+                      timeline: project.timeline,
+                      priority: project.priority,
+                      client: project.client,
+                    },
+                  }}
+                  className="project-link"
+                >
                   <h1>{project.title}</h1>
                 </Link>
                 <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
@@ -165,6 +180,12 @@ const Assignment = () => {
                             </span>
                           </div>
                         )}
+                        {project.teamClosed && (
+                          <p className="team-closed-message">This project&apos;s team is closed. No more programmers can join.</p>
+                        )}
+                        {isAlreadyJoined && !project.teamClosed && (
+                          <p className="team-closed-message">You have already joined this project.</p>
+                        )}
                         <button
                           onClick={() => handleAccept(projectId)}
                           className="btn btn-primary"
@@ -175,12 +196,6 @@ const Assignment = () => {
                               project.teamClosed ? 'Team Closed' :
                                 'Join'}
                         </button>
-                        {project.teamClosed && (
-                          <p className="team-closed-message">This project&apos;s team is closed. No more programmers can join.</p>
-                        )}
-                        {isAlreadyJoined && !project.teamClosed && (
-                          <p className="team-closed-message">You have already joined this project.</p>
-                        )}
                       </>
                     )
                   })()}
@@ -213,7 +228,19 @@ const Assignment = () => {
                 </RoleGate>
 
                 <Link
-                  to={`/projects/${projectId}`}
+                  to={{
+                    pathname: `/projects/${projectId}`,
+                    state: {
+                      description: project.description,
+                      title: project.title,
+                      status: project.status,
+                      projectType: project.projectType,
+                      budget: project.budget,
+                      timeline: project.timeline,
+                      priority: project.priority,
+                      client: project.client,
+                    },
+                  }}
                   className="btn btn-secondary"
                 >
                   Details

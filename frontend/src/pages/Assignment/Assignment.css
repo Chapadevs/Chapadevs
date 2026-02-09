@@ -61,7 +61,7 @@
 
 .assignment-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(478px, 1fr));
   gap: 1.5rem;
 }
 
@@ -126,6 +126,12 @@
   border: 1px solid var(--border);
 }
 
+.status-open {
+  background-color: var(--background-light-green);
+  color: var(--primary-green-dark);
+  border: 1px solid var(--primary-green-light);
+}
+
 .status-ready {
   background-color: var(--background-light-green);
   color: var(--primary-green-dark);
@@ -166,13 +172,14 @@
 
 .project-meta {
   margin-bottom: 1rem;
-  padding-top: 1rem;
+  padding-top: 6px;
+  padding-bottom: 6px;
   border-top: 1px solid var(--border);
   display: grid;
   gap: 0.35rem;
-  height: 90px;
+  height: 63px;
   flex-direction: row;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
 }
 
@@ -180,6 +187,7 @@
   margin: 0;
   font-size: 0.875rem;
   color: var(--text-secondary);
+  text-align: center;
 }
 
 .meta-item strong {
@@ -192,10 +200,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
   margin-top: auto;
+  min-width: 0;
 }
 
 .assignment-actions .btn {
@@ -208,6 +218,12 @@
   border-radius: 0;
   border: 2px solid var(--primary-green);
   transition: color 0.2s ease, background 0.2s ease;
+  min-width: 150px;
+  width: 150px;
+  max-width: 150px;
+  flex: 0 0 150px;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .assignment-actions .btn-primary {
@@ -304,7 +320,8 @@
 }
 
 .project-assigned-notice {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .assigned-badge {
@@ -319,15 +336,22 @@
 }
 
 .team-closed-message {
-  margin-top: 0.5rem;
+  margin: 0;
   font-size: 0.875rem;
   color: var(--text-secondary);
   font-style: italic;
+  flex-shrink: 0;
+  min-width: 11em;
+  white-space: normal;
 }
 
 @media (max-width: 768px) {
   .assignment-grid {
     grid-template-columns: 1fr;
+  }
+
+  .assignment-actions {
+    gap: 0.4rem;
   }
 
   .assignment-card-header {

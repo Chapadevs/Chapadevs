@@ -2,8 +2,8 @@ import Project from '../models/Project.js'
 import ProjectPhase from '../models/ProjectPhase.js'
 import AIPreview from '../models/AIPreview.js'
 import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
-import { getPhasesFromAIAnalysis } from '../utils/aiAnalysisPhases.js'
-import { calculatePhaseDuration, checkClientApprovalRequired } from '../utils/phaseWorkflow.js'
+import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
+import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
 import multer from 'multer'
@@ -42,6 +42,7 @@ export const createProject = asyncHandler(async (req, res) => {
     ...req.body,
     clientId: req.user._id,
     status: 'Holding',
+    teamClosed: true,
   }
 
   const project = await Project.create(projectData)
@@ -65,7 +66,7 @@ export const getProjects = asyncHandler(async (req, res) => {
     filter.$or = [
       { assignedProgrammerId: req.user._id },
       { assignedProgrammerIds: req.user._id },
-      { assignedProgrammerId: null, status: 'Ready' },
+      { status: 'Open' },
     ]
   }
 
@@ -127,50 +128,9 @@ export const getProjectById = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  // Ensure consistency: if team is closed and has programmers, status should be Development
-  const hasProgrammers = project.assignedProgrammerId || 
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
-  
-  if (project.teamClosed && hasProgrammers && project.status === 'Ready') {
-    // Update the project status to Development
-    await Project.findByIdAndUpdate(req.params.id, { 
-      status: 'Development',
-      startDate: project.startDate || new Date()
-    })
-    project.status = 'Development'
-    if (!project.startDate) {
-      project.startDate = new Date()
-    }
-  }
-
-  let phases = await ProjectPhase.find({ projectId: project._id })
+  const phases = await ProjectPhase.find({ projectId: project._id })
     .sort({ order: 1 })
     .lean()
-
-  // If project is in Development (or Completed) but has no phases (e.g. assigned before phases feature), create them now
-  if (phases.length === 0 && ['Development', 'Completed'].includes(project.status)) {
-    let definitions = await getPhasesFromAIAnalysis(project._id)
-    if (!definitions?.length) {
-      const template = getPhasesForProjectType(project.projectType)
-      definitions = template.map((d) => ({
-        title: d.title,
-        description: d.description ?? null,
-        order: d.order,
-        deliverables: [],
-      }))
-    }
-    const created = await ProjectPhase.insertMany(
-      definitions.map((d) => ({
-        projectId: project._id,
-        title: d.title,
-        description: d.description ?? null,
-        order: d.order,
-        status: 'not_started',
-        deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
-      }))
-    )
-    phases = created.map((p) => p.toObject ? p.toObject() : p)
-  }
 
   const previewCount = await AIPreview.countDocuments({
     projectId: project._id,
@@ -178,6 +138,117 @@ export const getProjectById = asyncHandler(async (req, res) => {
   })
 
   res.json({ ...project, phases, previewCount })
+})
+
+// @desc    Get proposed timeline (from AI or template). No phases created.
+// @route   GET /api/projects/:id/phases/proposal
+// @access  Private (project access)
+export const getPhaseProposal = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  let definitions = await getPhasesFromAIAnalysis(project._id)
+  if (!definitions?.length) {
+    const template = getPhasesForProjectType(project.projectType)
+    definitions = template.map((d) => ({
+      title: d.title,
+      description: d.description ?? null,
+      order: d.order,
+      deliverables: d.deliverables ?? [],
+      weeks: d.weeks ?? null,
+    }))
+  }
+
+  const proposal = definitions.map((d) => ({
+    title: d.title,
+    description: d.description ?? null,
+    order: d.order,
+    deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
+    weeks: d.weeks ?? null,
+  }))
+
+  res.json(proposal)
+})
+
+// @desc    Confirm timeline: create phases from (possibly edited) proposal. Programmer or admin only.
+// @route   POST /api/projects/:id/phases/confirm
+// @access  Private (assigned programmer or admin)
+export const confirmPhases = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const assignedId = project.assignedProgrammerId?.toString?.()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => id?.toString())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  if (req.user.role !== 'admin' && !isProgrammer) {
+    res.status(403)
+    throw new Error('Only the assigned programmer or admin can confirm the timeline')
+  }
+
+  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  if (existingCount > 0) {
+    res.status(400)
+    throw new Error('Project already has phases. Timeline can only be confirmed once.')
+  }
+
+  const definitions = req.body
+  if (!Array.isArray(definitions) || definitions.length === 0) {
+    res.status(400)
+    throw new Error('Request body must be an array of phase definitions (title, description, order, deliverables?)')
+  }
+
+  const phasesToCreate = await Promise.all(
+    definitions.map(async (d) => {
+      const title = typeof d.title === 'string' ? d.title.trim() : `Phase ${d.order ?? 0}`
+      const description = d.description != null ? String(d.description).trim() : null
+      const order = typeof d.order === 'number' ? d.order : 0
+      const deliverables = Array.isArray(d.deliverables) ? d.deliverables.map((x) => (typeof x === 'string' ? x.trim() : String(x))).filter(Boolean) : []
+      const weeks = typeof d.weeks === 'number' ? d.weeks : null
+      const estimatedDurationDays = weeks ? weeks * 7 : null
+
+      const requiresApproval = checkClientApprovalRequired({ title })
+      let clientQuestions = []
+      try {
+        clientQuestions = await extractClientQuestionsFromPreview(project._id, title)
+      } catch {
+        clientQuestions = getDefaultQuestionsForPhase(title)
+      }
+
+      const subSteps = deliverables.map((deliverable, index) => ({
+        title: deliverable,
+        completed: false,
+        order: index + 1,
+        notes: '',
+      }))
+
+      return {
+        projectId: project._id,
+        title,
+        description,
+        order,
+        status: 'not_started',
+        deliverables,
+        estimatedDurationDays,
+        requiresClientApproval: requiresApproval,
+        clientApproved: false,
+        clientQuestions,
+        subSteps,
+        notes: '',
+        attachments: [],
+      }
+    })
+  )
+
+  await ProjectPhase.insertMany(phasesToCreate)
+  const phases = await ProjectPhase.find({ projectId: project._id }).sort({ order: 1 }).lean()
+  res.status(201).json(phases)
 })
 
 // @desc    Update a project phase (enhanced with all new fields). Programmer or admin only.
@@ -613,9 +684,9 @@ export const updateProject = asyncHandler(async (req, res) => {
       res.status(403)
       throw new Error('Not authorized to update this project')
     }
-    // Allow updating teamClosed even in Development status
+    // Allow updating teamClosed when Holding or Open
     const isUpdatingTeamClosed = req.body.teamClosed !== undefined
-    if (!isUpdatingTeamClosed && !['Holding', 'Ready'].includes(project.status)) {
+    if (!isUpdatingTeamClosed && !['Holding', 'Open', 'Ready'].includes(project.status)) {
       res.status(403)
       throw new Error('Cannot update project in current status')
     }
@@ -631,16 +702,19 @@ export const updateProject = asyncHandler(async (req, res) => {
     }
   })
 
-  // If team is being closed and project is in Ready status, automatically set to Development
-  if (isClosingTeam && project.status === 'Ready' && 
-      (project.assignedProgrammerId || (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0))) {
-    project.status = 'Development'
-    if (!project.startDate) {
-      project.startDate = new Date()
-    }
+  // If team is being closed from Open: go to Holding (On Hold)
+  if (isClosingTeam && project.status === 'Open') {
+    project.status = 'Holding'
   }
 
-  // If team is being opened and project is in Development status, change back to Ready
+  // If team is being opened from Holding: go to Open (programmers can join)
+  if (isOpeningTeam && project.status === 'Holding') {
+    project.status = 'Open'
+    project.teamClosed = false
+    project.readyConfirmedBy = []
+  }
+
+  // If opening from Development: change back to Ready
   if (isOpeningTeam && project.status === 'Development') {
     project.status = 'Ready'
   }
@@ -650,6 +724,193 @@ export const updateProject = asyncHandler(async (req, res) => {
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+
+  res.json(populated)
+})
+
+// @desc    Confirm ready (programmer marks themselves ready for dev)
+// @route   PUT /api/projects/:id/confirm-ready
+// @access  Private (programmer in team)
+export const confirmReady = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const userIdStr = req.user._id.toString()
+  const isProgrammer = req.user.role === 'programmer' || req.user.role === 'admin'
+  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+
+  if (!isProgrammer || !isInTeam) {
+    res.status(403)
+    throw new Error('Only programmers assigned to this project can confirm ready')
+  }
+
+  if (project.status !== 'Open') {
+    res.status(400)
+    throw new Error('Project must be open for recruitment to confirm ready')
+  }
+
+  if (project.teamClosed) {
+    res.status(400)
+    throw new Error('Project team is already closed')
+  }
+
+  if (!project.readyConfirmedBy) {
+    project.readyConfirmedBy = []
+  }
+  if (!project.readyConfirmedBy.some(id => id.toString() === userIdStr)) {
+    project.readyConfirmedBy.push(req.user._id)
+    await project.save()
+  }
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+    .populate('readyConfirmedBy', 'name email')
+
+  res.json(populated)
+})
+
+// @desc    Mark project ready (close team, ready for dev) - client only, when Open + has programmers + all team confirmed
+// @route   PUT /api/projects/:id/mark-ready
+// @access  Private
+export const markProjectReady = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isClient = req.user.role === 'user' || req.user.role === 'client'
+  const isAdmin = req.user.role === 'admin'
+  const isClientOwner = project.clientId.toString() === req.user._id.toString()
+
+  if (!isClientOwner && !isAdmin) {
+    res.status(403)
+    throw new Error('Only the project client can mark as ready')
+  }
+
+  if (project.status !== 'Open') {
+    res.status(400)
+    throw new Error('Project must be open for recruitment to mark as ready')
+  }
+
+  const hasProgrammers = project.assignedProgrammerId ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
+  if (!hasProgrammers) {
+    res.status(400)
+    throw new Error('At least one programmer must have joined before marking as ready')
+  }
+
+  // Require all team members to have confirmed ready
+  const teamIds = new Set()
+  if (project.assignedProgrammerId) {
+    teamIds.add(project.assignedProgrammerId.toString())
+  }
+  ;(project.assignedProgrammerIds || []).forEach((p) => {
+    teamIds.add((p._id || p).toString())
+  })
+  const confirmedIds = new Set((project.readyConfirmedBy || []).map((id) => id.toString()))
+  const allConfirmed = [...teamIds].every((id) => confirmedIds.has(id))
+  if (!allConfirmed) {
+    res.status(400)
+    throw new Error('All team members must mark themselves as ready before the project can be marked ready')
+  }
+
+  project.teamClosed = true
+  project.status = 'Ready'
+  await project.save()
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+    .populate('readyConfirmedBy', 'name email')
+
+  res.json(populated)
+})
+
+// @desc    Start development - programmer only
+// @route   PUT /api/projects/:id/start-development
+// @access  Private
+export const startDevelopment = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const userIdStr = req.user._id.toString()
+  const isProgrammer = req.user.role === 'programmer' || req.user.role === 'admin'
+  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+
+  if (!isProgrammer || !isInTeam) {
+    res.status(403)
+    throw new Error('Only programmers assigned to this project can start development')
+  }
+
+  if (project.status !== 'Ready') {
+    res.status(400)
+    throw new Error('Project must be in Ready status (team closed) to start development')
+  }
+
+  project.status = 'Development'
+  if (!project.startDate) {
+    project.startDate = new Date()
+  }
+  await project.save()
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+
+  res.json(populated)
+})
+
+// @desc    Stop development - client only
+// @route   PUT /api/projects/:id/stop-development
+// @access  Private
+export const stopDevelopment = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const userIdStr = req.user._id.toString()
+  const isClientOwner = project.clientId.toString() === userIdStr
+  const isAdmin = req.user.role === 'admin'
+  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+  const isProgrammerInProject = (req.user.role === 'programmer' || req.user.role === 'admin') && isInTeam
+
+  if (!isClientOwner && !isProgrammerInProject && !isAdmin) {
+    res.status(403)
+    throw new Error('Only the project client or assigned programmers can stop development')
+  }
+
+  if (project.status !== 'Development') {
+    res.status(400)
+    throw new Error('Project must be in Development status to stop')
+  }
+
+  project.status = 'Ready'
+  await project.save()
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
 
   res.json(populated)
 })
@@ -713,12 +974,8 @@ export const updateProjectStatus = asyncHandler(async (req, res) => {
       res.status(400)
       throw new Error('Project must be in Ready status to mark as Holding')
     }
-    // Only allow if no programmers are assigned
-    if (project.assignedProgrammerId || (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)) {
-      res.status(400)
-      throw new Error('Cannot set project to Holding when programmers are assigned')
-    }
     project.status = 'Holding'
+    project.teamClosed = true
   }
 
   await project.save()

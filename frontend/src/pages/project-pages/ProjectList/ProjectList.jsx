@@ -47,6 +47,7 @@ const ProjectList = () => {
   const getStatusBadgeClass = (status) => {
     const statusMap = {
       'Holding': 'status-holding',
+      'Open': 'status-open',
       'Ready': 'status-ready',
       'Development': 'status-development',
       'Completed': 'status-completed',
