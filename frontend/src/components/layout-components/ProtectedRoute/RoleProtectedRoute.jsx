@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
-import { hasRole } from '../../../config/roles'
+import { hasRole } from '../../../utils/roles'
 
 const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, isAuthenticated, loading } = useAuth()

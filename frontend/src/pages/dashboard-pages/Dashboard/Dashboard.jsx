@@ -3,9 +3,9 @@ import { useRole } from '../../../hooks/useRole'
 import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
 import { getAIPreviewUsage, projectAPI } from '../../../services/api'
-import { getRoleDisplayLabel } from '../../../config/roles'
-import { getDashboardConfigForRole } from '../../../config/dashboardRoleConfig'
-import { loadProjectsForRole } from '../../../config/projectListLoader'
+import { getRoleDisplayLabel } from '../../../utils/roles'
+import { getDashboardConfigForRole } from '../../../utils/dashboardRoleConfig'
+import { loadProjectsForRole } from '../../../utils/projectListLoader'
 import './Dashboard.css'
 
 const getStatusBadgeClass = (status) => {

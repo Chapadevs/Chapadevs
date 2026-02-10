@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import Header from '../../components/layout-components/Header/Header'
-import TeamSection from '../../components/Team/Team'
+import TeamSection from '../../components/landing-components/Team/Team'
 import AI from '../../components/landing-components/AI/AI'
 import Footer from '../../components/layout-components/Footer/Footer'
 import { useAuth } from '../../context/AuthContext'

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { generateAIPreview, deleteAIPreview } from '../../../../../services/api'
-import { TECH_STACK_BY_CATEGORY } from '../../../../../config/techStack'
+import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
 import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'

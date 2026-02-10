@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { projectAPI } from '../../../services/api'
-import { TECH_STACK_BY_CATEGORY } from '../../../config/techStack'
+import { TECH_STACK_BY_CATEGORY } from '../../../utils/techStack'
 import Header from '../../../components/layout-components/Header/Header'
 import './CreateProject.css'
 

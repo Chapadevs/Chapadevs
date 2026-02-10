@@ -1,5 +1,5 @@
 import { useAuth } from '../context/AuthContext'
-import { isClient, isProgrammer, isAdmin, hasRole as checkHasRole } from '../config/roles'
+import { isClient, isProgrammer, isAdmin, hasRole as checkHasRole } from '../utils/roles'
 
 /**
  * Hook that provides current user and role-derived booleans.

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { userAPI } from '../../services/api'
-import { isClient, isProgrammer } from '../../config/roles'
+import { isClient, isProgrammer } from '../../utils/roles'
 import Header from '../../components/layout-components/Header/Header'
 import './UserProfileView.css'
 

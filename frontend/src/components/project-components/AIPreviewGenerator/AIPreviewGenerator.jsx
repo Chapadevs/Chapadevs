@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { generateAIPreview, getVertexAIStatus, regenerateAIPreview } from '../../../services/api'
-import { TECH_STACK_BY_CATEGORY } from '../../../config/techStack'
+import { TECH_STACK_BY_CATEGORY } from '../../../utils/techStack'
 import JSZip from 'jszip'
 import './AIPreviewGenerator.css'
 

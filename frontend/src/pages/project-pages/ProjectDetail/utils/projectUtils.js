@@ -1,4 +1,4 @@
-import { isAdmin } from '../../../../config/roles'
+import { isAdmin } from '../../../../utils/roles'
 
 export const getStatusBadgeClass = (status) => {
   const statusMap = {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { submitInquiry } from '../../services/api'
+import { submitInquiry } from '../../../services/api'
 import './InquiryForm.css'
 
 const InquiryForm = () => {

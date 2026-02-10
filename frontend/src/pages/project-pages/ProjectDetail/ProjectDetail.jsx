@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
-import { isProgrammer } from '../../../config/roles'
+import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
 import ProjectDescriptionModal from './components/ProjectDescriptionModal/ProjectDescriptionModal'

@@ -3,6 +3,8 @@ import { projectAPI } from '../../../services/api'
 import SubStep from './SubStep'
 import ClientQuestion from './ClientQuestion'
 import AttachmentManager from './AttachmentManager'
+import PhaseApprovalBadge from './PhaseApprovalBadge'
+import { isPendingApproval } from '../../../utils/phaseApprovalUtils'
 import './PhaseDetail.css'
 
 const PhaseDetail = ({
@@ -169,7 +171,7 @@ const PhaseDetail = ({
     localPhase.status === 'not_started' && canChangePhaseStatus
   const canCompletePhase =
     localPhase.status === 'in_progress' && canChangePhaseStatus
-  const needsApproval = localPhase.requiresClientApproval && !localPhase.clientApproved
+  const needsApproval = isPendingApproval(localPhase)
   const canApprove = canAnswerQuestion
 
   const estimatedDays = localPhase.estimatedDurationDays
@@ -276,13 +278,11 @@ const PhaseDetail = ({
                   {localPhase.status === 'in_progress' && 'In progress'}
                   {localPhase.status === 'completed' && 'Completed'}
                 </span>
-                {localPhase.requiresClientApproval && (
-                  <span
-                    className={`approval-badge ${localPhase.clientApproved ? 'approved' : 'pending'}`}
-                  >
-                    {localPhase.clientApproved ? '✓ Approved' : '⚠ Pending Approval'}
-                  </span>
-                )}
+                <PhaseApprovalBadge
+                  requiresApproval={localPhase.requiresClientApproval}
+                  approved={localPhase.clientApproved}
+                  variant="modal"
+                />
               </div>
 
               {localPhase.description && (
