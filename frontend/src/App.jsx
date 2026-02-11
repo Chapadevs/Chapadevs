@@ -1,27 +1,42 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
-import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
-import RoleProtectedRoute from './components/ProtectedRoute/RoleProtectedRoute'
+import { NotificationProvider } from './context/NotificationContext'
+import ProtectedRoute from './components/layout-components/ProtectedRoute/ProtectedRoute'
+import RoleProtectedRoute from './components/layout-components/ProtectedRoute/RoleProtectedRoute'
 import Home from './pages/Home/Home'
-import Login from './pages/Login/Login'
-import Register from './pages/Register/Register'
-import Dashboard from './pages/Dashboard/Dashboard'
-import Profile from './pages/Profile/Profile'
-import ChangePassword from './pages/Settings/ChangePassword'
-import ProjectList from './components/ProjectList/ProjectList'
-import CreateProject from './components/CreateProject/CreateProject'
-import ProjectDetail from './components/ProjectDetail/ProjectDetail'
-import Assignment from './components/Assignment/Assignment'
+import Contact from './pages/Contact/Contact'
+import Login from './pages/authentication-pages/Login/Login'
+import Register from './pages/authentication-pages/Register/Register'
+import VerifyEmail from './pages/authentication-pages/VerifyEmail/VerifyEmail'
+import ForgotPassword from './pages/authentication-pages/ForgotPassword/ForgotPassword'
+import ResetPassword from './pages/authentication-pages/ResetPassword/ResetPassword'
+import ConfirmPasswordChange from './pages/authentication-pages/ConfirmPasswordChange/ConfirmPasswordChange'
+import Dashboard from './pages/dashboard-pages/Dashboard/Dashboard'
+import Profile from './pages/dashboard-pages/Profile/Profile'
+import UserProfileView from './pages/UserProfileView/UserProfileView'
+import ChangePassword from './pages/authentication-pages/ChangePassword/ChangePassword'
+import ProjectList from './pages/project-pages/ProjectList/ProjectList'
+import CreateProject from './pages/project-pages/CreateProject/CreateProject'
+import ProjectDetail from './pages/project-pages/ProjectDetail/ProjectDetail'
+import Team from './pages/Team/Team'
+import Assignment from './pages/Assignment/Assignment'
 import './styles.css'
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <NotificationProvider>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/team" element={<Team />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/confirm-password-change" element={<ConfirmPasswordChange />} />
           <Route
             path="/dashboard"
             element={
@@ -35,6 +50,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users/:id"
+            element={
+              <ProtectedRoute>
+                <UserProfileView />
               </ProtectedRoute>
             }
           />
@@ -82,14 +105,13 @@ function App() {
             path="/assignments"
             element={
               <ProtectedRoute>
-                <RoleProtectedRoute allowedRoles={['programmer', 'admin']}>
-                  <Assignment />
-                </RoleProtectedRoute>
+                <Assignment />
               </ProtectedRoute>
             }
           />
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

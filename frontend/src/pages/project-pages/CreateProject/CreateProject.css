@@ -1,0 +1,322 @@
+.create-project-container {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.create-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.create-project-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.create-project-form {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section:not(:last-child) {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 2rem;
+}
+
+.form-section h3 {
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-of-type {
+  margin-bottom: 0.5rem;
+}
+
+.form-group--timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.date-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  transition: border-color 0.3s ease;
+}
+
+.date-input-wrapper:focus-within {
+  border-color: var(--primary-green, #059669);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+  outline: none;
+}
+
+.date-input-calendar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
+  background: rgba(5, 150, 105, 0.08);
+  border: none;
+  border-right: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+  cursor: pointer;
+  color: var(--primary-green, #059669);
+  transition: background 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.date-input-calendar-btn:hover {
+  background: rgba(5, 150, 105, 0.15);
+  color: #047857;
+}
+
+.date-input-calendar-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.date-input-field {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  border-radius: 0 4px 4px 0;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.date-input-field:focus {
+  box-shadow: none !important;
+}
+
+.timeline-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.timeline-stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  padding: 0.5rem 0;
+  border: none;
+  background: rgba(5, 150, 105, 0.08);
+  color: var(--primary-green, #059669);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.timeline-stepper-btn:hover:not(:disabled) {
+  background: rgba(5, 150, 105, 0.15);
+  color: #047857;
+}
+
+.timeline-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.timeline-stepper-value {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+  min-width: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-green, #059669);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-hint {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.tech-stack-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.tech-stack-category {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tech-stack-category-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.tech-stack-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.tech-stack-select:focus {
+  outline: none;
+  border-color: var(--primary-green, #059669);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  font-family: 'Creato Display Medium', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--primary-green, #059669);
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary-green, #059669);
+  border: 1px solid var(--primary-green, #059669);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(5, 150, 105, 0.1);
+  color: var(--primary-green-dark, #047857);
+  border-color: var(--primary-green-dark, #047857);
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .create-project-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}

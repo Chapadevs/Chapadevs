@@ -1,5 +1,6 @@
 import Notification from '../models/Notification.js'
 import asyncHandler from 'express-async-handler'
+import websocketService from '../services/websocket.js'
 
 // @desc    Get all notifications for current user
 // @route   GET /api/notifications
@@ -55,6 +56,13 @@ export const markAsRead = asyncHandler(async (req, res) => {
   notification.readAt = new Date()
   await notification.save()
 
+  // Broadcast unread count update
+  const unreadCount = await Notification.countDocuments({
+    userId: notification.userId,
+    isRead: false,
+  })
+  websocketService.broadcastUnreadCount(notification.userId, unreadCount)
+
   res.json(notification)
 })
 
@@ -66,6 +74,9 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
     { userId: req.user._id, isRead: false },
     { isRead: true, readAt: new Date() }
   )
+
+  // Broadcast unread count update (should be 0)
+  websocketService.broadcastUnreadCount(req.user._id, 0)
 
   res.json({ message: 'All notifications marked as read' })
 })
@@ -89,7 +100,15 @@ export const deleteNotification = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to delete this notification')
   }
 
+  const userId = notification.userId
   await notification.deleteOne()
+
+  // Broadcast unread count update
+  const unreadCount = await Notification.countDocuments({
+    userId,
+    isRead: false,
+  })
+  websocketService.broadcastUnreadCount(userId, unreadCount)
 
   res.json({ message: 'Notification deleted successfully' })
 })
@@ -97,7 +116,7 @@ export const deleteNotification = asyncHandler(async (req, res) => {
 // Helper function to create notifications (used by other controllers)
 export const createNotification = async (userId, type, title, message, projectId = null) => {
   try {
-    await Notification.create({
+    const notification = await Notification.create({
       userId,
       projectId,
       type,
@@ -105,7 +124,24 @@ export const createNotification = async (userId, type, title, message, projectId
       message,
       isRead: false,
     })
+
+    // Populate projectId if it exists
+    const populatedNotification = await Notification.findById(notification._id)
+      .populate('projectId', 'title status')
+
+    // Broadcast notification via WebSocket
+    websocketService.broadcastToUser(userId, populatedNotification)
+
+    // Broadcast unread count update
+    const unreadCount = await Notification.countDocuments({
+      userId,
+      isRead: false,
+    })
+    websocketService.broadcastUnreadCount(userId, unreadCount)
+
+    return notification
   } catch (error) {
     console.error('Error creating notification:', error)
+    return null
   }
 }

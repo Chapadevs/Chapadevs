@@ -1,0 +1,36 @@
+.project-info-section {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.project-info-section h2 {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.project-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.35rem;
+}
+
+.project-info-section .info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.project-info-section .info-item strong {
+  color: var(--primary-green, #059669);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.project-info-section .info-item span {
+  color: #333;
+  font-size: 0.75rem;
+  font-weight: 500;
+}

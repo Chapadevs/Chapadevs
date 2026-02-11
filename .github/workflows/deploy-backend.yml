@@ -89,6 +89,8 @@ jobs:
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GMAIL_DELEGATED_USER: ${{ secrets.GMAIL_DELEGATED_USER }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           SA_EMAIL: ${{ steps.setup-sa.outputs.sa_email }}
         run: |
           echo "Deploying with service account: $SA_EMAIL"
@@ -96,6 +98,16 @@ jobs:
           ENV_VARS="FRONTEND_URL=https://chapadevs.com,DB_NAME=chapadevs_crm,NODE_ENV=production,GCP_PROJECT_ID=${{ env.PROJECT_ID }}"
           ENV_VARS="$ENV_VARS,MONGO_URI=$MONGO_URI"
           ENV_VARS="$ENV_VARS,JWT_SECRET=$JWT_SECRET"
+          [ -n "$GMAIL_DELEGATED_USER" ] && ENV_VARS="$ENV_VARS,GMAIL_DELEGATED_USER=$GMAIL_DELEGATED_USER"
+          [ -n "$ADMIN_EMAIL" ] && ENV_VARS="$ENV_VARS,ADMIN_EMAIL=$ADMIN_EMAIL"
+          
+          SECRETS_ARG=""
+          if gcloud secrets describe gmail-sa-json --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+            echo "Gmail secret found; adding GMAIL_SERVICE_ACCOUNT_JSON from Secret Manager"
+            SECRETS_ARG="--set-secrets=GMAIL_SERVICE_ACCOUNT_JSON=gmail-sa-json:latest"
+          else
+            echo "Gmail secret gmail-sa-json not found; email sending will be disabled in production until you create it"
+          fi
           
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-backend/chapadevs-backend:${{ github.sha }} \
@@ -112,4 +124,5 @@ jobs:
             --timeout 60 \
             --cpu-throttling \
             --port 3001 \
-            --update-env-vars "$ENV_VARS"
+            --update-env-vars "$ENV_VARS" \
+            $SECRETS_ARG

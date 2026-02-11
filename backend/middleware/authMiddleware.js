@@ -60,14 +60,22 @@ export const authorizeProjectAccess = async (req, res, next) => {
     const clientId = project.clientId?.toString()
     const assignedProgrammerId = project.assignedProgrammerId?.toString()
     const userId = req.user._id.toString()
+    
+    // Check if user is in assignedProgrammerIds array
+    const assignedProgrammerIds = project.assignedProgrammerIds || []
+    const isInAssignedProgrammers = assignedProgrammerIds.some(
+      id => id?.toString() === userId
+    )
 
     // Allow access if:
     // 1. User is the owner of the project
-    // 2. User is the assigned programmer
-    // 3. User is an admin
+    // 2. User is the assigned programmer (primary)
+    // 3. User is in the assignedProgrammerIds array (team members)
+    // 4. User is an admin
     if (
       clientId === userId ||
       (assignedProgrammerId && assignedProgrammerId === userId) ||
+      isInAssignedProgrammers ||
       req.user.role === 'admin'
     ) {
       req.project = project

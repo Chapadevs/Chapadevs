@@ -79,3 +79,154 @@ export const deleteUser = asyncHandler(async (req, res) => {
   await user.deleteOne()
   res.json({ message: 'User removed' })
 })
+
+// @desc    Update current user's status
+// @route   PUT /api/users/status
+// @access  Private
+export const updateStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body
+
+  if (!['online', 'away', 'busy', 'offline'].includes(status)) {
+    res.status(400)
+    throw new Error('Invalid status. Must be: online, away, busy, or offline')
+  }
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error('User not found')
+  }
+
+  user.status = status
+  user.lastSeen = new Date()
+  await user.save()
+
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    status: user.status,
+    lastSeen: user.lastSeen,
+  })
+})
+
+// @desc    Get user statuses by IDs
+// @route   POST /api/users/statuses
+// @access  Private
+export const getUserStatuses = asyncHandler(async (req, res) => {
+  const { userIds } = req.body
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.json({})
+  }
+
+  const users = await User.find({ _id: { $in: userIds } })
+    .select('_id status lastSeen')
+    .lean()
+
+  const statusMap = {}
+  users.forEach((user) => {
+    statusMap[user._id.toString()] = {
+      status: user.status || 'offline',
+      lastSeen: user.lastSeen,
+    }
+  })
+
+  res.json(statusMap)
+})
+
+// @desc    Get user profile (for viewing by collaborators)
+// @route   GET /api/users/:id/profile
+// @access  Private (users who share a project or clients viewing programmers)
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id
+  const currentUserId = req.user._id.toString()
+
+  // If viewing own profile, return own profile data
+  if (targetUserId === currentUserId) {
+    const user = await User.findById(req.user._id).select('-password')
+    if (!user) {
+      res.status(404)
+      throw new Error('User not found')
+    }
+    return res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      company: user.company,
+      phone: user.phone,
+      industry: user.industry,
+      skills: user.skills,
+      bio: user.bio,
+      hourlyRate: user.hourlyRate,
+      createdAt: user.createdAt,
+    })
+  }
+
+  const targetUser = await User.findById(targetUserId).select('-password')
+
+  if (!targetUser) {
+    res.status(404)
+    throw new Error('User not found')
+  }
+
+  // Check if users share a project together
+  const Project = (await import('../models/Project.js')).default
+  const sharedProjects = await Project.find({
+    $or: [
+      { clientId: { $in: [currentUserId, targetUserId] } },
+      { assignedProgrammerId: { $in: [currentUserId, targetUserId] } },
+      { assignedProgrammerIds: { $in: [currentUserId, targetUserId] } },
+    ],
+  })
+
+  const hasSharedProject = sharedProjects.some((project) => {
+    const clientId = project.clientId?.toString()
+    const assignedProgrammerId = project.assignedProgrammerId?.toString()
+    const assignedProgrammerIds =
+      project.assignedProgrammerIds?.map((id) => id?.toString()) || []
+
+    const currentUserInProject =
+      clientId === currentUserId ||
+      assignedProgrammerId === currentUserId ||
+      assignedProgrammerIds.includes(currentUserId)
+
+    const targetUserInProject =
+      clientId === targetUserId ||
+      assignedProgrammerId === targetUserId ||
+      assignedProgrammerIds.includes(targetUserId)
+
+    return currentUserInProject && targetUserInProject
+  })
+
+  // Allow access if:
+  // 1. Users share a project
+  // 2. Current user is a client and target is a programmer (for browsing)
+  // 3. Current user is admin
+  const isClientViewingProgrammer =
+    (req.user.role === 'client' || req.user.role === 'user') &&
+    targetUser.role === 'programmer'
+
+  if (!hasSharedProject && !isClientViewingProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Not authorized to view this profile')
+  }
+
+  // Return public profile data
+  res.json({
+    _id: targetUser._id,
+    name: targetUser.name,
+    email: targetUser.email,
+    role: targetUser.role,
+    avatar: targetUser.avatar,
+    company: targetUser.company,
+    phone: targetUser.phone,
+    industry: targetUser.industry,
+    skills: targetUser.skills,
+    bio: targetUser.bio,
+    hourlyRate: targetUser.hourlyRate,
+    createdAt: targetUser.createdAt,
+  })
+})

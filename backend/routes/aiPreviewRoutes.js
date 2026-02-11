@@ -4,7 +4,8 @@ import {
   getAIPreviewUsage,
   getAIPreviews,
   getAIPreviewById,
-  deleteAIPreview
+  deleteAIPreview,
+  regenerateAIPreview
 } from '../controllers/aiPreviewController.js'
 import { protect } from '../middleware/authMiddleware.js'
 
@@ -22,6 +23,8 @@ router.route('/')
 router.route('/:id')
   .get(getAIPreviewById)
   .delete(deleteAIPreview)
+
+router.post('/:id/regenerate', regenerateAIPreview)
 
 export default router
 

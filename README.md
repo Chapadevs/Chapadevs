@@ -44,7 +44,7 @@ The frontend is a React application built with Vite, converted from the original
 - **React 18** with functional components and hooks
 - **Vite** for fast development and optimized builds
 - **React Router** for navigation
-- **EmailJS** integration for contact form submissions
+- **Inquiry form** submissions via backend API (Gmail API / Google Workspace)
 - Responsive design matching the original Angular version
 - All components and styling preserved from the original design
 
@@ -119,7 +119,7 @@ All components have been converted from Angular to React:
 - **Team**: Team member cards
 - **AI**: AI-powered workflow section
 - **Features**: Feature showcase
-- **InquiryForm**: Multi-step contact form with EmailJS
+- **InquiryForm**: Multi-step contact form; submissions sent via backend (Gmail API)
 - **FAQ**: Accordion-style FAQ section
 - **Footer**: Footer with links and contact info
 
@@ -127,9 +127,7 @@ All components have been converted from Angular to React:
 
 ### Frontend
 
-EmailJS configuration is in `frontend/src/config/environment.js`. The configuration matches the original Angular environment settings.
-
-API URL can be configured via `BACKEND_URL` environment variable (defaults to `http://localhost:3001/api`).
+API URL can be configured via `VITE_BACKEND_URL` (or `BACKEND_URL`) environment variable (defaults to `http://localhost:3001/api`). Inquiry form submissions are sent to the backend; email is sent via Gmail API (see backend README for Gmail env vars).
 
 ### Backend
 

@@ -45,6 +45,65 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    passwordChangeToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    passwordChangeExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    status: {
+      type: String,
+      enum: ['online', 'away', 'busy', 'offline'],
+      default: 'offline',
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
+    avatar: {
+      type: String,
+      default: null,
+    },
+    company: {
+      type: String,
+      default: null,
+    },
+    phone: {
+      type: String,
+      default: null,
+    },
+    industry: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -1,0 +1,82 @@
+.user-status-container {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.user-status-container h3 {
+  margin-bottom: 1rem;
+}
+
+.online-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.online-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.online-status-label {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.online-status-badge-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.online-status-badge {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1;
+  animation: pulse 2s infinite;
+}
+
+.online-status-badge.online {
+  color: #4caf50;
+}
+
+.online-status-badge.offline {
+  color: #9e9e9e;
+  animation: none;
+}
+
+.online-status-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.online-status-text:has(+ .online-status-badge.online) {
+  color: #2e7d32;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+

@@ -4,6 +4,11 @@ node_modules/
 # Environment variables
 .env
 
+# Gmail service account key (do not commit)
+*gmail*key*.json
+*-gmail*.json
+chapadevs-468722-*.json
+
 # Logs
 logs
 *.log
@@ -32,3 +37,5 @@ coverage/
 tmp/
 temp/
 
+# Uploaded files
+uploads/

@@ -68,12 +68,14 @@ export const AuthProvider = ({ children }) => {
       setLoading(true)
       const data = await authAPI.register(userData)
       
-      // Store token and user data
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data))
-      setUser(data)
+      // No token on register – user must verify email first, then log in
+      if (data.token) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data))
+        setUser(data)
+      }
       
-      return { success: true }
+      return { success: true, email: data.email, message: data.message }
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Registration failed'
       setError(errorMessage)
@@ -83,11 +85,19 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
-    setError(null)
+  const logout = async () => {
+    try {
+      // Call logout API to set status to offline
+      await authAPI.logout()
+    } catch (error) {
+      // Even if API call fails, continue with local logout
+      console.error('Logout API error:', error)
+    } finally {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+      setError(null)
+    }
   }
 
   const updateProfile = async (userData) => {
@@ -97,7 +107,7 @@ export const AuthProvider = ({ children }) => {
       const updatedUser = await authAPI.updateProfile(userData)
       setUser(updatedUser)
       localStorage.setItem('user', JSON.stringify(updatedUser))
-      return { success: true }
+      return { success: true, ...updatedUser }
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Profile update failed'
       setError(errorMessage)
@@ -107,14 +117,33 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = async (currentPassword) => {
     try {
       setError(null)
       setLoading(true)
-      await authAPI.changePassword(currentPassword, newPassword)
-      return { success: true }
+      const data = await authAPI.changePassword(currentPassword)
+      return { success: true, message: data.message }
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Password change failed'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const deleteProfile = async () => {
+    try {
+      setError(null)
+      setLoading(true)
+      await authAPI.deleteProfile()
+      // Clear local storage and user state
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+      return { success: true }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Account deletion failed'
       setError(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -130,6 +159,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    deleteProfile,
     changePassword,
     isAuthenticated: !!user,
   }

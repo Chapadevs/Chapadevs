@@ -22,13 +22,17 @@ console.log('')
 
 import { connectDB } from './config/database.js'
 import { errorHandler, notFound } from './middleware/errorMiddleware.js'
+import websocketService from './services/websocket.js'
 
 // Import Routes
 import authRoutes from './routes/authRoutes.js'
 import userRoutes from './routes/userRoutes.js'
+import chatRoutes from './routes/chatRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
 import aiPreviewRoutes from './routes/aiPreviewRoutes.js'
+import inquiryRoutes from './routes/inquiryRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
 
 const app = express()
 
@@ -37,8 +41,11 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }))
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Health check routes (Cloud Run checks root /health)
 app.get('/health', (req, res) => {
@@ -59,7 +66,7 @@ app.get('/api/health', (req, res) => {
 // Vertex AI status endpoint - Check if Vertex AI is working
 app.get('/api/vertex-ai/status', async (req, res) => {
   try {
-    const vertexAIService = (await import('./services/vertexAIService.js')).default
+    const vertexAIService = (await import('./services/vertexAI/index.js')).default
     const status = vertexAIService.checkVertexAIStatus()
     res.status(200).json({
       ...status,
@@ -79,9 +86,12 @@ app.get('/api/vertex-ai/status', async (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/projects', chatRoutes) // Chat routes must come before project routes
 app.use('/api/projects', projectRoutes)
 app.use('/api/assignments', assignmentRoutes)
 app.use('/api/ai-previews', aiPreviewRoutes)
+app.use('/api/inquiry', inquiryRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 // Error handling middleware (must be last)
 app.use(notFound)
@@ -106,6 +116,10 @@ async function start() {
     console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`)
     console.log(`📡 Health check available at http://0.0.0.0:${PORT}/health`)
     console.log(`📡 API health check at http://0.0.0.0:${PORT}/api/health`)
+    
+    // Initialize WebSocket server
+    websocketService.initialize(server)
+    console.log(`🔌 WebSocket server available at ws://0.0.0.0:${PORT}/ws`)
   })
 
   server.on('error', (error) => {

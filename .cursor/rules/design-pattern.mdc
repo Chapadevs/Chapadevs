@@ -1,0 +1,155 @@
+---
+description: Design system for Chapadevs - modern IT consultancy look (white, green, black)
+globs: frontend/**/*.css, frontend/**/*.jsx, frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Chapadevs Design Pattern
+
+IT consultancy focused on small business, with a big-company design. Modern, sharp, professional.
+
+## Color Palette
+
+Use CSS variables from `styles.css`. Do not introduce new greens or colors outside this palette.
+
+| Role | Variable | Hex | Usage |
+|------|----------|-----|-------|
+| Primary | `--primary-green` | #059669 | Buttons, links, accents, active states |
+| Primary Dark | `--primary-green-dark` | #047857 | Hover states, pressed |
+| Primary Light | `--primary-green-light` | #10b981 | Highlights, secondary accents |
+| Background | `--background` | #ffffff | Cards, surfaces |
+| Background Gray | `--background-gray` | #f9fafb | Page background, subtle sections |
+| Background Light Green | `--background-light-green` | #ecfdf5 | Hero, soft green tints |
+| Text Primary | `--text-primary` | #111827 | Headings, main text (near black) |
+| Text Secondary | `--text-secondary` | #374151 | Subtext |
+| Text Light | `--text-light` | #6b7280 | Muted text, captions |
+| Border | `--border` | #e5e7eb | Borders, dividers |
+
+**Avoid**: Neon greens (#00ff87), blue accents, purple, or colors outside this palette.
+
+## Typography
+
+- **Headings**: `font-family: 'Code Bold', monospace`
+- **Buttons / Nav / Emphasis**: `font-family: 'Creato Display Medium', serif`
+- **Body**: `font-family: 'Coolvetica', Arial, Helvetica, sans-serif`
+- **Buttons**: `font-weight: 800`
+
+## Section Title (h3)
+
+All h3 elements use the same unified style site-wide:
+
+```css
+h3 {
+  font-family: "Code Bold", monospace;
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--primary-green);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary-green);
+}
+```
+
+Defined in `styles.css`. Component CSS should only override layout (e.g. `margin-bottom`) when needed.
+
+## Page Title (h1)
+
+Use for main page titles (e.g. Dashboard, Projects). Sharp green accent bar on the left:
+
+```css
+.page-title,
+.dashboard-header h1 {
+  font-family: "Code Bold", monospace;
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 4px solid var(--primary-green);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+```
+
+## Sharp Modern Look
+
+- `border-radius: 0` — no rounded corners on buttons, cards, inputs
+- Clean lines, minimal decoration
+- Subtle shadows: `box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1)` or `0 8px 24px rgba(0, 0, 0, 0.1)`
+
+## Header Button Style
+
+Reference pattern for nav and header buttons:
+
+```css
+.header-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary-green);
+  font-family: 'Creato Display Medium', serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  min-width: 90px;
+  height: 42px;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.header-btn:hover {
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--primary-green-dark);
+}
+
+/* Primary/CTA (e.g. Login) */
+.header-btn--primary {
+  background: var(--primary-green);
+  color: #FFFFFF !important;
+}
+
+.header-btn--primary:hover {
+  background: var(--primary-green-dark);
+  color: #FFFFFF !important;
+}
+```
+
+## Main Page / Hero Button Style
+
+```css
+.btn {
+  padding: 1.5rem 3rem;
+  border: 2px solid var(--primary-green);
+  border-radius: 0;
+  font-family: 'Creato Display Medium', serif;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn--primary {
+  background: #FFFFFF;
+  color: var(--primary-green);
+  border-color: var(--primary-green);
+}
+
+.btn--primary:hover {
+  background: var(--primary-green);
+  color: #FFFFFF;
+  transform: translateY(-2px);
+}
+```
+
+## Layout
+
+- **Max content width**: `1200px`
+- **Container padding**: `0 2rem` (or `2rem`)
+
+## Quick Checks
+
+- [ ] Using `var(--primary-green)` instead of `#059669` where variables are available
+- [ ] No `border-radius` on buttons/cards (use `0`)
+- [ ] Font families match: Code Bold / Creato Display Medium / Coolvetica
+- [ ] No neon or off-palette greens (#00ff87, etc.)
+- [ ] Page titles (h1) use green left-border accent, Code Bold, uppercase
+- [ ] All h3 use the unified style (green, left border, Code Bold, uppercase)

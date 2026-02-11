@@ -1,0 +1,172 @@
+.project-previews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.project-preview-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.project-preview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: #fafafa;
+  flex-wrap: wrap;
+}
+
+.project-preview-card-header:hover {
+  background: #f0f0f0;
+}
+
+.project-preview-date {
+  font-size: 0.85rem;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.project-preview-prompt {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.project-preview-status {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.project-preview-status--completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.project-preview-status--failed {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.project-preview-status--generating {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.project-preview-expand {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.project-preview-card-body {
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.project-preview-tab {
+  margin-bottom: 1rem;
+}
+
+.project-preview-analysis-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--primary-green, #059669);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.project-preview-analysis-toggle:hover {
+  color: var(--primary-green-dark, #047857);
+}
+
+.project-preview-analysis-toggle-icon {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.project-preview-analysis-wrap {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.project-preview-tabs h4,
+.project-preview-tab h4,
+.project-preview-code-block h4,
+.project-preview-iframe-block h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--primary-green, #059669);
+}
+
+.project-preview-iframe-block {
+  margin-bottom: 1.5rem;
+  scroll-margin-top: 80px;
+}
+
+.project-preview-iframe-wrap {
+  position: relative;
+  z-index: 150;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  min-height: 400px;
+}
+
+.project-preview-iframe {
+  display: block;
+  width: 100%;
+  min-height: 500px;
+  height: 500px;
+  border: none;
+  background: #fff;
+}
+
+.project-preview-analysis-wrap .project-preview-analysis,
+.project-preview-analysis,
+.project-preview-raw {
+  font-size: 0.9rem;
+  color: #444;
+  margin: 0 0 1rem 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.project-preview-analysis-wrap .project-preview-analysis:last-child,
+.project-preview-analysis-wrap .project-preview-analysis > *:last-child {
+  margin-bottom: 0;
+}
+
+.project-preview-analysis ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.project-preview-code-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.project-preview-delete {
+  margin-top: 1rem;
+}
