@@ -5,7 +5,7 @@ import { hashString, fixBrokenImageSrc, normalizeComponentCode } from './codeUti
 import { buildOptimizedPrompt, buildWebsitePrompt, buildCombinedPrompt } from './promptBuilders.js';
 import { generateMockWebsite, generateMockAnalysis, generateMockCombined } from './mockGenerators.js';
 import { getModel } from './modelManager.js';
-import { getTemplateStructure } from './templateHelpers.js';
+
 
 class VertexAIService {
   constructor() {
@@ -212,18 +212,14 @@ class VertexAIService {
     return getModel(this.vertex, this.modelInstances, modelId);
   }
 
-  // Get template structure based on niche/project type
-  getTemplateStructure(niche) {
-    return getTemplateStructure(niche);
-  }
-
-  // Build optimized combined prompt (analysis + code in one)
+  // BUILDS THE OPTIMIZED COMBINED PROMPT: analysis + code in one
   buildCombinedPrompt(prompt, userInputs) {
     return buildCombinedPrompt(prompt, userInputs);
   }
 
-  // Generate combined preview (analysis + code in one call)
+  // GENERATES THE COMBINED PREVIEW: analysis + code in one call
   async generateCombinedPreview(prompt, userInputs, modelId = 'gemini-2.0-flash') {
+    // CHECKS IF VERTEX AI IS INITIALIZED AND IF THE VERTEX OBJECT IS AVAILABLE
     if (!this.initialized || !this.vertex) {
       console.warn('⚠️ Vertex AI not initialized, using mock data');
       return generateMockCombined(prompt, userInputs, this.cache);
@@ -401,26 +397,26 @@ class VertexAIService {
 
     const regeneratePrompt = `Given this existing React component code, modify ONLY the styling (colors, spacing, layout). Keep all content, structure, and functionality identical.
 
-EXISTING CODE:
-\`\`\`jsx
-${cachedCode}
-\`\`\`
+    EXISTING CODE:
+    \`\`\`jsx
+    ${cachedCode}
+    \`\`\`
 
-MODIFICATIONS REQUESTED:
-${modifications || 'Change color scheme, adjust spacing and layout for a fresh look'}
+    MODIFICATIONS REQUESTED:
+    ${modifications || 'Change color scheme, adjust spacing and layout for a fresh look'}
 
-REQUIREMENTS:
-- Keep component name: App
-- Keep all content and text identical
-- Keep all functionality identical
-- Only modify: colors, spacing, padding, margins, layout (grid/flex), shadows, borders
-- Use Tailwind CSS classes
-- Return ONLY the complete React component code
-- NO markdown code blocks
-- Component MUST be: function App() { ... } OR const App = () => { ... }
-- Export: export default App;
+    REQUIREMENTS:
+    - Keep component name: App
+    - Keep all content and text identical
+    - Keep all functionality identical
+    - Only modify: colors, spacing, padding, margins, layout (grid/flex), shadows, borders
+    - Use Tailwind CSS classes
+    - Return ONLY the complete React component code
+    - NO markdown code blocks
+    - Component MUST be: function App() { ... } OR const App = () => { ... }
+    - Export: export default App;
 
-Generate the modified component:`;
+    Generate the modified component:`;
 
     try {
       const response = await model.generateContent(regeneratePrompt);

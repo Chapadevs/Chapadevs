@@ -28,34 +28,6 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     createdAt: { $gte: oneHourAgo }
   })
 
-  // Higher limit in development for testing
-  const rateLimit = process.env.NODE_ENV === 'development' ? 20 : 5
-
-  if (recentPreviews >= rateLimit) {
-    res.status(429)
-    throw new Error(`Rate limit exceeded: Maximum ${rateLimit} AI generations per hour. Please try again later.`)
-  }
-
-  const u = await User.findById(req.user._id).select('aiTokenLimitMonthly').lean()
-  const userLimit = u?.aiTokenLimitMonthly ?? null
-  const defaultLimit = process.env.AI_TOKEN_LIMIT_MONTHLY_DEFAULT
-  const limit = userLimit ?? (defaultLimit ? parseInt(defaultLimit, 10) : null)
-  const limitNum = Number.isFinite(limit) ? limit : null
-  if (limitNum != null) {
-    const monthStart = new Date()
-    monthStart.setDate(1)
-    monthStart.setHours(0, 0, 0, 0)
-    const agg = await AIPreview.aggregate([
-      { $match: { userId: req.user._id, status: 'completed', createdAt: { $gte: monthStart } } },
-      { $group: { _id: null, total: { $sum: '$tokenUsage' } } },
-    ])
-    const currentUsage = agg[0]?.total ?? 0
-    if (currentUsage + ESTIMATED_TOKENS_PER_REQUEST > limitNum) {
-      res.status(429)
-      throw new Error(`Monthly AI token limit reached (${limitNum} tokens). Used ${currentUsage} this month.`)
-    }
-  }
-
   if (projectId) {
     const project = await Project.findById(projectId)
     if (!project || project.clientId.toString() !== req.user._id.toString()) {
@@ -67,16 +39,17 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       projectId,
       status: 'completed'
     })
-    if (projectPreviewCount >= 5) {
+    if (projectPreviewCount >= 10) {
       res.status(400)
-      throw new Error('This project already has 5 AI previews. Delete one to generate another.')
+      throw new Error('This project already has 10 AI previews. Delete one to generate another.')
     }
   }
 
   // Use provided modelId or default to gemini-2.0-flash
   const selectedModelId = modelId || 'gemini-2.0-flash'
 
-  // Create preview record
+
+  // CREATES THE PREVIEW RECORD: userId, projectId, prompt, previewType, previewResult, status, metadata
   const preview = await AIPreview.create({
     userId: req.user._id,
     projectId: projectId || null,

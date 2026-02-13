@@ -7,7 +7,8 @@ import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
 import './AIPreviewTab.css'
 
-const MAX_PREVIEWS_PER_PROJECT = 5
+/**                              vv EDIT THIS FOR INCREASING THE NUMBER OF PREVIEWS PER PROJECT*/
+const MAX_PREVIEWS_PER_PROJECT = 10
 
 // Helper function to map project budget to form budget format
 const mapBudgetToForm = (projectBudget) => {
@@ -118,7 +119,7 @@ const AIPreviewTab = ({
       <h3 className="project-tab-panel-title">AI Previews</h3>
       <p className="project-previews-intro">
         {previews.length} / {MAX_PREVIEWS_PER_PROJECT} previews.
-        {isClientOwner && ' Generate up to 5 AI previews for this project. Programmers can view and use the code once assigned.'}
+        {isClientOwner && ' Generate up to 10 AI previews for this project. Programmers can view and use the code once assigned.'}
         {isAssignedProgrammer && !isClientOwner && " View and download the client's generated preview code to start development."}
       </p>
 

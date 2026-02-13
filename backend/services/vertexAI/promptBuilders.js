@@ -1,4 +1,12 @@
-import { getTemplateStructure } from './templateHelpers.js';
+import {
+  getTemplate,
+  extractColorScheme,
+  extractStyle,
+  buildPageStructurePrompt,
+  buildSharedComponentsPrompt,
+  buildUIRulesPrompt,
+  buildCodeRulesPrompt,
+} from './templateStructureHelper.js';
 
 /**
  * Prompt building functions for Vertex AI
@@ -257,11 +265,11 @@ Generate the complete component NOW:`;
 }
 
 export function buildCombinedPrompt(prompt, userInputs) {
-  const template = getTemplateStructure(userInputs.projectType || prompt);
+  const template = getTemplate(userInputs.projectType || prompt);
   const techPref = userInputs.techStack?.trim() || 'React, Node.js, MongoDB — JavaScript/TypeScript only';
-  
-  // Extract business details
-  const lowerPrompt = prompt.toLowerCase();
+  const isEcommerce = template.type === 'ecommerce';
+
+  // Extract business name from prompt
   let businessName = prompt
     .replace(/i need (an?|the) /gi, '')
     .replace(/i want (an?|the) /gi, '')
@@ -271,37 +279,17 @@ export function buildCombinedPrompt(prompt, userInputs) {
   const words = businessName.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
   businessName = words.join(' ').trim() || 'Your Business';
   if (businessName.length > 50) businessName = businessName.substring(0, 47) + '...';
-  
-  // Extract color preferences
-  const colorKeywords = ['blue', 'red', 'green', 'purple', 'pink', 'yellow', 'orange', 'cyan', 'teal', 'indigo', 'violet', 'rose', 'amber'];
-  let colorScheme = 'purple-600, indigo-600';
-  for (const color of colorKeywords) {
-    if (lowerPrompt.includes(color)) {
-      const colorMap = {
-        'blue': 'blue-600', 'red': 'red-600', 'green': 'green-600', 'purple': 'purple-600',
-        'pink': 'pink-500', 'yellow': 'yellow-500', 'orange': 'orange-500', 'cyan': 'cyan-500',
-        'teal': 'teal-600', 'indigo': 'indigo-600', 'violet': 'violet-600', 'rose': 'rose-500', 'amber': 'amber-500'
-      };
-      colorScheme = `${colorMap[color] || 'purple-600'}, ${(colorMap[color] || 'purple-600').replace('-600', '-500').replace('-500', '-400')}`;
-      break;
-    }
-  }
-  
-  // Extract style
-  const styleKeywords = ['modern', 'minimal', 'clean', 'bold', 'elegant', 'fun', 'professional', 'creative'];
-  let style = 'modern';
-  for (const keyword of styleKeywords) {
-    if (lowerPrompt.includes(keyword)) {
-      style = keyword;
-      break;
-    }
-  }
-  
-  // Build sections description
-  const sectionsDesc = template.sections.map(s => 
-    `- ${s.type}: ${s.description}${s.count ? ` (${s.count} items)` : ''}`
-  ).join('\n');
-  
+
+  // Extract color and style from prompt using template structure data
+  const colorScheme = extractColorScheme(prompt);
+  const style = extractStyle(prompt);
+
+  // Build prompt sections from template structure
+  const pageStructure = buildPageStructurePrompt(template, businessName, colorScheme);
+  const sharedComponents = buildSharedComponentsPrompt(template, businessName);
+  const uiRules = buildUIRulesPrompt();
+  const codeRules = buildCodeRulesPrompt();
+
   return `Generate a complete project analysis and React component in JSON format.
 
 REQUIREMENTS:
@@ -312,15 +300,16 @@ REQUIREMENTS:
 - Timeline: ${userInputs.timeline || 'Not specified'}
 - Tech: ${techPref} (JS ecosystem only: React, Node.js, MongoDB/PostgreSQL)
 
-TEMPLATE STRUCTURE (${template.type}):
-${sectionsDesc}
-Pages: ${template.pages ? template.pages.join(', ') : 'home, about, services, contact'}
+${pageStructure}
 
-MULTI-PAGE REQUIREMENT: Use useState('home') for currentPage. Define HomePage, AboutPage, ServicesPage/ProductsPage, ContactPage components. Render {currentPage === 'home' && <HomePage />} etc. Nav links MUST use button with onClick that calls setCurrentPage - NEVER use href="#..." or anchor links. Use e.preventDefault() and e.stopPropagation() on all nav clicks to prevent parent app navigation in iframe.
+${sharedComponents}
+
+${uiRules}
 
 STYLING:
-- Colors: ${colorScheme} (use Tailwind classes)
+- Colors: ${colorScheme} (use Tailwind classes: bg-{color}, text-{color}, from-{color}, to-{color})
 - Style: ${style}
+- Gradients: bg-gradient-to-r from-{primaryColor} to-{secondaryColor}
 
 OUTPUT FORMAT (JSON only, no markdown):
 CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
@@ -334,7 +323,7 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
   "analysis": {
     "title": "Project title",
     "overview": "2-3 sentence summary",
-    "features": ["Feature 1", "Feature 2", "..."],
+    "features": ["Feature 1", "Feature 2", "...at least 5-8"],
     "techStack": {
       "frontend": ["React", "TypeScript", "Tailwind CSS"],
       "backend": ["Node.js", "Express"],
@@ -360,33 +349,81 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
     "risks": ["Risk 1 with mitigation", "..."],
     "recommendations": ["Recommendation 1", "..."]
   },
-  "code": "import { useState } from 'react';\\n\\nfunction App() {\\n  return (\\n    <div>...</div>\\n  );\\n}\\n\\nexport default App;"
+  "code": "import { useState } from 'react';\\nfunction App() { ... }\\nexport default App;"
 }
 
 CRITICAL CODE REQUIREMENTS:
 - Component MUST be named: App
 - Use function App() { ... } OR const App = () => { ... }
 - Export: export default App;
-- MULTI-PAGE: useState('home') for currentPage. HomePage, AboutPage, ServicesPage, ContactPage as inner components. Render {currentPage === 'home' && <HomePage />} etc.
+- MULTI-PAGE: useState('home') for currentPage. Define HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage as inner components. Render {currentPage === 'home' && <HomePage />} etc.
 - NAV LINKS: Use <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPage('home'); }}> - NEVER <a href="#..."> or anchor links
-- ALL helper components (icons, sub-components) MUST be defined BEFORE or inside App
-- Tailwind CSS classes only
-- Responsive (sm:, md:, lg: breakpoints)
-- Images: Use https://picsum.photos/400/300?random=SEED or https://placehold.co/400x300?text=TEXT
-- NO placeholders, NO Lorem Ipsum
+- ALL inner page components and helpers MUST be defined inside the App function body (before return)
+- Tailwind CSS classes only (CDN loaded separately)
+- Responsive: sm:, md:, lg: breakpoints on grids and text
+- Images: ONLY https://picsum.photos/WIDTH/HEIGHT?random=SEED or https://placehold.co/WIDTHxHEIGHT?text=TEXT
+- NO placeholder text, NO Lorem Ipsum, NO "..." — write real specific content
 - NO markdown code blocks in code field
+
+${codeRules}
 
 CODE STRUCTURE EXAMPLE:
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
-  const handleNav = (e, page) => { e.preventDefault(); e.stopPropagation(); setCurrentPage(page); };
-  const HomePage = () => <div>...</div>;
-  const AboutPage = () => <div>...</div>;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const handleNav = (e, page) => { e.preventDefault(); e.stopPropagation(); setCurrentPage(page); setMenuOpen(false); };
+
+  const HomePage = () => {
+    const features = [
+      { icon: '...', title: 'Feature 1', desc: 'Description...' },
+      { icon: '...', title: 'Feature 2', desc: 'Description...' },
+      { icon: '...', title: 'Feature 3', desc: 'Description...' },
+    ];
+    const stats = [
+      { value: '500+', label: 'Projects' },
+      { value: '98%', label: 'Satisfaction' },
+    ];
+    const testimonials = [
+      { name: 'John', role: 'CEO', quote: '...', avatar: 'https://picsum.photos/50/50?random=10' },
+    ];
+    return (
+      <>
+        <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-24 text-center">...</section>
+        <section className="py-16 bg-gray-50">
+          <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-8">
+            {features.map((f, i) => <div key={i} className="bg-white p-6 rounded-xl shadow hover:shadow-xl transition-all">{f.icon} {f.title} {f.desc}</div>)}
+          </div>
+        </section>
+        <section className="py-16">{stats.map((s, i) => <div key={i}><p className="text-4xl font-bold">{s.value}</p><p>{s.label}</p></div>)}</section>
+        <section className="py-16 bg-gray-50">{testimonials.map((t, i) => <div key={i}>...</div>)}</section>
+        <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-16 text-center">CTA...</section>
+      </>
+    );
+  };
+
+  const AboutPage = () => { /* same pattern: data arrays + .map() for team, stats, gallery */ };
+  const ServicesPage = () => { /* services array + .map() for cards, steps array + .map() for process */ };
+  const ContactPage = () => { /* contact info array + .map(), form fields, faq array + .map() */ };
+
   return (
-    <div>
-      <header><button onClick={(e) => handleNav(e, 'home')}>Home</button>...</header>
+    <div className="min-h-screen bg-white">
+      <header className="sticky top-0 z-50 bg-white shadow">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <button onClick={(e) => handleNav(e, 'home')} className="text-xl font-bold">Logo</button>
+          <nav className="hidden md:flex gap-6">
+            <button onClick={(e) => handleNav(e, 'home')}>Home</button>
+            <button onClick={(e) => handleNav(e, 'about')}>About</button>
+            <button onClick={(e) => handleNav(e, 'services')}>Services</button>
+            <button onClick={(e) => handleNav(e, 'contact')}>Contact</button>
+          </nav>
+          <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>Menu</button>
+        </div>
+      </header>
       {currentPage === 'home' && <HomePage />}
       {currentPage === 'about' && <AboutPage />}
+      {currentPage === 'services' && <ServicesPage />}
+      {currentPage === 'contact' && <ContactPage />}
+      <footer className="bg-gray-900 text-white py-12">...</footer>
     </div>
   );
 }

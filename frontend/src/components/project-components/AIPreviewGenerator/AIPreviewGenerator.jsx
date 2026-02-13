@@ -101,6 +101,7 @@ const AIPreviewGenerator = () => {
           ? formData.techStack.join(', ')
           : String(formData.techStack || ''),
       }
+      // GENERATES THE AI PREVIEW: analysis + code in one call
       const response = await generateAIPreview(payload)
       
       // Parse the JSON result if it's a string
