@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Button, Textarea } from '../../ui-components'
 import './ClientQuestion.css'
 
 const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
@@ -37,7 +38,7 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
 
       {isEditing && canAnswer ? (
         <div className="question-answer-edit">
-          <textarea
+          <Textarea
             className="question-answer-input"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
@@ -45,12 +46,12 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
             rows={3}
           />
           <div className="question-actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={handleSave}>
+            <Button type="button" variant="primary" size="sm" className="btn btn-primary btn-sm" onClick={handleSave}>
               Save
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={handleCancel}>
+            </Button>
+            <Button type="button" variant="secondary" size="sm" className="btn btn-secondary btn-sm" onClick={handleCancel}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -61,13 +62,14 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
             <div className="answer-placeholder">No answer yet</div>
           )}
           {canAnswer && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className="question-edit-btn"
               onClick={() => setIsEditing(true)}
             >
               {question.answer ? 'Edit' : 'Answer'}
-            </button>
+            </Button>
           )}
         </div>
       )}

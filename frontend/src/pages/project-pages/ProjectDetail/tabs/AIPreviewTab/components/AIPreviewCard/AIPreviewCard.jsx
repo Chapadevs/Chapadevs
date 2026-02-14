@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button } from '../../../../../../../components/ui-components'
 import { parsePreviewResult, buildPreviewIframeSrcDoc } from '../../../../utils/previewUtils'
 import './AIPreviewCard.css'
 
@@ -66,8 +67,9 @@ const AIPreviewCard = ({
       {isExpanded && (
         <div className="project-preview-card-body">
           <div className="project-preview-tab">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className="project-preview-analysis-toggle"
               onClick={() => setAnalysisOpen((prev) => !prev)}
               aria-expanded={analysisOpen}
@@ -78,7 +80,7 @@ const AIPreviewCard = ({
               <span className="project-preview-analysis-toggle-icon" aria-hidden>
                 {analysisOpen ? '▼' : '▶'}
               </span>
-            </button>
+            </Button>
             {analysisOpen && (
               <div className="project-preview-analysis-wrap">
                 {renderPreviewAnalysis(preview)}
@@ -98,32 +100,38 @@ const AIPreviewCard = ({
                   />
                 </div>
                 <div className="project-preview-code-actions">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     className="btn btn-secondary btn-sm"
                     onClick={() => onCopyCode(previewId, code)}
                   >
                     {copySuccessId === previewId ? 'Copied!' : 'Copy code'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     className="btn btn-secondary btn-sm"
                     onClick={() => onDownloadCode(code)}
                   >
                     Download ZIP
-                  </button>
+                  </Button>
                 </div>
               </div>
             </>
           )}
           {isClientOwner && (
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               className="btn btn-danger btn-sm project-preview-delete"
               onClick={() => onDeletePreview(previewId)}
             >
               Delete preview
-            </button>
+            </Button>
           )}
         </div>
       )}

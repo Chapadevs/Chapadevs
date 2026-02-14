@@ -1,5 +1,6 @@
 import TeamStatusBanner from './components/TeamStatusBanner/TeamStatusBanner'
 import TeamMemberCard from './components/TeamMemberCard/TeamMemberCard'
+import { SectionTitle } from '../../../../../components/ui-components'
 import './ProgrammersTab.css'
 
 const ProgrammersTab = ({
@@ -40,7 +41,7 @@ const ProgrammersTab = ({
   return (
     <div className="project-tab-panel">
       <div className="programmers-tab-header">
-        <h3 className="project-tab-panel-title">Team</h3>
+        <SectionTitle className="project-tab-panel-title mb-4">Team</SectionTitle>
       </div>
       
       <TeamStatusBanner project={project} />

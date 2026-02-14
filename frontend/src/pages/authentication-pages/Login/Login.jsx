@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { Button, Card, Alert, Input } from '../../../components/ui-components'
 import './Login.css'
 
 const Login = () => {
@@ -63,30 +64,30 @@ const Login = () => {
         <p className="login-brand-tagline">Build with us</p>
       </div>
       <div className="login-form-panel">
-        <div className="login-card">
+        <Card variant="outline" className="login-card">
           <div className="login-header">
             <h1>Welcome Back</h1>
             <p>Sign in to your account</p>
           </div>
 
           {fromRegister && (
-            <div className="login-info-message">
+            <Alert variant="info" className="login-info-message">
               We sent a verification link to {registeredEmail || 'your email'}. Check your inbox and spam folder, then sign in after verifying.
-            </div>
+            </Alert>
           )}
 
           {passwordReset && (
-            <div className="login-info-message">
+            <Alert variant="info" className="login-info-message">
               Password reset. You can sign in with your new password.
-            </div>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="login-form">
           {(localError || authError) && (
             <div className="login-error-wrap">
-              <div className="error-message">
+              <Alert variant="error">
                 {localError || authError}
-              </div>
+              </Alert>
               {(localError || authError || '').toLowerCase().includes('verify your email') && (
                 <p className="login-verify-hint">
                   Check your inbox and spam folder for the email from Chapadevs, click the verification link, then try signing in again.
@@ -95,41 +96,19 @@ const Login = () => {
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="your@email.com"
-              required
-              disabled={loading}
-            />
-          </div>
+          <Input type="email" id="email" label="Email" name="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" required disabled={loading} wrapperClassName="form-group" />
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-              disabled={loading}
-            />
-          </div>
+          <Input type="password" id="password" label="Password" name="password" value={formData.password} onChange={handleChange} placeholder="Enter your password" required disabled={loading} wrapperClassName="form-group" />
 
-          <button
+          <Button
             type="submit"
-            className="login-button"
+            variant="primary"
+            size="lg"
+            className="w-full login-button"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+          </Button>
           <p className="login-forgot-link">
             <Link to="/forgot-password">Forgot password?</Link>
           </p>
@@ -141,7 +120,7 @@ const Login = () => {
               <Link to="/register">Sign up</Link>
             </p>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )

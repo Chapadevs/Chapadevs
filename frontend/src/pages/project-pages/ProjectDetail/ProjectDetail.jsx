@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { Alert, Button } from '../../../components/ui-components'
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
@@ -278,8 +279,8 @@ function ProjectDetail() {
     }
     return (
       <div className="project-detail-container">
-        <div className="error-message">{error}</div>
-        <Link to="/projects" className="project-detail-back">← Back to Projects</Link>
+        <Alert variant="error">{error}</Alert>
+        <Button to="/projects" variant="ghost" size="sm" className="project-detail-back">← Back to Projects</Button>
       </div>
     )
   }
@@ -338,10 +339,19 @@ function ProjectDetail() {
           leavingProject={leavingProject}
           onLeaveProject={handleLeaveProject}
         />
-
-        {error && <div className="error-message">{error}</div>}
+        {error && <Alert variant="error">{error}</Alert>}
 
         <div className="project-detail-content">
+        <ProjectSidebar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            showAIPreviewsSection={showAIPreviewsSection}
+            hasDescriptionNotifications={hasDescriptionNotifications}
+            hasAIPreviewNotifications={hasAIPreviewNotifications}
+            hasProgrammersNotifications={hasProgrammersNotifications}
+            hasTimelineNotifications={hasTimelineNotifications}
+            hasCommentsNotifications={hasCommentsNotifications}
+          />
           <div className="project-main">
             {activeTab === 'description' && (
               <DescriptionTab
@@ -387,17 +397,6 @@ function ProjectDetail() {
               <CommentsTab project={project} user={user} />
             )}
           </div>
-
-          <ProjectSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            showAIPreviewsSection={showAIPreviewsSection}
-            hasDescriptionNotifications={hasDescriptionNotifications}
-            hasAIPreviewNotifications={hasAIPreviewNotifications}
-            hasProgrammersNotifications={hasProgrammersNotifications}
-            hasTimelineNotifications={hasTimelineNotifications}
-            hasCommentsNotifications={hasCommentsNotifications}
-          />
         </div>
       </div>
     </>

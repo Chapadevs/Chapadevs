@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '../../../../../components/ui-components'
 import './ProjectDescriptionModal.css'
 
 /**
@@ -44,14 +45,15 @@ function ProjectDescriptionModal({ basicInfo = {}, onClose }) {
           <h2 id="project-description-modal-title" className="project-description-modal-title">
             {title || 'Project Description'}
           </h2>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             className="project-description-modal-close"
             onClick={onClose}
             aria-label="Close"
           >
             ×
-          </button>
+          </Button>
         </div>
         <div className="project-description-modal-body">
           <p className="project-description-modal-notice">
@@ -96,20 +98,22 @@ function ProjectDescriptionModal({ basicInfo = {}, onClose }) {
           </div>
         </div>
         <div className="project-description-modal-footer">
-          <button
+          <Button
             type="button"
+            variant="primary"
             className="btn btn-primary"
             onClick={handleBackToAssignment}
           >
             Back to Available Projects
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
             className="btn btn-secondary"
             onClick={onClose}
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>

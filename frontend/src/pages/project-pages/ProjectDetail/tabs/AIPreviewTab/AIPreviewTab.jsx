@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { generateAIPreview, deleteAIPreview } from '../../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
+import { Button } from '../../../../../components/ui-components'
 import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
 import './AIPreviewTab.css'
@@ -124,8 +125,9 @@ const AIPreviewTab = ({
       </p>
 
       {isClientOwner && canGeneratePreviews && !showGenerateForm && (
-        <button
+        <Button
           type="button"
+          variant="primary"
           className="btn btn-primary project-generate-preview-btn"
           onClick={() => {
             setGenerateFormData(initialFormData)
@@ -133,7 +135,7 @@ const AIPreviewTab = ({
           }}
         >
           Generate new Website
-        </button>
+        </Button>
       )}
 
       {showGenerateForm && (

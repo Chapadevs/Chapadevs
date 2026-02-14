@@ -6,7 +6,8 @@ import { loadProjectsForRole } from '../../../utils/projectListLoader'
 import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
 import RoleGate from '../../../components/layout-components/RoleGate/RoleGate'
-import '../../components/user-components/NotificationBadge/NotificationBadge.css'
+import { Button, Badge, Card } from '../../../components/ui-components'
+import '../../../components/user-components/NotificationBadge/NotificationBadge.css'
 import './ProjectList.css'
 
 const ProjectList = () => {
@@ -72,7 +73,7 @@ const ProjectList = () => {
         <h1>Projects</h1>
         <div className="project-list-header-actions">
           <RoleGate allow={['client', 'user']}>
-            <Link to="/projects/create" className="btn btn-primary">New Project</Link>
+            <Button to="/projects/create" variant="primary" size="md">New Project</Button>
           </RoleGate>
         </div>
       </div>
@@ -82,51 +83,53 @@ const ProjectList = () => {
           <p>No projects found.</p>
           <div className="project-list-empty-actions">
             <RoleGate allow={['client', 'user']}>
-              <Link to="/projects/create" className="btn btn-primary">
+              <Button to="/projects/create" variant="primary" size="md">
                 Create Your First Project
-              </Link>
+              </Button>
             </RoleGate>
-            <Link to="/assignments" className="btn btn-secondary">
+            <Button to="/assignments" variant="secondary" size="md">
               Explore available projects
-            </Link>
+            </Button>
           </div>
         </div>
       ) : (
         <div className="project-list-grid">
           {projects.map((project) => (
-            <Link
+            <Card
+              as={Link}
               key={project.id || project._id}
               to={`/projects/${project.id || project._id}`}
-              className="project-card"
+              variant="accent"
+              className="project-card px-5 py-5 flex flex-col no-underline hover:shadow-lg transition-shadow duration-300"
             >
-              <div className="project-card-header">
-                <h3>{project.title}</h3>
-                <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
+              <div className="project-card-header flex justify-between items-start mb-3">
+                <h3 className="font-heading text-base text-ink uppercase tracking-wide m-0 mr-3 flex-1 border-none p-0">{project.title}</h3>
+                <Badge variant={project.status?.toLowerCase() || 'default'}>
                   {project.status}
-                </span>
+                </Badge>
               </div>
-              <p className="project-description">
+              <p className="text-ink-secondary text-sm mb-4 flex-1">
                 {project.description?.substring(0, 150)}
                 {project.description?.length > 150 ? '...' : ''}
               </p>
-              <div className="project-card-footer">
-                <div className="project-meta">
-                  <span className="project-client">
+              <div className="mt-auto pt-3 border-t border-border">
+                <div className="flex flex-col gap-1 mb-2 text-xs text-ink-muted">
+                  <span>
                     Client: {project.clientId?.name || project.client?.name || 'N/A'}
                   </span>
                   {(project.assignedProgrammerId || project.assignedProgrammer) && (
-                    <span className="project-programmer">
+                    <span>
                       Programmer: {(project.assignedProgrammerId?.name || project.assignedProgrammer?.name)}
                     </span>
                   )}
                 </div>
-                <div className="project-dates">
+                <div className="flex flex-col gap-1 text-xs text-ink-muted">
                   {project.startDate && (
                     <span>Started: {new Date(project.startDate).toLocaleDateString()}</span>
                   )}
-                  <span className="project-dates-row">
+                  <span className="flex items-center justify-between gap-2">
                     {project.dueDate && (
-                      <span className="project-due-date">Due: {new Date(project.dueDate).toLocaleDateString()}</span>
+                      <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
                     )}
                     {projectHasUnreadNotifications(project.id || project._id) && (
                       <span className="notification-badge" aria-label="Unread notifications" />
@@ -134,7 +137,7 @@ const ProjectList = () => {
                   </span>
                 </div>
               </div>
-            </Link>
+            </Card>
           ))}
         </div>
       )}

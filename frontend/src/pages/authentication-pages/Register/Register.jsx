@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { Button, Card, Alert, Input, Select } from '../../../components/ui-components'
 import './Register.css'
 
 const Register = () => {
@@ -82,7 +83,7 @@ const Register = () => {
         <p className="register-brand-tagline">Build with us</p>
       </div>
       <div className="register-form-panel">
-        <div className="register-card">
+        <Card variant="outline" className="register-card">
           <div className="register-header">
             <h1>Create Account</h1>
             <p>Sign up to get started</p>
@@ -90,113 +91,34 @@ const Register = () => {
 
           <form onSubmit={handleSubmit} className="register-form">
             {(localError || authError) && (
-              <div className="register-form-error">
+              <Alert variant="error">
                 {localError || authError}
-              </div>
+              </Alert>
             )}
 
             <div className="register-form-grid">
-              <div className="form-group">
-                <label htmlFor="name">Full Name *</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="John Doe"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">Email *</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="your@email.com"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="phone">Phone</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Phone"
-                  disabled={loading}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="company">Company</label>
-                <input
-                  type="text"
-                  id="company"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder="Company"
-                  disabled={loading}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="role">I am a *</label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                >
-                  <option value="client">Client</option>
-                  <option value="programmer">Programmer</option>
-                </select>
-              </div>
+              <Input type="text" id="name" label="Full Name" required name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" disabled={loading} wrapperClassName="form-group" />
+              <Input type="email" id="email" label="Email" required name="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" disabled={loading} wrapperClassName="form-group" />
+              <Input type="tel" id="phone" label="Phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" disabled={loading} wrapperClassName="form-group" />
+              <Input type="text" id="company" label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="Company" disabled={loading} wrapperClassName="form-group" />
+              <Select id="role" label="I am a" required name="role" value={formData.role} onChange={handleChange} disabled={loading} wrapperClassName="form-group">
+                <option value="client">Client</option>
+                <option value="programmer">Programmer</option>
+              </Select>
               <div className="form-group form-group-spacer" />
-              <div className="form-group">
-                <label htmlFor="password">Password *</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="6+ characters"
-                  required
-                  disabled={loading}
-                  minLength={6}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm *</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm password"
-                  required
-                  disabled={loading}
-                />
-              </div>
+              <Input type="password" id="password" label="Password" required name="password" value={formData.password} onChange={handleChange} placeholder="6+ characters" disabled={loading} minLength={6} wrapperClassName="form-group" />
+              <Input type="password" id="confirmPassword" label="Confirm" required name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm password" disabled={loading} wrapperClassName="form-group" />
             </div>
 
-            <button
+            <Button
             type="submit"
-            className="register-button"
+            variant="primary"
+            size="lg"
+            className="w-full register-button"
             disabled={loading}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
-          </button>
+          </Button>
           </form>
 
           <div className="register-footer">
@@ -205,7 +127,7 @@ const Register = () => {
               <Link to="/login">Sign in</Link>
             </p>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )

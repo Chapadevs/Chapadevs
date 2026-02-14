@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { authAPI } from '../../../services/api'
+import { Button, Card, Alert, Input } from '../../../components/ui-components'
 import '../Login/Login.css'
 import './ConfirmPasswordChange.css'
 
@@ -60,17 +61,17 @@ const ConfirmPasswordChange = () => {
           <p className="login-brand-tagline">Build with us</p>
         </div>
         <div className="login-form-panel">
-          <div className="login-card">
+          <Card variant="outline" className="login-card">
             <div className="login-header">
               <h1>Confirm password change</h1>
-              <p className="error-message">Invalid or missing confirmation link. Request a new password change from your profile.</p>
+              <Alert variant="error" className="error-message">Invalid or missing confirmation link. Request a new password change from your profile.</Alert>
             </div>
             <div className="login-footer">
               <p>
                 <Link to="/profile">Go to profile</Link> or <Link to="/login">Sign in</Link>
               </p>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     )
@@ -85,60 +86,36 @@ const ConfirmPasswordChange = () => {
         <p className="login-brand-tagline">Build with us</p>
       </div>
       <div className="login-form-panel">
-        <div className="login-card">
+        <Card variant="outline" className="login-card">
           <div className="login-header">
             <h1>Confirm password change</h1>
             <p>Enter your new password to complete the change</p>
           </div>
 
           {status === 'success' && (
-            <div className="login-info-message">
+            <Alert variant="info" className="login-info-message">
               {message}
               <p>Redirecting to sign in...</p>
               <Link to="/login">Go to sign in now</Link>
-            </div>
+            </Alert>
           )}
 
           {status !== 'success' && (
             <form onSubmit={handleSubmit} className="login-form">
               {status === 'error' && message && (
-                <div className="error-message">{message}</div>
+                <Alert variant="error">{message}</Alert>
               )}
-              <div className="form-group">
-                <label htmlFor="newPassword">New password</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  placeholder="6+ characters"
-                  required
-                  minLength={6}
-                  disabled={status === 'loading'}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm new password"
-                  required
-                  minLength={6}
-                  disabled={status === 'loading'}
-                />
-              </div>
-              <button
+              <Input type="password" id="newPassword" label="New password" name="newPassword" value={formData.newPassword} onChange={handleChange} placeholder="6+ characters" required minLength={6} disabled={status === 'loading'} wrapperClassName="form-group" />
+              <Input type="password" id="confirmPassword" label="Confirm password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm new password" required minLength={6} disabled={status === 'loading'} wrapperClassName="form-group" />
+              <Button
                 type="submit"
-                className="login-button"
+                variant="primary"
+                size="lg"
+                className="w-full login-button"
                 disabled={status === 'loading'}
               >
                 {status === 'loading' ? 'Changing password...' : 'Confirm password change'}
-              </button>
+              </Button>
             </form>
           )}
 
@@ -149,7 +126,7 @@ const ConfirmPasswordChange = () => {
               </p>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   )

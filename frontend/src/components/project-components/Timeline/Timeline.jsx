@@ -5,6 +5,7 @@ import { projectAPI } from '../../../services/api'
 import PhaseDetail from './PhaseDetail'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
 import { getPhasesPendingApproval } from '../../../utils/phaseApprovalUtils'
+import { Button, Alert, Input, Card, Badge } from '../../ui-components'
 import './Timeline.css'
 
 const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }) => {
@@ -100,14 +101,15 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
       <section className="project-section project-phases">
         <div className="timeline-empty timeline-create-steps-empty">
           <p>No timeline yet. Create the project steps when you&apos;re ready to plan the work and align with the client.</p>
-          <button
+          <Button
             type="button"
+            variant="primary"
             className="btn btn-primary timeline-create-steps-cta"
             onClick={() => setUserRequestedCreateSteps(true)}
             aria-label="Create project steps"
           >
             Create steps
-          </button>
+          </Button>
         </div>
       </section>
     )
@@ -121,7 +123,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
           Review the proposed phases below. Edit title, description, or order as needed, then confirm to create the timeline.
         </p>
         {proposalLoading && <p className="timeline-proposal-loading">Loading proposal...</p>}
-        {proposalError && <div className="error-message">{proposalError}</div>}
+        {proposalError && <Alert variant="error">{proposalError}</Alert>}
         {!proposalLoading && editingProposal.length > 0 && (
           <>
             <ul className="timeline-proposal-list">
@@ -129,7 +131,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
                 <li key={index} className="timeline-proposal-item">
                   <label className="timeline-proposal-label">
                     <span>Order</span>
-                    <input
+                    <Input
                       type="number"
                       min={1}
                       value={phase.order ?? index + 1}
@@ -138,7 +140,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
                   </label>
                   <label className="timeline-proposal-label">
                     <span>Title</span>
-                    <input
+                    <Input
                       type="text"
                       value={phase.title || ''}
                       onChange={(e) => handleProposalFieldChange(index, 'title', e.target.value)}
@@ -146,7 +148,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
                   </label>
                   <label className="timeline-proposal-label">
                     <span>Description</span>
-                    <input
+                    <Input
                       type="text"
                       value={phase.description ?? ''}
                       onChange={(e) => handleProposalFieldChange(index, 'description', e.target.value)}
@@ -155,14 +157,15 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
                 </li>
               ))}
             </ul>
-            <button
+            <Button
               type="button"
+              variant="primary"
               className="btn btn-primary"
               onClick={handleConfirmTimeline}
               disabled={confirming}
             >
               {confirming ? 'Confirming...' : 'Confirm timeline'}
-            </button>
+            </Button>
           </>
         )}
       </section>
@@ -207,13 +210,14 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
             <ul className="timeline-pending-approvals-list">
               {pendingApprovals.map((phase) => (
                 <li key={phase._id || phase.id}>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     className="timeline-pending-approvals-link"
                     onClick={() => handlePhaseClick(phase)}
                   >
                     {phase.title || `Phase ${phase.order}`}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -368,9 +372,10 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
             const statusLabel = isCompleted ? 'Completed' : isInProgress ? 'In Progress' : 'Pending'
 
             return (
-              <div
+              <Card
                 key={phaseId}
-                className={`project-phase-card phase-card-clickable ${
+                variant="accent"
+                className={`project-phase-card phase-card-clickable px-4 py-4 flex flex-col cursor-pointer hover:shadow-lg transition-shadow duration-300 ${
                   isCompleted ? 'phase-card-completed' : isInProgress ? 'phase-card-in-progress' : 'phase-card-pending'
                 }`}
                 role="button"
@@ -379,28 +384,28 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
                 onKeyDown={(e) => e.key === 'Enter' && handlePhaseClick(phase)}
                 aria-label={`View details: ${phase.title}`}
               >
-                <div className="project-phase-card-header">
-                  <span className="project-phase-card-week">Week {weekNumber}</span>
-                  <span className={`project-phase-card-status project-phase-card-status--${phase.status || 'not_started'}`}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-heading text-xs text-ink-muted uppercase tracking-wider">Week {weekNumber}</span>
+                  <Badge variant={isCompleted ? 'completed' : isInProgress ? 'development' : 'default'}>
                     {statusLabel}
-                  </span>
+                  </Badge>
                 </div>
-                <h4 className="project-phase-card-title">{phase.title || `Phase ${weekNumber}`}</h4>
+                <h4 className="font-heading text-sm text-ink uppercase tracking-wide m-0 mb-2">{phase.title || `Phase ${weekNumber}`}</h4>
                 {subSteps.length > 0 && (
-                  <div className="project-phase-card-progress">
-                    <div className="project-phase-card-progress-bar">
+                  <div className="mt-auto">
+                    <div className="project-phase-card-progress-bar h-1.5 bg-surface-gray w-full mb-1">
                       <div
-                        className="project-phase-card-progress-fill"
+                        className="h-full bg-primary transition-all duration-300"
                         style={{ width: `${subStepsProgress}%` }}
                       />
                     </div>
-                    <span className="project-phase-card-progress-label">
+                    <span className="text-xs text-ink-muted">
                       {completedSubSteps} of {subSteps.length} sub-steps
                     </span>
                   </div>
                 )}
                 {(phase.estimatedDurationDays || phase.actualDurationDays) && (
-                  <div className="project-phase-card-duration">
+                  <div className="text-xs text-ink-muted mt-2">
                     {phase.actualDurationDays != null && (
                       <span>{phase.actualDurationDays} day{phase.actualDurationDays !== 1 ? 's' : ''} actual</span>
                     )}
@@ -417,7 +422,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
                   approved={phase.clientApproved}
                   variant="card"
                 />
-              </div>
+              </Card>
             )
           })}
         </div>

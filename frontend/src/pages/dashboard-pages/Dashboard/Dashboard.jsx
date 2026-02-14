@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRole } from '../../../hooks/useRole'
 import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
+import { Button, Card, Badge, PageTitle, SectionTitle } from '../../../components/ui-components'
 import { getAIPreviewUsage, projectAPI } from '../../../services/api'
 import { getRoleDisplayLabel } from '../../../utils/roles'
 import { getDashboardConfigForRole } from '../../../utils/dashboardRoleConfig'
@@ -76,10 +77,10 @@ const Dashboard = () => {
       <div className="dashboard-container">
         <div className="dashboard-header">
           <div className="dashboard-header-left">
-            <h1>Dashboard</h1>
-            <h3 className={`role-badge ${roleBadgeClass} dashboard-role-badge`}>
+            <PageTitle>Dashboard</PageTitle>
+            <Badge variant={user?.role || 'default'} className={`role-badge ${roleBadgeClass} dashboard-role-badge`}>
               {getRoleDisplayLabel(user?.role)}
-            </h3>
+            </Badge>
             {user?.company && (
               <div className="dashboard-user-info">
                 <span className="dashboard-user-meta">{user.company}</span>
@@ -91,8 +92,8 @@ const Dashboard = () => {
         <div className="dashboard-content">
           <div className="dashboard-main-card">
             <div className="dashboard-main-grid">
-              <section className="dashboard-main-block dashboard-main-block--projects">
-                <h3>{roleBlock.title}</h3>
+              <Card variant="accent" as="section" className="dashboard-main-block dashboard-main-block--projects p-6">
+                <SectionTitle>{roleBlock.title}</SectionTitle>
                 {projectsLoading ? (
                   <div className="dashboard-project-summary">
                     <span className="dashboard-project-count">Loading projects…</span>
@@ -141,26 +142,28 @@ const Dashboard = () => {
                     )}
                     <div className="dashboard-actions">
                       {roleBlock.links.map(({ to, label }) => (
-                        <Link key={to + label} to={to} className="dashboard-link">
+                        <Button key={to + label} to={to} variant="primary" size="sm" className="dashboard-link">
                           {label}
-                        </Link>
+                        </Button>
                       ))}
                     </div>
                   </>
                 )}
-              </section>
+              </Card>
 
               {showAiUsage && (
-                <section className="dashboard-main-block">
-                  <h3>AI Preview Usage</h3>
+                <Card variant="accent" as="section" className="dashboard-main-block p-6">
+                  <SectionTitle>AI Preview Usage</SectionTitle>
                   <div className="dashboard-usage-row">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       className="dashboard-link dashboard-usage-toggle"
                       onClick={() => setShowAiUsageDetails((v) => !v)}
                     >
                       {showAiUsageDetails ? 'Hide Usage' : 'View Usage'}
-                    </button>
+                    </Button>
                     {showAiUsageDetails && (
                       <span className="ai-usage-stats">
                         {aiUsage ? (
@@ -171,7 +174,7 @@ const Dashboard = () => {
                       </span>
                     )}
                   </div>
-                </section>
+                </Card>
               )}
             </div>
           </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import Header from '../../../components/layout-components/Header/Header'
+import { Button, Card, Alert, PageTitle, Input } from '../../../components/ui-components'
 import './ChangePassword.css'
 
 const ChangePassword = () => {
@@ -68,7 +69,7 @@ const ChangePassword = () => {
     <>
       <Header />
       <div className="change-password-container">
-        <div className="change-password-card">
+        <Card variant="outline" className="change-password-card">
           <Link to="/dashboard" className="change-password-back">
             ← Go back
           </Link>
@@ -79,69 +80,34 @@ const ChangePassword = () => {
 
           <form onSubmit={handleSubmit} className="change-password-form">
             {(localError || authError) && (
-              <div className="error-message">
+              <Alert variant="error">
                 {localError || authError}
-              </div>
+              </Alert>
             )}
 
             {successMessage && (
-              <div className="success-message">
+              <Alert variant="success">
                 {successMessage}
-              </div>
+              </Alert>
             )}
 
-            <div className="form-group">
-              <label htmlFor="currentPassword">Current Password *</label>
-              <input
-                type="password"
-                id="currentPassword"
-                name="currentPassword"
-                value={formData.currentPassword}
-                onChange={handleChange}
-                placeholder="Enter your current password"
-                required
-                disabled={loading}
-              />
-            </div>
+            <Input type="password" id="currentPassword" label="Current Password" required name="currentPassword" value={formData.currentPassword} onChange={handleChange} placeholder="Enter your current password" disabled={loading} wrapperClassName="form-group" />
 
-            <div className="form-group">
-              <label htmlFor="newPassword">New Password *</label>
-              <input
-                type="password"
-                id="newPassword"
-                name="newPassword"
-                value={formData.newPassword}
-                onChange={handleChange}
-                placeholder="At least 6 characters"
-                required
-                disabled={loading}
-                minLength={6}
-              />
-            </div>
+            <Input type="password" id="newPassword" label="New Password" required name="newPassword" value={formData.newPassword} onChange={handleChange} placeholder="At least 6 characters" disabled={loading} minLength={6} wrapperClassName="form-group" />
 
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm New Password *</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm your new password"
-                required
-                disabled={loading}
-              />
-            </div>
+            <Input type="password" id="confirmPassword" label="Confirm New Password" required name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm your new password" disabled={loading} wrapperClassName="form-group" />
 
-            <button
+            <Button
               type="submit"
-              className="change-password-button"
+              variant="primary"
+              size="lg"
+              className="w-full change-password-button"
               disabled={loading}
             >
               {loading ? 'Changing Password...' : 'Change Password'}
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
       </div>
     </>
   )

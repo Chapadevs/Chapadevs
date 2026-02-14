@@ -1,13 +1,10 @@
 .timeline-empty {
   text-align: center;
   padding: 3rem 1rem;
-  color: #666;
 }
 
 .timeline-empty-hint {
-  font-size: 0.9rem;
   margin-top: 0.5rem;
-  color: #888;
 }
 
 .timeline-create-steps-empty {
@@ -23,13 +20,10 @@
 
 /* Review timeline proposal */
 .timeline-proposal-intro {
-  color: var(--text-secondary, #374151);
   margin-bottom: 1rem;
-  font-size: 0.9rem;
 }
 
 .timeline-proposal-loading {
-  color: #666;
   margin-bottom: 1rem;
 }
 
@@ -47,23 +41,16 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem;
-  background: var(--background-gray, #f9fafb);
-  border: 1px solid var(--border, #e5e7eb);
 }
 
 .timeline-proposal-label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary, #374151);
 }
 
 .timeline-proposal-label input {
   padding: 0.5rem;
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0;
-  font-size: 0.9rem;
 }
 
 /* Project phases – linear progress / stepper */
@@ -80,16 +67,6 @@
   gap: 0.75rem 1rem;
   margin-bottom: 1rem;
   padding: 0.75rem 1rem;
-  background: var(--background-light-green, #ecfdf5);
-  border-left: 4px solid var(--primary-green, #059669);
-  border-radius: 0;
-}
-
-.timeline-pending-approvals-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary, #111827);
-  font-family: 'Creato Display Medium', serif;
 }
 
 .timeline-pending-approvals-list {
@@ -107,21 +84,6 @@
 
 .timeline-pending-approvals-link {
   padding: 0.25rem 0.5rem;
-  border: none;
-  background: none;
-  color: var(--primary-green, #059669);
-  font-size: 0.85rem;
-  font-weight: 600;
-  font-family: 'Creato Display Medium', serif;
-  cursor: pointer;
-  text-decoration: none;
-  border-radius: 0;
-  transition: color 0.2s, background 0.2s;
-}
-
-.timeline-pending-approvals-link:hover {
-  color: var(--primary-green-dark, #047857);
-  text-decoration: underline;
 }
 
 .project-phases-linear {
@@ -133,22 +95,13 @@
 /* Top progress bar (loading-style) */
 .project-phases-progress-bar {
   height: 8px;
-  background: #e5e7eb;
-  border-radius: 999px;
   overflow: hidden;
 }
 
 .project-phases-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--primary-green, #059669), #34d399);
-  border-radius: 999px;
   transition: width 0.35s ease;
-}
-
-.project-phases-progress-label {
-  font-size: 0.8rem;
-  color: #6b7280;
-  font-weight: 500;
 }
 
 /* Scrollable steps with arrows */
@@ -167,28 +120,9 @@
   height: 100%;
   min-height: 44px;
   padding: 0;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #6b7280;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-}
-
-.project-phases-scroll-btn:hover {
-  background: #f3f4f6;
-  color: #111;
-  border-color: #d1d5db;
-}
-
-.project-phases-scroll-btn:focus {
-  outline: 2px solid var(--primary-green, #059669);
-  outline-offset: 2px;
 }
 
 .project-phases-scroll {
@@ -231,8 +165,6 @@
   top: 50%;
   transform: translateY(-50%);
   height: 4px;
-  background: #e5e7eb;
-  border-radius: 2px;
   z-index: 0;
 }
 
@@ -242,8 +174,6 @@
   top: 50%;
   transform: translateY(-50%);
   height: 4px;
-  background: var(--primary-green, #059669);
-  border-radius: 2px;
   z-index: 1;
   transition: width 0.35s ease;
 }
@@ -264,75 +194,13 @@
 .project-phase-step-node {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e5e7eb;
-  color: #6b7280;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: none;
-  box-shadow: none;
-  transition: background 0.2s, color 0.2s, transform 0.2s;
-}
-
-.project-phase-step.step-completed .project-phase-step-node {
-  background: var(--primary-green, #059669);
-  color: white;
-  box-shadow: none;
-}
-
-.project-phase-step.step-in-progress .project-phase-step-node {
-  background: #fef3c7;
-  color: #b45309;
-  box-shadow: none;
-}
-
-.project-phase-step-icon {
-  font-size: 0.9rem;
-  line-height: 1;
-  font-weight: 700;
-}
-
-.project-phase-step-number {
-  line-height: 1;
-}
-
-.project-phase-step-clickable {
-  cursor: pointer;
 }
 
 .project-phase-step-clickable:hover .project-phase-step-node {
   transform: scale(1.08);
-  box-shadow: none;
-}
-
-.project-phase-step.step-locked {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.project-phase-step.step-locked .project-phase-step-node {
-  opacity: 0.8;
-}
-
-.project-phase-label-clickable {
-  cursor: pointer;
-}
-
-.project-phase-label-clickable:hover .project-phase-label-title {
-  color: var(--primary-green, #059669);
-  text-decoration: underline;
-}
-
-.project-phase-label-wrap.label-locked {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.project-phase-label-wrap.label-locked .project-phase-label-title {
-  color: #9ca3af;
 }
 
 /* Labels row under the track – aligned with nodes */
@@ -368,23 +236,11 @@
 }
 
 .project-phase-label-title {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #6b7280;
-  line-height: 1.2;
   display: block;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.project-phase-label-wrap.label-completed .project-phase-label-title {
-  color: var(--primary-green, #059669);
-}
-
-.project-phase-label-wrap.label-active .project-phase-label-title {
-  color: #b45309;
 }
 
 .project-phase-label-actions {
@@ -401,11 +257,10 @@
   min-height: 26px;
   min-width: 3.5rem;
   padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
   white-space: nowrap;
 }
 
-/* Phase step progress indicator – hidden (green line under step node removed) */
+/* Phase step progress indicator – hidden */
 .project-phase-step-progress {
   display: none;
 }
@@ -416,24 +271,15 @@
   right: -8px;
   width: 20px;
   height: 20px;
-  background: #f59e0b;
-  color: white;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
 
 .project-phase-label-duration {
   display: block;
-  font-size: 0.7rem;
-  color: #888;
   margin-top: 0.25rem;
-  font-weight: normal;
 }
 
 /* AI Preview Context Section */
@@ -443,39 +289,16 @@
   gap: 0.75rem;
   margin-bottom: 1rem;
   padding: 0.5rem 0.75rem;
-  background: var(--background-light-green, #ecfdf5);
-  border-left: 4px solid var(--primary-green, #059669);
-  border-radius: 0;
 }
 
 .preview-count-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.65rem;
-  background: var(--primary-green, #059669);
-  color: white;
-  border-radius: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-family: 'Creato Display Medium', serif;
 }
 
 .timeline-preview-link {
   padding: 0.25rem 0;
-  border: none;
-  background: none;
-  color: var(--primary-green, #059669);
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-family: 'Creato Display Medium', serif;
-  cursor: pointer;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.timeline-preview-link:hover {
-  color: var(--primary-green-dark, #047857);
-  text-decoration: underline;
 }
 
 /* Phase cards grid */
@@ -485,43 +308,11 @@
   gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--border, #e5e7eb);
 }
 
 .project-phase-card {
-  background: var(--background, #ffffff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0;
   padding: 1rem;
   text-align: left;
-  cursor: default;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.project-phase-card-clickable {
-  cursor: pointer;
-}
-
-.project-phase-card-clickable:hover {
-  border-color: var(--primary-green, #059669);
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.1);
-}
-
-.project-phase-card-locked {
-  opacity: 0.7;
-  background: var(--background-gray, #f9fafb);
-}
-
-.project-phase-card-completed {
-  border-left: 4px solid var(--primary-green, #059669);
-}
-
-.project-phase-card-in-progress {
-  border-left: 4px solid #f59e0b;
-}
-
-.project-phase-card-pending {
-  border-left: 4px solid #d1d5db;
 }
 
 .project-phase-card-header {
@@ -531,45 +322,12 @@
   margin-bottom: 0.5rem;
 }
 
-.project-phase-card-week {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--primary-green, #059669);
-  font-family: 'Creato Display Medium', serif;
-}
-
 .project-phase-card-status {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   padding: 0.2rem 0.4rem;
-  border-radius: 0;
-}
-
-.project-phase-card-status--completed {
-  background: rgba(5, 150, 105, 0.15);
-  color: var(--primary-green, #059669);
-}
-
-.project-phase-card-status--in_progress {
-  background: rgba(245, 158, 11, 0.15);
-  color: #b45309;
-}
-
-.project-phase-card-status--not_started,
-.project-phase-card-status--pending {
-  background: #f3f4f6;
-  color: var(--text-secondary, #6b7280);
 }
 
 .project-phase-card-title {
-  font-family: 'Code Bold', monospace;
-  font-size: 1rem;
-  font-weight: bold;
-  color: var(--text-primary, #111827);
   margin: 0 0 0.5rem 0;
-  line-height: 1.3;
 }
 
 .project-phase-card-progress {
@@ -578,40 +336,21 @@
 
 .project-phase-card-progress-bar {
   height: 4px;
-  background: #e5e7eb;
-  border-radius: 0;
   overflow: hidden;
   margin-bottom: 0.25rem;
 }
 
 .project-phase-card-progress-fill {
   height: 100%;
-  background: var(--primary-green, #059669);
-  border-radius: 0;
   transition: width 0.35s ease;
 }
 
-.project-phase-card-progress-label {
-  font-size: 0.7rem;
-  color: var(--text-light, #6b7280);
-}
-
 .project-phase-card-duration {
-  font-size: 14px;
-  line-height: 35px;
-  color: var(--text-light, #6b7280);
-  margin-top: 34px;
   height: 22px;
-  border-width: 0;
-  border-style: none;
-  border-color: transparent;
-  border-image: none;
+  margin-top: 34px;
 }
 
 .project-phase-card-approval-badge {
   display: inline-block;
-  font-size: 0.7rem;
-  color: #b45309;
   margin-top: 0.5rem;
-  font-weight: 600;
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { useRole } from '../../../hooks/useRole'
 import Header from '../../../components/layout-components/Header/Header'
 import NotificationBadge from '../../../components/user-components/NotificationBadge/NotificationBadge'
+import { Button, Card, Alert, SectionTitle, Input, Textarea } from '../../../components/ui-components'
 import './Profile.css'
 
 const Profile = () => {
@@ -326,7 +327,7 @@ const Profile = () => {
     <>
       <Header />
       <div className="profile-container">
-        <div className="profile-card">
+        <Card variant="outline" className="profile-card p-8">
           <Link to="/dashboard" className="profile-back">
             ← Go back
           </Link>
@@ -369,25 +370,29 @@ const Profile = () => {
               <h1>Profile Settings<NotificationBadge /></h1>
               {editingBio ? (
                 <div className="profile-bio-edit">
-                  <textarea
+                  <Textarea
                     value={bioValue}
                     onChange={(e) => setBioValue(e.target.value)}
                     placeholder="Tell us about yourself..."
-                    rows="3"
+                    rows={3}
                     className="profile-bio-textarea"
                     autoFocus
                   />
                   <div className="profile-bio-edit-actions">
-                    <button
+                    <Button
                       type="button"
+                      variant="primary"
+                      size="sm"
                       className="profile-bio-save"
                       onClick={handleSaveBio}
                       disabled={loading}
                     >
                       Save
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       className="profile-bio-cancel"
                       onClick={() => {
                         setBioValue(user?.bio || '')
@@ -395,7 +400,7 @@ const Profile = () => {
                       }}
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -422,118 +427,37 @@ const Profile = () => {
             {/* Profile Information Form */}
             <form id="profile-form" onSubmit={handleProfileSubmit}>
               {(profileError || (authError && !passwordError)) && (
-                <div className="error-message">
+                <Alert variant="error">
                   {profileError || authError}
-                </div>
+                </Alert>
               )}
 
               {profileSuccess && (
-                <div className="success-message">
+                <Alert variant="success">
                   {profileSuccess}
-                </div>
+                </Alert>
               )}
 
               {/* Profile fields: Basic + role-specific in one section */}
               <div className="form-section form-section--unified">
-                <h3>Profile Information</h3>
+                <SectionTitle className="mb-4">Profile Information</SectionTitle>
                 <div className="profile-form-grid">
-                  <div className="form-group">
-                    <label htmlFor="name">Full Name *</label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="John Doe"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                  <Input type="text" id="name" label="Full Name" required name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" disabled={loading} wrapperClassName="form-group" />
 
-                  <div className="form-group">
-                    <label htmlFor="email">Email *</label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="your@email.com"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                  <Input type="email" id="email" label="Email" required name="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" disabled={loading} wrapperClassName="form-group" />
 
                   {isClient && (
                     <>
-                      <div className="form-group">
-                        <label htmlFor="company">Company</label>
-                        <input
-                          type="text"
-                          id="company"
-                          name="company"
-                          value={formData.company}
-                          onChange={handleChange}
-                          placeholder="Your Company Name"
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="phone">Phone</label>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="+1 (555) 123-4567"
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="industry">Industry</label>
-                        <input
-                          type="text"
-                          id="industry"
-                          name="industry"
-                          value={formData.industry}
-                          onChange={handleChange}
-                          placeholder="e.g., Technology, Healthcare, Finance"
-                          disabled={loading}
-                        />
-                      </div>
+                      <Input type="text" id="company" label="Company" name="company" value={formData.company} onChange={handleChange} placeholder="Your Company Name" disabled={loading} wrapperClassName="form-group" />
+                      <Input type="tel" id="phone" label="Phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="+1 (555) 123-4567" disabled={loading} wrapperClassName="form-group" />
+                      <Input type="text" id="industry" label="Industry" name="industry" value={formData.industry} onChange={handleChange} placeholder="e.g., Technology, Healthcare, Finance" disabled={loading} wrapperClassName="form-group" />
                     </>
                   )}
 
                   {isProgrammer && (
                     <>
-                      <div className="form-group">
-                        <label htmlFor="skills">Skills (comma-separated)</label>
-                        <input
-                          type="text"
-                          id="skills"
-                          name="skills"
-                          value={formData.skills}
-                          onChange={handleChange}
-                          placeholder="React, Node.js, Python"
-                          disabled={loading}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="hourlyRate">Hourly Rate</label>
-                        <input
-                          type="number"
-                          id="hourlyRate"
-                          name="hourlyRate"
-                          value={formData.hourlyRate}
-                          onChange={handleChange}
-                          placeholder="e.g., 50"
-                          min="0"
-                          step="0.01"
-                          disabled={loading}
-                        />
-                      </div>
+                      <Input type="text" id="skills" label="Skills (comma-separated)" name="skills" value={formData.skills} onChange={handleChange} placeholder="React, Node.js, Python" disabled={loading} wrapperClassName="form-group" />
+                      <Input type="number" id="hourlyRate" label="Hourly Rate" name="hourlyRate" value={formData.hourlyRate} onChange={handleChange} placeholder="e.g., 50" min="0" step="0.01" disabled={loading} wrapperClassName="form-group" />
                     </>
                   )}
                 </div>
@@ -543,84 +467,78 @@ const Profile = () => {
             {/* Section 4: Security - Password Change */}
             <form onSubmit={handlePasswordSubmit} className="password-form-section">
               <div className="form-section">
-                <h3>Security</h3>
+                <SectionTitle className="mb-4">Security</SectionTitle>
                 <p className="form-section-description">
                   To change your password, we'll send a confirmation email to your registered email address.
                 </p>
                 {passwordError && (
-                  <div className="error-message">
+                  <Alert variant="error">
                     {passwordError}
-                  </div>
+                  </Alert>
                 )}
 
                 {passwordSuccess && (
-                  <div className="success-message">
+                  <Alert variant="success">
                     {passwordSuccess}
-                  </div>
+                  </Alert>
                 )}
 
                 <div className="profile-form-grid">
-                  <div className="form-group">
-                    <label htmlFor="currentPassword">Current Password *</label>
-                    <input
-                      type="password"
-                      id="currentPassword"
-                      name="currentPassword"
-                      value={passwordData.currentPassword}
-                      onChange={handlePasswordChange}
-                      placeholder="Enter your current password"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
+                  <Input type="password" id="currentPassword" label="Current Password" required name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} placeholder="Enter your current password" disabled={loading} wrapperClassName="form-group" />
                 </div>
 
                 <div className="profile-form-actions">
-                  <button
+                  <Button
                     type="submit"
+                    variant="primary"
+                    size="lg"
                     className="profile-button"
                     disabled={loading}
                   >
                     {loading ? 'Sending confirmation email...' : 'Request Password Change'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
 
             {/* Delete Account Section */}
             <div className="form-section form-section--danger">
-              <h3>Danger Zone</h3>
+              <SectionTitle className="mb-4">Danger Zone</SectionTitle>
               <p className="form-section-description">
                 Once you delete your account, there is no going back. Please be certain.
               </p>
               {deleteError && (
-                <div className="error-message form-section-error">
+                <Alert variant="error" className="form-section-error">
                   {deleteError}
-                </div>
+                </Alert>
               )}
-              <button
+              <Button
                 type="button"
+                variant="danger"
+                size="lg"
                 className="profile-button profile-button-danger"
                 onClick={handleDeleteProfile}
                 disabled={deleting || loading}
               >
                 {deleting ? 'Deleting Account...' : 'Delete My Account'}
-              </button>
+              </Button>
             </div>
 
             {/* Update Profile Button - Moved to bottom */}
             <div className="profile-form-actions">
-              <button
+              <Button
                 type="submit"
                 form="profile-form"
+                variant="primary"
+                size="lg"
                 className="profile-button"
                 disabled={loading}
               >
                 {loading ? 'Saving...' : 'Save'}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </>
   )

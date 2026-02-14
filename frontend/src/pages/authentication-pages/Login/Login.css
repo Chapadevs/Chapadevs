@@ -1,3 +1,5 @@
+/* Login.css — Shared layout for Login, ResetPassword, ConfirmPasswordChange, ForgotPassword */
+
 .login-container {
   min-height: 100vh;
   display: grid;
@@ -9,33 +11,21 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--background-light-green) 0%, var(--background) 100%);
   padding: 2rem;
 }
 
 .login-brand-link {
   display: flex;
   justify-content: center;
-  text-decoration: none;
-  transition: transform 0.2s ease;
-}
-
-.login-brand-link:hover {
-  transform: scale(1.05);
 }
 
 .login-brand-logo {
   height: 120px;
   width: auto;
-  object-fit: contain;
 }
 
 .login-brand-tagline {
   margin-top: 1.5rem;
-  font-family: "Code Bold", monospace;
-  font-size: 1.125rem;
-  color: var(--primary-green);
-  letter-spacing: 0.02em;
 }
 
 .login-form-panel {
@@ -43,14 +33,9 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: var(--background);
 }
 
 .login-card {
-  background: var(--background);
-  border-radius: 0;
-  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(16, 185, 129, 0.2);
   padding: 3rem;
   width: 100%;
   max-width: 420px;
@@ -58,30 +43,15 @@
 }
 
 .login-header {
-  text-align: center;
   margin-bottom: 2rem;
 }
 
 .login-header h1 {
-  font-family: "Code Bold", monospace;
-  font-size: 2rem;
-  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
-.login-header p {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
 .login-info-message {
-  background-color: #ecfdf5;
-  color: #065f46;
   padding: 0.875rem;
-  border-radius: 0;
-  font-size: 0.875rem;
-  border: 1px solid #a7f3d0;
-  text-align: center;
   margin-bottom: 1rem;
 }
 
@@ -98,21 +68,11 @@
 }
 
 .error-message {
-  background-color: #fef2f2;
-  color: #dc2626;
   padding: 0.875rem;
-  border-radius: 0;
-  font-size: 0.875rem;
-  border: 1px solid #fecaca;
-  text-align: center;
 }
 
 .login-verify-hint {
   margin: 0;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  text-align: center;
-  line-height: 1.4;
 }
 
 .form-group {
@@ -121,114 +81,27 @@
   gap: 0.25rem;
 }
 
-.form-group label {
-  font-family: "Code Bold", monospace;
-  font-weight: 600;
-  color: #10b981;
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
 .form-group input {
   padding: 15px 20px;
-  border: 2px solid #e5e7eb;
-  border-radius: 0;
-  font-size: 0.95rem;
-  background: #ffffff;
-  font-family: "Coolvetica", sans-serif;
   width: 100%;
   box-sizing: border-box;
-  transition: all 0.2s;
-  color: var(--text-primary);
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #10b981;
-}
-
-.form-group input:disabled {
-  background-color: var(--background-gray);
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .login-button {
-  background-color: #059669;
-  color: #FFFFFF;
-  border: 2px solid #059669;
-  border-radius: 0;
   padding: 0.875rem 2.25rem;
-  font-family: "Code Bold", monospace;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  transition: all 0.3s ease;
   margin-top: 0.5rem;
   width: 100%;
   box-sizing: border-box;
 }
 
-.login-button:hover:not(:disabled) {
-  background-color: #0d9488;
-  border-color: #0d9488;
-  color: #FFFFFF;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
-}
-
-.login-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
-}
-
-.login-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
 .login-forgot-link {
   margin: 0.5rem 0 0;
-  text-align: center;
-  font-size: 0.875rem;
-}
-
-.login-forgot-link a {
-  color: var(--primary-green);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.login-forgot-link a:hover {
-  text-decoration: underline;
 }
 
 .login-footer {
   margin-top: 2rem;
-  text-align: center;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border);
-}
-
-.login-footer p {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-.login-footer a {
-  color: var(--primary-green);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.login-footer a:hover {
-  color: var(--primary-green-dark);
-  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
@@ -247,7 +120,6 @@
 
   .login-brand-tagline {
     margin-top: 1rem;
-    font-size: 1rem;
   }
 
   .login-form-panel {
@@ -259,9 +131,4 @@
   .login-card {
     padding: 2rem 1.5rem;
   }
-
-  .login-header h1 {
-    font-size: 1.75rem;
-  }
 }
-

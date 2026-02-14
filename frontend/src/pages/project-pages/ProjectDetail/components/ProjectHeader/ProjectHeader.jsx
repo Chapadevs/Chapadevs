@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { getStatusBadgeClass } from '../../utils/projectUtils'
+import { Button, Badge } from '../../../../../components/ui-components'
 import './ProjectHeader.css'
 
 const ProjectHeader = ({
@@ -35,94 +35,110 @@ const ProjectHeader = ({
   return (
     <div className="project-detail-header">
       <div>
-        <Link to="/projects" className="project-detail-back">← Back to Projects</Link>
+        <Button to="/projects" variant="ghost" size="sm" className="project-detail-back">← Back to Projects</Button>
         <div className="project-header-title-row">
           <h1>{project.title}</h1>
-          <span className={`project-header-status-badge ${getStatusBadgeClass(project.status)}`}>
+          <Badge variant={project.status?.toLowerCase() || 'default'} className={`project-header-status-badge ${getStatusBadgeClass(project.status)}`}>
             {project.status}
-          </span>
+          </Badge>
         </div>
         <div className="project-header-meta">
           {canToggleTeamClosed && onToggleTeamClosed && (
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               className={`project-header-team-toggle-btn ${project.status === 'Open' ? 'btn-close' : 'btn-open'}`}
               onClick={onToggleTeamClosed}
               disabled={togglingTeamClosed}
             >
               {togglingTeamClosed ? 'Updating...' : project.status === 'Open' ? 'Close Team' : 'Open Team'}
-            </button>
+            </Button>
           )}
           {canConfirmReady && onConfirmReady && (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               className="project-header-confirm-ready-btn"
               onClick={onConfirmReady}
               disabled={confirmingReady}
             >
               {confirmingReady ? 'Confirming...' : "I'm Ready"}
-            </button>
+            </Button>
           )}
           {canMarkReady && onMarkReady && (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               className="project-header-mark-ready-btn"
               onClick={onMarkReady}
               disabled={markingReady || !allTeamConfirmedReady}
               title={!allTeamConfirmedReady ? 'All team members must confirm they are ready first' : undefined}
             >
               {markingReady ? 'Marking...' : 'Mark Ready'}
-            </button>
+            </Button>
           )}
           {canStartDevelopment && onStartDevelopment && (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               className="project-header-start-dev-btn"
               onClick={onStartDevelopment}
               disabled={startingDevelopment}
             >
               {startingDevelopment ? 'Starting...' : 'Start Development'}
-            </button>
+            </Button>
           )}
           {canStopDevelopment && onStopDevelopment && (
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               className="project-header-stop-dev-btn"
               onClick={onStopDevelopment}
               disabled={stoppingDevelopment}
             >
               {stoppingDevelopment ? 'Stopping...' : 'Stop Development'}
-            </button>
+            </Button>
           )}
           {canSetToHolding && onMarkHolding && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               className="project-header-on-hold-btn"
               onClick={onMarkHolding}
               disabled={markingHolding}
             >
               {markingHolding ? 'Updating...' : 'Set to On Hold'}
-            </button>
+            </Button>
           )}
           {showLeaveButton && (
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               className="project-header-leave-btn"
               onClick={onLeaveProject}
               disabled={leavingProject}
             >
               {leavingProject ? 'Leaving...' : 'Leave Project'}
-            </button>
+            </Button>
           )}
           {canDelete && onDelete && (
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               className="project-header-delete-btn"
               onClick={onDelete}
               aria-label="Delete project"
             >
               Delete project
-            </button>
+            </Button>
           )}
         </div>
       </div>

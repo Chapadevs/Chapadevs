@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext'
 import RoleGate from '../RoleGate/RoleGate'
 import NotificationBell from '../../user-components/NotificationBell/NotificationBell'
 import UserStatusDropdown from '../../user-components/UserStatusDropdown/UserStatusDropdown'
+import { Button } from '../../ui-components'
 import './Header.css'
 
 const Header = () => {
@@ -119,8 +120,9 @@ const Header = () => {
             onMouseEnter={() => setPlatformOpen(true)}
             onMouseLeave={() => setPlatformOpen(false)}
           >
-            <button
+            <Button
               type="button"
+              variant="nav"
               className="header-btn header-btn--platform"
               aria-expanded={platformOpen}
               aria-haspopup="true"
@@ -130,7 +132,7 @@ const Header = () => {
               onKeyDown={handlePlatformKeyDown}
             >
               PLATFORM
-            </button>
+            </Button>
             <div
               id="platform-dropdown"
               className={`platform-dropdown ${platformOpen ? 'platform-dropdown--open' : ''}`}
@@ -158,8 +160,9 @@ const Header = () => {
             onMouseEnter={() => setResourcesOpen(true)}
             onMouseLeave={() => setResourcesOpen(false)}
           >
-            <button
+            <Button
               type="button"
+              variant="nav"
               className="header-btn header-btn--resources"
               aria-expanded={resourcesOpen}
               aria-haspopup="true"
@@ -169,7 +172,7 @@ const Header = () => {
               onKeyDown={handleResourcesKeyDown}
             >
               RESOURCES
-            </button>
+            </Button>
             <div
               id="resources-dropdown"
               className={`resources-dropdown ${resourcesOpen ? 'resources-dropdown--open' : ''}`}
@@ -191,8 +194,9 @@ const Header = () => {
             onMouseEnter={() => setExploreOpen(true)}
             onMouseLeave={() => setExploreOpen(false)}
           >
-            <button
+            <Button
               type="button"
+              variant="nav"
               className="header-btn header-btn--explore"
               aria-expanded={exploreOpen}
               aria-haspopup="true"
@@ -202,7 +206,7 @@ const Header = () => {
               onKeyDown={handleExploreKeyDown}
             >
               EXPLORE
-            </button>
+            </Button>
             <div
               id="explore-dropdown"
               className={`explore-dropdown ${exploreOpen ? 'explore-dropdown--open' : ''}`}
@@ -223,23 +227,25 @@ const Header = () => {
         </div>
         <nav className="header-navigation" aria-label="Account and actions">
           {!isAuthenticated ? (
-            <Link to="/login" className="header-btn header-btn--login">
+            <Button to="/login" variant="primary" size="sm" className="header-btn header-btn--login">
               LOGIN
-            </Link>
+            </Button>
           ) : (
             <div className="user-menu">
               <RoleGate allow={['admin']}>
-                <Link to="/admin" className="header-btn header-btn--admin">
+                <Button to="/admin" variant="ghost" size="sm" className="header-btn header-btn--admin">
                   ADMIN
-                </Link>
+                </Button>
               </RoleGate>
               <NotificationBell />
-              <Link to="/projects" className="header-btn header-btn--profile">
+              <Button to="/projects" variant="ghost" size="sm" className="header-btn header-btn--profile">
                 PROJECTS
-              </Link>
+              </Button>
               <UserStatusDropdown />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 className="header-btn header-btn--logout"
                 onClick={handleLogout}
                 aria-label="Log out"
@@ -260,7 +266,7 @@ const Header = () => {
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
-              </button>
+              </Button>
             </div>
           )}
         </nav>

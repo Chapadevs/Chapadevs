@@ -5,6 +5,7 @@ import ClientQuestion from './ClientQuestion'
 import AttachmentManager from './AttachmentManager'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
 import { isPendingApproval } from '../../../utils/phaseApprovalUtils'
+import { Button, Alert, Textarea } from '../../ui-components'
 import './PhaseDetail.css'
 
 const PhaseDetail = ({
@@ -211,35 +212,39 @@ const PhaseDetail = ({
               </div>
             )}
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             className="project-phase-modal-close"
             onClick={onClose}
             aria-label="Close"
           >
             ×
-          </button>
+          </Button>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <Alert variant="error">{error}</Alert>}
 
         <div className="project-phase-modal-tabs">
-          <button
+          <Button
+            variant="ghost"
             className={`project-phase-modal-tab ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >
             Overview
-          </button>
+          </Button>
           {subSteps.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
               className={`project-phase-modal-tab ${activeTab === 'substeps' ? 'active' : ''}`}
               onClick={() => setActiveTab('substeps')}
             >
               Sub-steps ({completedSubSteps}/{subSteps.length})
-            </button>
+            </Button>
           )}
           {localPhase.clientQuestions && localPhase.clientQuestions.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
               className={`project-phase-modal-tab ${activeTab === 'questions' ? 'active' : ''}`}
               onClick={() => setActiveTab('questions')}
             >
@@ -249,21 +254,23 @@ const PhaseDetail = ({
                   {localPhase.clientQuestions.filter((q) => q.required && !q.answer).length}
                 </span>
               )}
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
             className={`project-phase-modal-tab ${activeTab === 'attachments' ? 'active' : ''}`}
             onClick={() => setActiveTab('attachments')}
           >
             Attachments ({localPhase.attachments?.length || 0})
-          </button>
+          </Button>
           {canSaveNotes && (
-            <button
+            <Button
+              variant="ghost"
               className={`project-phase-modal-tab ${activeTab === 'notes' ? 'active' : ''}`}
               onClick={() => setActiveTab('notes')}
             >
               Notes
-            </button>
+            </Button>
           )}
         </div>
 
@@ -334,25 +341,27 @@ const PhaseDetail = ({
 
               <div className="phase-actions">
                 {canStartPhase && (
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
                     className="btn btn-primary"
                     disabled={loading}
                     onClick={() => handleStatusChange('in_progress')}
                   >
                     Start Phase
-                  </button>
+                  </Button>
                 )}
 
                 {canCompletePhase && !needsApproval && (
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
                     className="btn btn-primary"
                     disabled={loading}
                     onClick={() => handleStatusChange('completed')}
                   >
                     Mark Complete
-                  </button>
+                  </Button>
                 )}
 
                 {canCompletePhase && needsApproval && (
@@ -363,22 +372,24 @@ const PhaseDetail = ({
 
                 {needsApproval && canApprove && (
                   <div className="phase-approval-actions">
-                    <button
+                    <Button
                       type="button"
+                      variant="primary"
                       className="btn btn-success"
                       disabled={loading}
                       onClick={() => handleApprove(true)}
                     >
                       Approve Phase
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
                       className="btn btn-secondary"
                       disabled={loading}
                       onClick={() => handleApprove(false)}
                     >
                       Request Changes
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -406,8 +417,10 @@ const PhaseDetail = ({
                 </div>
               )}
               {canUpdateSubSteps && (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   className="btn btn-secondary btn-sm"
                   onClick={() =>
                     handleSubStepUpdate(null, {
@@ -418,7 +431,7 @@ const PhaseDetail = ({
                   }
                 >
                   + Add Sub-step
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -459,7 +472,7 @@ const PhaseDetail = ({
 
           {activeTab === 'notes' && (
             <div className="phase-notes">
-              <textarea
+              <Textarea
                 className="notes-textarea"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -468,14 +481,15 @@ const PhaseDetail = ({
                 disabled={!canSaveNotes}
               />
               {canSaveNotes && (
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   className="btn btn-primary"
                   onClick={handleNotesSave}
                   disabled={loading}
                 >
                   Save Notes
-                </button>
+                </Button>
               )}
             </div>
           )}

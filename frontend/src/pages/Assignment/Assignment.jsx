@@ -4,6 +4,7 @@ import { assignmentAPI, userAPI } from '../../services/api'
 import { Link } from 'react-router-dom'
 import Header from '../../components/layout-components/Header/Header'
 import RoleGate from '../../components/layout-components/RoleGate/RoleGate'
+import { Button, Badge, PageTitle, Alert, Card, Select } from '../../components/ui-components'
 import './Assignment.css'
 
 const Assignment = () => {
@@ -99,7 +100,7 @@ const Assignment = () => {
         )}
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {availableProjects.length === 0 ? (
         <div className="assignment-empty">
@@ -133,9 +134,9 @@ const Assignment = () => {
                 >
                   <h1>{project.title}</h1>
                 </Link>
-                <span className={`status-badge ${getStatusBadgeClass(project.status)}`}>
+                <Badge variant={project.status?.toLowerCase() || 'default'} className={`status-badge ${getStatusBadgeClass(project.status)}`}>
                   {project.status}
-                </span>
+                </Badge>
               </div>
               
               <p className="project-description">
@@ -186,16 +187,17 @@ const Assignment = () => {
                         {isAlreadyJoined && !project.teamClosed && (
                           <p className="team-closed-message">You have already joined this project.</p>
                         )}
-                        <button
+                        <Button
                           onClick={() => handleAccept(projectId)}
-                          className="btn btn-primary"
+                          variant="primary"
+                          size="md"
                           disabled={assigning[projectId] || project.teamClosed || isAlreadyJoined}
                         >
                           {assigning[projectId] ? 'Joining...' :
                             isAlreadyJoined ? 'Already Joined' :
                               project.teamClosed ? 'Team Closed' :
                                 'Join'}
-                        </button>
+                        </Button>
                       </>
                     )
                   })()}
@@ -203,7 +205,7 @@ const Assignment = () => {
 
                 <RoleGate allow={['admin']}>
                   <div className="admin-assignment">
-                    <select
+                    <Select
                       className="programmer-select"
                       onChange={(e) => {
                         if (e.target.value) {
@@ -220,31 +222,16 @@ const Assignment = () => {
                             {programmer.name} ({programmer.status})
                           </option>
                         ))}
-                    </select>
+                    </Select>
                     {assigning[projectId] && (
                       <span className="assigning-indicator">Assigning...</span>
                     )}
                   </div>
                 </RoleGate>
 
-                <Link
-                  to={{
-                    pathname: `/projects/${projectId}`,
-                    state: {
-                      description: project.description,
-                      title: project.title,
-                      status: project.status,
-                      projectType: project.projectType,
-                      budget: project.budget,
-                      timeline: project.timeline,
-                      priority: project.priority,
-                      client: project.client,
-                    },
-                  }}
-                  className="btn btn-secondary"
-                >
+                <Button to={`/projects/${projectId}`} variant="secondary" size="md">
                   Details
-                </Link>
+                </Button>
               </div>
             </div>
           )})}

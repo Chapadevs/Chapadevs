@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectChat } from '../../hooks/useProjectChat'
+import { Button, Alert, SectionTitle, Textarea } from '../../../../../components/ui-components'
 import './CommentsTab.css'
 
 const CommentsTab = ({ project, user }) => {
@@ -74,12 +75,12 @@ const CommentsTab = ({ project, user }) => {
 
   return (
     <div className="project-tab-panel chat-container">
-      <h3 className="project-tab-panel-title">Comments</h3>
+      <SectionTitle className="project-tab-panel-title mb-4">Comments</SectionTitle>
 
       {error && (
-        <div className="chat-error">
+        <Alert variant="error" className="chat-error">
           {error}
-        </div>
+        </Alert>
       )}
 
       <div className="chat-messages-container" ref={messagesContainerRef}>
@@ -149,7 +150,7 @@ const CommentsTab = ({ project, user }) => {
 
       <form className="chat-input-form" onSubmit={handleSubmit}>
         <div className="chat-input-wrapper">
-          <textarea
+          <Textarea
             className="chat-input"
             value={messageContent}
             onChange={(e) => setMessageContent(e.target.value)}
@@ -163,13 +164,15 @@ const CommentsTab = ({ project, user }) => {
             <span className="chat-input-counter">
               {messageContent.length}/5000
             </span>
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
               className="chat-send-button"
               disabled={!messageContent.trim() || sending}
             >
               {sending ? 'Sending...' : 'Send'}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

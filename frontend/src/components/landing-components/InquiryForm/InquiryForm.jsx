@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { submitInquiry } from '../../../services/api'
+import { Button, Alert, SectionTitle, Input, Select, Textarea } from '../../ui-components'
 import './InquiryForm.css'
 
 const InquiryForm = () => {
@@ -296,115 +297,93 @@ const InquiryForm = () => {
             {/* Step 1: Contact Info */}
             {step === 0 && (
               <div className="form-step">
-                <h3 className="step-title">Contact Information</h3>
-                <div className="form-group">
-                  <label htmlFor="from_name">Your Name *</label>
-                  <input
-                    id="from_name"
-                    value={formData.from_name}
-                    onChange={(e) => updateField('from_name', e.target.value)}
-                    onBlur={() => onFieldTouch('from_name')}
-                    required
-                    className={`required-field ${touched.from_name && !formData.from_name ? 'error' : ''}`}
-                  />
-                  {touched.from_name && !formData.from_name && (
-                    <div className="error-message">Please enter your name.</div>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="from_email">Email *</label>
-                  <input
-                    id="from_email"
-                    type="email"
-                    value={formData.from_email}
-                    onChange={(e) => updateField('from_email', e.target.value)}
-                    onBlur={() => onFieldTouch('from_email')}
-                    required
-                    className={`required-field ${touched.from_email && (!formData.from_email || !isValidEmail(formData.from_email)) ? 'error' : ''}`}
-                  />
-                  {touched.from_email && (!formData.from_email || !isValidEmail(formData.from_email)) && (
-                    <div className="error-message">Please enter a valid email address.</div>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="company_name">Company/Organization (optional)</label>
-                  <input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => updateField('company_name', e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Phone Number (optional)</label>
-                  <input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => updateField('phone', e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="contact_method">Preferred Contact Method *</label>
-                  <select
-                    id="contact_method"
-                    value={formData.contact_method}
-                    onChange={(e) => updateField('contact_method', e.target.value)}
-                    onBlur={() => onFieldTouch('contact_method')}
-                    required
-                    className={`required-field ${touched.contact_method && !formData.contact_method ? 'error' : ''}`}
-                  >
-                    <option value="">Select</option>
-                    <option>Email</option>
-                    <option>Phone</option>
-                    <option>WhatsApp</option>
-                  </select>
-                  {touched.contact_method && !formData.contact_method && (
-                    <div className="error-message">Please select your preferred contact method.</div>
-                  )}
-                </div>
+                <SectionTitle className="step-title mb-4">Contact Information</SectionTitle>
+                <Input
+                  id="from_name"
+                  label="Your Name"
+                  required
+                  value={formData.from_name}
+                  onChange={(e) => updateField('from_name', e.target.value)}
+                  onBlur={() => onFieldTouch('from_name')}
+                  error={touched.from_name && !formData.from_name ? 'Please enter your name.' : undefined}
+                  wrapperClassName="form-group"
+                />
+                <Input
+                  id="from_email"
+                  label="Email"
+                  required
+                  type="email"
+                  value={formData.from_email}
+                  onChange={(e) => updateField('from_email', e.target.value)}
+                  onBlur={() => onFieldTouch('from_email')}
+                  error={touched.from_email && (!formData.from_email || !isValidEmail(formData.from_email)) ? 'Please enter a valid email address.' : undefined}
+                  wrapperClassName="form-group"
+                />
+                <Input
+                  id="company_name"
+                  label="Company/Organization (optional)"
+                  value={formData.company_name}
+                  onChange={(e) => updateField('company_name', e.target.value)}
+                  wrapperClassName="form-group"
+                />
+                <Input
+                  id="phone"
+                  label="Phone Number (optional)"
+                  value={formData.phone}
+                  onChange={(e) => updateField('phone', e.target.value)}
+                  wrapperClassName="form-group"
+                />
+                <Select
+                  id="contact_method"
+                  label="Preferred Contact Method"
+                  required
+                  value={formData.contact_method}
+                  onChange={(e) => updateField('contact_method', e.target.value)}
+                  onBlur={() => onFieldTouch('contact_method')}
+                  error={touched.contact_method && !formData.contact_method ? 'Please select your preferred contact method.' : undefined}
+                  wrapperClassName="form-group"
+                >
+                  <option value="">Select</option>
+                  <option>Email</option>
+                  <option>Phone</option>
+                  <option>WhatsApp</option>
+                </Select>
               </div>
             )}
 
             {/* Step 2: Project Details */}
             {step === 1 && (
               <div className="form-step">
-                <h3 className="step-title">Project Details</h3>
-                <div className="form-group">
-                  <label htmlFor="project_type">Project Type *</label>
-                  <select
-                    id="project_type"
-                    value={formData.project_type}
-                    onChange={(e) => updateField('project_type', e.target.value)}
-                    required
-                    className={`required-field ${touched.project_type && !formData.project_type ? 'error' : ''}`}
-                  >
-                    <option value="">Select</option>
-                    <option>New Website Design & Development</option>
-                    <option>Website Redesign/Refresh</option>
-                    <option>E-commerce Store</option>
-                    <option>Landing Page</option>
-                    <option>Web Application</option>
-                    <option>Maintenance/Updates to Existing Site</option>
-                    <option>Other</option>
-                  </select>
-                  {touched.project_type && !formData.project_type && (
-                    <div className="error-message">Please select a project type.</div>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="project_description">Brief Project Description *</label>
-                  <textarea
-                    id="project_description"
-                    value={formData.project_description}
-                    onChange={(e) => updateField('project_description', e.target.value)}
-                    rows="3"
-                    required
-                    className={`required-field ${touched.project_description && !formData.project_description ? 'error' : ''}`}
-                    placeholder="Describe your project in 2-3 sentences"
-                  ></textarea>
-                  {touched.project_description && !formData.project_description && (
-                    <div className="error-message">Please provide a project description.</div>
-                  )}
-                </div>
+                <SectionTitle className="step-title mb-4">Project Details</SectionTitle>
+                <Select
+                  id="project_type"
+                  label="Project Type"
+                  required
+                  value={formData.project_type}
+                  onChange={(e) => updateField('project_type', e.target.value)}
+                  error={touched.project_type && !formData.project_type ? 'Please select a project type.' : undefined}
+                  wrapperClassName="form-group"
+                >
+                  <option value="">Select</option>
+                  <option>New Website Design & Development</option>
+                  <option>Website Redesign/Refresh</option>
+                  <option>E-commerce Store</option>
+                  <option>Landing Page</option>
+                  <option>Web Application</option>
+                  <option>Maintenance/Updates to Existing Site</option>
+                  <option>Other</option>
+                </Select>
+                <Textarea
+                  id="project_description"
+                  label="Brief Project Description"
+                  required
+                  value={formData.project_description}
+                  onChange={(e) => updateField('project_description', e.target.value)}
+                  rows={3}
+                  placeholder="Describe your project in 2-3 sentences"
+                  error={touched.project_description && !formData.project_description ? 'Please provide a project description.' : undefined}
+                  wrapperClassName="form-group"
+                />
                 <div className="form-group">
                   <label>Primary Goals *</label>
                   <div className={`checkbox-group required-field ${touched.goals && (!formData.goals || formData.goals.length === 0) ? 'error' : ''}`}>
@@ -428,17 +407,17 @@ const InquiryForm = () => {
                       />
                       Other:
                       {formData.goals && formData.goals.includes('Other') && (
-                        <input
+                        <Input
                           value={formData.goals_other}
                           onChange={(e) => updateField('goals_other', e.target.value)}
                           placeholder="Please specify"
-                          style={{ marginLeft: '10px', padding: '8px 12px', border: '2px solid #d1d5db', fontSize: '0.85rem' }}
+                          wrapperClassName="mt-2"
                         />
                       )}
                     </label>
                   </div>
                   {touched.goals && (!formData.goals || formData.goals.length === 0) && (
-                    <div className="error-message">Please select at least one goal.</div>
+                    <Alert variant="error">Please select at least one goal.</Alert>
                   )}
                 </div>
               </div>
@@ -447,7 +426,7 @@ const InquiryForm = () => {
             {/* Step 3: Features & Design */}
             {step === 2 && (
               <div className="form-step">
-                <h3 className="step-title">Features & Design</h3>
+                <SectionTitle className="step-title mb-4">Features & Design</SectionTitle>
                 <div className="form-group">
                   <label>Required Features *</label>
                   <div className={`checkbox-group required-field ${touched.features && (!formData.features || formData.features.length === 0) ? 'error' : ''}`}>
@@ -471,17 +450,17 @@ const InquiryForm = () => {
                       />
                       Other:
                       {formData.features && formData.features.includes('Other') && (
-                        <input
+                        <Input
                           value={formData.features_other}
                           onChange={(e) => updateField('features_other', e.target.value)}
                           placeholder="Please specify"
-                          style={{ marginLeft: '10px', padding: '8px 12px', border: '2px solid #d1d5db', fontSize: '0.85rem' }}
+                          wrapperClassName="mt-2"
                         />
                       )}
                     </label>
                   </div>
                   {touched.features && (!formData.features || formData.features.length === 0) && (
-                    <div className="error-message">Please select at least one feature.</div>
+                    <Alert variant="error">Please select at least one feature.</Alert>
                   )}
                 </div>
                 <div className="form-group">
@@ -506,53 +485,45 @@ const InquiryForm = () => {
             {/* Step 4: Timeline & Budget */}
             {step === 3 && (
               <div className="form-step">
-                <h3 className="step-title">Timeline & Budget</h3>
-                <div className="form-group">
-                  <label htmlFor="budget">Project Budget Range *</label>
-                  <select
-                    id="budget"
-                    value={formData.budget}
-                    onChange={(e) => updateField('budget', e.target.value)}
-                    required
-                    className={`required-field ${touched.budget && !formData.budget ? 'error' : ''}`}
-                  >
-                    <option value="">Select</option>
-                    <option>$500 - $1,500</option>
-                    <option>$1,500 - $3,000</option>
-                    <option>$3,000 - $5,000</option>
-                    <option>$5,000 - $10,000</option>
-                    <option>$10,000+</option>
-                    <option>Let's discuss</option>
-                  </select>
-                  {touched.budget && !formData.budget && (
-                    <div className="error-message">Please select a budget range.</div>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="timeline">Desired Launch Date *</label>
-                  <select
-                    id="timeline"
-                    value={formData.timeline}
-                    onChange={(e) => updateField('timeline', e.target.value)}
-                    required
-                    className={`required-field ${touched.timeline && !formData.timeline ? 'error' : ''}`}
-                  >
-                    <option value="">Select</option>
-                    <option>Within 1-2 weeks</option>
-                    <option>Within 2-4 weeks</option>
-                    <option>Within 1-2 months</option>
-                  </select>
-                  {touched.timeline && !formData.timeline && (
-                    <div className="error-message">Please select a timeline.</div>
-                  )}
-                </div>
+                <SectionTitle className="step-title mb-4">Timeline & Budget</SectionTitle>
+                <Select
+                  id="budget"
+                  label="Project Budget Range"
+                  required
+                  value={formData.budget}
+                  onChange={(e) => updateField('budget', e.target.value)}
+                  error={touched.budget && !formData.budget ? 'Please select a budget range.' : undefined}
+                  wrapperClassName="form-group"
+                >
+                  <option value="">Select</option>
+                  <option>$500 - $1,500</option>
+                  <option>$1,500 - $3,000</option>
+                  <option>$3,000 - $5,000</option>
+                  <option>$5,000 - $10,000</option>
+                  <option>$10,000+</option>
+                  <option>Let's discuss</option>
+                </Select>
+                <Select
+                  id="timeline"
+                  label="Desired Launch Date"
+                  required
+                  value={formData.timeline}
+                  onChange={(e) => updateField('timeline', e.target.value)}
+                  error={touched.timeline && !formData.timeline ? 'Please select a timeline.' : undefined}
+                  wrapperClassName="form-group"
+                >
+                  <option value="">Select</option>
+                  <option>Within 1-2 weeks</option>
+                  <option>Within 2-4 weeks</option>
+                  <option>Within 1-2 months</option>
+                </Select>
               </div>
             )}
 
             {/* Step 5: Current Website */}
             {step === 4 && (
               <div className="form-step">
-                <h3 className="step-title">Current Website</h3>
+                <SectionTitle className="step-title mb-4">Current Website</SectionTitle>
                 <div className="form-group">
                   <label>Do you have an existing website? *</label>
                   <div className={`radio-group required-field ${touched.has_website && !formData.has_website ? 'error' : ''}`}>
@@ -576,27 +547,25 @@ const InquiryForm = () => {
                     </label>
                   </div>
                   {touched.has_website && !formData.has_website && (
-                    <div className="error-message">Please select whether you have an existing website.</div>
+                    <Alert variant="error">Please select whether you have an existing website.</Alert>
                   )}
                 </div>
                 {formData.has_website === 'Yes' && (
                   <>
-                    <div className="form-group">
-                      <label htmlFor="website_url">Website URL</label>
-                      <input
-                        id="website_url"
-                        value={formData.website_url}
-                        onChange={(e) => updateField('website_url', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="current_host">Which host do you use?</label>
-                      <input
-                        id="current_host"
-                        value={formData.current_host}
-                        onChange={(e) => updateField('current_host', e.target.value)}
-                      />
-                    </div>
+                    <Input
+                      id="website_url"
+                      label="Website URL"
+                      value={formData.website_url}
+                      onChange={(e) => updateField('website_url', e.target.value)}
+                      wrapperClassName="form-group"
+                    />
+                    <Input
+                      id="current_host"
+                      label="Which host do you use?"
+                      value={formData.current_host}
+                      onChange={(e) => updateField('current_host', e.target.value)}
+                      wrapperClassName="form-group"
+                    />
                   </>
                 )}
               </div>
@@ -605,7 +574,7 @@ const InquiryForm = () => {
             {/* Step 6: Additional Details */}
             {step === 5 && (
               <div className="form-step">
-                <h3 className="step-title">Additional Details</h3>
+                <SectionTitle className="step-title mb-4">Additional Details</SectionTitle>
                 <div className="form-group">
                   <label>Do you have existing branding? *</label>
                   <div className={`radio-group required-field ${touched.branding && !formData.branding ? 'error' : ''}`}>
@@ -638,96 +607,87 @@ const InquiryForm = () => {
                     </label>
                   </div>
                   {touched.branding && !formData.branding && (
-                    <div className="error-message">Please select your branding status.</div>
+                    <Alert variant="error">Please select your branding status.</Alert>
                   )}
                 </div>
                 {formData.branding === 'Yes' && (
-                  <div className="form-group">
-                    <label htmlFor="branding_details">Logo, colors, fonts, credentials available?</label>
-                    <input
-                      id="branding_details"
-                      value={formData.branding_details}
-                      onChange={(e) => updateField('branding_details', e.target.value)}
-                    />
-                  </div>
+                  <Input
+                    id="branding_details"
+                    label="Logo, colors, fonts, credentials available?"
+                    value={formData.branding_details}
+                    onChange={(e) => updateField('branding_details', e.target.value)}
+                    wrapperClassName="form-group"
+                  />
                 )}
-                <div className="form-group">
-                  <label htmlFor="content_status">Content Status *</label>
-                  <select
-                    id="content_status"
-                    value={formData.content_status}
-                    onChange={(e) => updateField('content_status', e.target.value)}
-                    required
-                    className={`required-field ${touched.content_status && !formData.content_status ? 'error' : ''}`}
-                  >
-                    <option value="">Select</option>
-                    <option>I have all content ready</option>
-                    <option>I have some content, need help with rest</option>
-                    <option>I need help creating all content</option>
-                    <option>I need copywriting services</option>
-                  </select>
-                  {touched.content_status && !formData.content_status && (
-                    <div className="error-message">Please select your content status.</div>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="reference_websites">Reference Websites (optional)</label>
-                  <textarea
-                    id="reference_websites"
-                    value={formData.reference_websites}
-                    onChange={(e) => updateField('reference_websites', e.target.value)}
-                    rows="2"
-                  ></textarea>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="special_requirements">Special Requirements or Concerns</label>
-                  <textarea
-                    id="special_requirements"
-                    value={formData.special_requirements}
-                    onChange={(e) => updateField('special_requirements', e.target.value)}
-                    rows="2"
-                  ></textarea>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="hear_about_us">How did you hear about Chapadevs?</label>
-                  <select
-                    id="hear_about_us"
-                    value={formData.hear_about_us}
-                    onChange={(e) => updateField('hear_about_us', e.target.value)}
-                  >
-                    <option value="">Select</option>
-                    <option>Google search</option>
-                    <option>Social media</option>
-                    <option>Referral</option>
-                    <option>Previous client</option>
-                    <option>Other</option>
-                  </select>
-                  {formData.hear_about_us === 'Other' && (
-                    <input
-                      value={formData.hear_about_us_other}
-                      onChange={(e) => updateField('hear_about_us_other', e.target.value)}
-                      placeholder="Please specify"
-                      style={{ marginTop: '8px', width: '100%', padding: '12px 16px', border: '2px solid #e5e7eb', borderRadius: '0' }}
-                    />
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="additional_comments">Additional Comments</label>
-                  <textarea
-                    id="additional_comments"
-                    value={formData.additional_comments}
-                    onChange={(e) => updateField('additional_comments', e.target.value)}
-                    rows="2"
-                    placeholder="Anything else you'd like us to know about your project?"
-                  ></textarea>
-                </div>
+                <Select
+                  id="content_status"
+                  label="Content Status"
+                  required
+                  value={formData.content_status}
+                  onChange={(e) => updateField('content_status', e.target.value)}
+                  error={touched.content_status && !formData.content_status ? 'Please select your content status.' : undefined}
+                  wrapperClassName="form-group"
+                >
+                  <option value="">Select</option>
+                  <option>I have all content ready</option>
+                  <option>I have some content, need help with rest</option>
+                  <option>I need help creating all content</option>
+                  <option>I need copywriting services</option>
+                </Select>
+                <Textarea
+                  id="reference_websites"
+                  label="Reference Websites (optional)"
+                  value={formData.reference_websites}
+                  onChange={(e) => updateField('reference_websites', e.target.value)}
+                  rows={2}
+                  wrapperClassName="form-group"
+                />
+                <Textarea
+                  id="special_requirements"
+                  label="Special Requirements or Concerns"
+                  value={formData.special_requirements}
+                  onChange={(e) => updateField('special_requirements', e.target.value)}
+                  rows={2}
+                  wrapperClassName="form-group"
+                />
+                <Select
+                  id="hear_about_us"
+                  label="How did you hear about Chapadevs?"
+                  value={formData.hear_about_us}
+                  onChange={(e) => updateField('hear_about_us', e.target.value)}
+                  wrapperClassName="form-group"
+                >
+                  <option value="">Select</option>
+                  <option>Google search</option>
+                  <option>Social media</option>
+                  <option>Referral</option>
+                  <option>Previous client</option>
+                  <option>Other</option>
+                </Select>
+                {formData.hear_about_us === 'Other' && (
+                  <Input
+                    value={formData.hear_about_us_other}
+                    onChange={(e) => updateField('hear_about_us_other', e.target.value)}
+                    placeholder="Please specify"
+                    wrapperClassName="mt-2"
+                  />
+                )}
+                <Textarea
+                  id="additional_comments"
+                  label="Additional Comments"
+                  value={formData.additional_comments}
+                  onChange={(e) => updateField('additional_comments', e.target.value)}
+                  rows={2}
+                  placeholder="Anything else you'd like us to know about your project?"
+                  wrapperClassName="form-group"
+                />
               </div>
             )}
 
             {/* Step 7: Review & Submit */}
             {step === 6 && (
               <div className="form-step">
-                <h3 className="step-title">Review & Submit</h3>
+                <SectionTitle className="step-title mb-4">Review & Submit</SectionTitle>
                 <div className="review-section">
                   {reviewFields.map((field) => {
                     const value = Array.isArray(formData[field.key])
@@ -745,18 +705,15 @@ const InquiryForm = () => {
             )}
 
             <div className="wizard-navigation">
-              <button
-                className="btn"
-                type="button"
-                onClick={prevStep}
-                disabled={step === 0}
-              >
+              <Button variant="ghost" size="md" type="button" onClick={prevStep} disabled={step === 0} className="btn">
                 Back
-              </button>
+              </Button>
               {step < steps.length - 1 ? (
-                <button
-                  className="btn btn-primary"
+                <Button
+                  variant="primary"
+                  size="md"
                   type="button"
+                  className="btn btn-primary"
                   onClick={(e) => {
                     e.preventDefault()
                     console.log('Next button clicked, current step:', step)
@@ -801,30 +758,24 @@ const InquiryForm = () => {
                   }}
                 >
                   Next
-                </button>
+                </Button>
               ) : (
-                <button
-                  className="btn btn-primary"
-                  type="submit"
-                  disabled={isSubmitting}
-                >
+                <Button variant="primary" size="md" type="submit" className="btn btn-primary" disabled={isSubmitting}>
                   {isSubmitting ? 'Sending...' : 'Submit Inquiry'}
-                </button>
+                </Button>
               )}
             </div>
 
             {validationMessage && (
-              <div className="submit-message error" style={{ marginTop: '1rem' }}>
+              <Alert variant="error" className="submit-message mt-4">
                 {validationMessage}
-              </div>
+              </Alert>
             )}
 
             {submitMessage && (
-              <div
-                className={`submit-message ${submitSuccess ? 'success' : 'error'}`}
-              >
+              <Alert variant={submitSuccess ? 'success' : 'error'} className="submit-message">
                 {submitMessage}
-              </div>
+              </Alert>
             )}
           </form>
         </div>

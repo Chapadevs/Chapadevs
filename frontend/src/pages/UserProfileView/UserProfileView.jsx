@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { userAPI } from '../../services/api'
 import { isClient, isProgrammer } from '../../utils/roles'
 import Header from '../../components/layout-components/Header/Header'
+import { Card, SectionTitle, Tag, Alert } from '../../components/ui-components'
 import './UserProfileView.css'
 
 const UserProfileView = () => {
@@ -64,11 +65,11 @@ const UserProfileView = () => {
       <>
         <Header />
         <div className="profile-view-container">
-          <div className="profile-card">
+          <Card variant="outline" className="profile-card p-8">
             <div style={{ textAlign: 'center', padding: '2rem' }}>
               Loading...
             </div>
-          </div>
+          </Card>
         </div>
       </>
     )
@@ -79,14 +80,14 @@ const UserProfileView = () => {
       <>
         <Header />
         <div className="profile-view-container">
-          <div className="profile-card">
-            <div className="error-message">
+          <Card variant="outline" className="profile-card p-8">
+            <Alert variant="error">
               {error || 'User not found'}
-            </div>
+            </Alert>
             <Link to="/dashboard" className="profile-back">
               ← Go back
             </Link>
-          </div>
+          </Card>
         </div>
       </>
     )
@@ -100,7 +101,7 @@ const UserProfileView = () => {
     <>
       <Header />
       <div className="profile-view-container">
-        <div className="profile-card">
+        <Card variant="outline" className="profile-card p-8">
           <Link to="/dashboard" className="profile-back">
             ← Go back
           </Link>
@@ -145,7 +146,7 @@ const UserProfileView = () => {
           <div className="profile-view-content">
             {/* Basic Information */}
             <div className="form-section">
-              <h3>Contact Information</h3>
+              <SectionTitle className="mb-4">Contact Information</SectionTitle>
               <div className="profile-form-grid">
                 <div className="form-group">
                   <label>Email</label>
@@ -161,7 +162,7 @@ const UserProfileView = () => {
             {/* Client Information */}
             {profileIsClient && (profileUser.company || profileUser.phone || profileUser.industry) && (
               <div className="form-section">
-                <h3>Client Information</h3>
+                <SectionTitle className="mb-4">Client Information</SectionTitle>
                 <div className="profile-form-grid">
                   {profileUser.company && (
                     <div className="form-group">
@@ -194,7 +195,7 @@ const UserProfileView = () => {
             {/* Programmer Information */}
             {profileIsProgrammer && (
               <div className="form-section">
-                <h3>Programmer Information</h3>
+                <SectionTitle className="mb-4">Programmer Information</SectionTitle>
                 <div className="profile-form-grid">
                   <div className="form-group form-group-full">
                     <label>Skills</label>
@@ -202,9 +203,9 @@ const UserProfileView = () => {
                       {profileUser.skills && profileUser.skills.length > 0 ? (
                         <div className="profile-skills-list">
                           {profileUser.skills.map((skill, index) => (
-                            <span key={index} className="profile-skill-tag">
+                            <Tag key={index} variant="skill" className="profile-skill-tag">
                               {skill}
-                            </span>
+                            </Tag>
                           ))}
                         </div>
                       ) : (
@@ -230,7 +231,7 @@ const UserProfileView = () => {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </>
   )

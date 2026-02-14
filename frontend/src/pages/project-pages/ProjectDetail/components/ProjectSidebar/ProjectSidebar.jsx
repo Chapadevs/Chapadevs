@@ -1,3 +1,4 @@
+import { Button, SectionTitle } from '../../../../../components/ui-components'
 import './ProjectSidebar.css'
 
 const ProjectSidebar = ({
@@ -13,45 +14,50 @@ const ProjectSidebar = ({
   return (
     <div className="project-sidebar">
       <section className="project-sidebar-tabs">
-        <h3>Navigation</h3>
+        <SectionTitle className="mb-4">Navigation</SectionTitle>
         <nav className="project-tab-nav">
-          <button
+          <Button
+            variant="ghost"
             className={`project-tab-link ${activeTab === 'description' ? 'active' : ''}`}
             onClick={() => onTabChange('description')}
           >
             Requirements
             {hasDescriptionNotifications && <span className="project-tab-notification-badge"></span>}
-          </button>
+          </Button>
           {showAIPreviewsSection && (
-            <button
+            <Button
+              variant="ghost"
               className={`project-tab-link ${activeTab === 'ai-preview' ? 'active' : ''}`}
               onClick={() => onTabChange('ai-preview')}
             >
               Previews
               {hasAIPreviewNotifications && <span className="project-tab-notification-badge"></span>}
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
             className={`project-tab-link ${activeTab === 'programmers' ? 'active' : ''}`}
             onClick={() => onTabChange('programmers')}
           >
             Team
             {hasProgrammersNotifications && <span className="project-tab-notification-badge"></span>}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             className={`project-tab-link ${activeTab === 'timeline' ? 'active' : ''}`}
             onClick={() => onTabChange('timeline')}
           >
             Workspace
             {hasTimelineNotifications && <span className="project-tab-notification-badge"></span>}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             className={`project-tab-link ${activeTab === 'comments' ? 'active' : ''}`}
             onClick={() => onTabChange('comments')}
           >
             Chat
             {hasCommentsNotifications && <span className="project-tab-notification-badge"></span>}
-          </button>
+          </Button>
         </nav>
       </section>
     </div>

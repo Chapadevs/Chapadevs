@@ -1,3 +1,4 @@
+/* VerifyEmail — layout and spacing only */
 .verify-email-container {
   min-height: 60vh;
   display: flex;
@@ -11,31 +12,17 @@
   width: 100%;
   padding: 2rem;
   text-align: center;
-  background: var(--card-bg, #fff);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .verify-email-card h1 {
   margin: 0 0 1rem;
-  font-size: 1.5rem;
 }
 
 .verify-email-card p {
   margin: 0 0 1.5rem;
-  color: var(--text-secondary, #555);
 }
 
 .verify-email-link {
   display: inline-block;
   padding: 0.5rem 1rem;
-  color: var(--primary, #2563eb);
-  text-decoration: none;
-  font-weight: 500;
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.verify-email-link:hover {
-  background: rgba(37, 99, 235, 0.08);
 }

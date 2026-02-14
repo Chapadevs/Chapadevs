@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { Button, Tag } from '../../../../../../../components/ui-components'
 import './TeamMemberCard.css'
 
 const TeamMemberCard = ({
@@ -74,9 +75,9 @@ const TeamMemberCard = ({
             <strong>Skills:</strong>
             <div className="team-member-skills">
               {member.skills.map((skill, skillIndex) => (
-                <span key={skillIndex} className="team-member-skill-tag">
+                <Tag key={skillIndex} variant="skill" className="team-member-skill-tag">
                   {skill}
-                </span>
+                </Tag>
               ))}
             </div>
           </div>
@@ -95,14 +96,16 @@ const TeamMemberCard = ({
         )}
         {showRemoveButton && (
           <div className="team-member-actions">
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               className="team-member-remove-btn"
               onClick={handleRemoveClick}
               disabled={isRemoving}
             >
               {isRemoving ? 'Removing...' : 'Remove from project'}
-            </button>
+            </Button>
           </div>
         )}
       </div>

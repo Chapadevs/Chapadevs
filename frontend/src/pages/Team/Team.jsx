@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import Header from '../../components/layout-components/Header/Header'
 import TeamSection from '../../components/landing-components/Team/Team'
 import AI from '../../components/landing-components/AI/AI'
 import Footer from '../../components/layout-components/Footer/Footer'
 import { useAuth } from '../../context/AuthContext'
+import { Button } from '../../components/ui-components'
 import './Team.css'
 
 const Team = () => {
@@ -48,15 +49,17 @@ const Team = () => {
               Start your project today and experience our streamlined development process.
             </p>
             <div className="team-page-cta-buttons">
-              <Link
+              <Button
                 to={isAuthenticated ? '/projects/create' : '/register'}
+                variant="primary"
+                size="lg"
                 className="btn btn-primary team-page-cta-btn"
               >
                 {isAuthenticated ? 'Create Project' : 'Get Started'}
-              </Link>
-              <Link to="/contact" className="btn btn-secondary team-page-cta-btn">
+              </Button>
+              <Button to="/contact" variant="secondary" size="lg" className="btn btn-secondary team-page-cta-btn">
                 Contact Us
-              </Link>
+              </Button>
             </div>
           </div>
         </section>

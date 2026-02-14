@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../../../context/NotificationContext'
+import { Button } from '../../ui-components'
 import './NotificationBell.css'
 
 const NotificationBell = () => {
@@ -130,13 +131,15 @@ const NotificationBell = () => {
             <h3>Notifications</h3>
           </div>
           {unreadCount > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
               className="notification-mark-all-read"
               onClick={handleMarkAllAsRead}
               title="Mark all as read"
             >
               Mark all as read
-            </button>
+            </Button>
           )}
 
           <div className="notification-list">
@@ -190,7 +193,9 @@ const NotificationBell = () => {
 
           {notifications.length > 10 && (
             <div className="notification-dropdown-footer">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 className="notification-view-all"
                 onClick={() => {
                   navigate('/dashboard')
@@ -198,7 +203,7 @@ const NotificationBell = () => {
                 }}
               >
                 View all notifications
-              </button>
+              </Button>
             </div>
           )}
         </div>

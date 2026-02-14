@@ -1,6 +1,6 @@
+/* AIPreviewTab layout */
 .project-section-previews .project-previews-intro {
   margin-bottom: 1rem;
-  color: #666;
   font-size: 0.95rem;
 }
 
@@ -10,7 +10,6 @@
 
 .project-previews-loading,
 .project-previews-empty {
-  color: #666;
   font-size: 0.95rem;
   margin: 1rem 0;
 }

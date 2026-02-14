@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { projectAPI } from '../../../services/api'
+import { Button, Alert } from '../../ui-components'
 import './AttachmentManager.css'
 
 const AttachmentManager = ({
@@ -94,7 +95,7 @@ const AttachmentManager = ({
 
   return (
     <div className="attachment-manager">
-      {error && <div className="error-message">{error}</div>}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {canUpload && (
         <div className="attachment-upload">
@@ -144,14 +145,15 @@ const AttachmentManager = ({
                     Download
                   </a>
                   {canDelete && (
-                    <button
+                    <Button
                       type="button"
+                      variant="danger"
                       className="attachment-delete-btn"
                       onClick={() => handleDelete(attachmentId)}
                       disabled={deletingId === attachmentId}
                     >
                       {deletingId === attachmentId ? 'Deleting...' : 'Delete'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

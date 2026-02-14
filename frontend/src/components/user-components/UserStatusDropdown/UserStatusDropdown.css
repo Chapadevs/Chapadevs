@@ -1,3 +1,4 @@
+/* UserStatusDropdown — layout & structure only */
 .user-status-dropdown-container {
   position: relative;
   display: inline-block;
@@ -8,15 +9,6 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--primary-green, #059669);
-  font-family: 'Creato Display Medium', serif;
-  font-weight: 600;
-  font-size: 0.7rem;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-  border-radius: 0;
   width: 32px;
   height: 32px;
   min-width: 32px;
@@ -29,21 +21,17 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 50%;
 }
 
 .user-status-profile-avatar {
   width: 26px;
   height: 26px;
   object-fit: cover;
-  border: 2px solid var(--border, #e5e7eb);
-  border-radius: 50%;
 }
 
 .user-status-profile-icon {
   width: 22px;
   height: 22px;
-  color: var(--primary-green, #059669);
 }
 
 .user-status-indicator {
@@ -52,25 +40,7 @@
   right: 0;
   width: 7px;
   height: 7px;
-  border: 2px solid var(--background, #ffffff);
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   z-index: 1;
-}
-
-.user-status-dropdown-button:hover {
-  background: rgba(5, 150, 105, 0.1);
-  color: var(--primary-green-dark, #047857);
-}
-
-.user-status-dropdown-button:focus {
-  outline: none;
-  background: rgba(5, 150, 105, 0.08);
-}
-
-.user-status-dropdown-button:focus-visible {
-  outline: 1px solid var(--primary-green, #059669);
-  outline-offset: 2px;
 }
 
 .user-status-dropdown-button[data-status='online'] .user-status-indicator,
@@ -84,10 +54,6 @@
   left: 50%;
   transform: translateX(-50%);
   min-width: 200px;
-  background: var(--background, #ffffff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 200;
   padding: 0.5rem 0;
   overflow: hidden;
@@ -97,25 +63,9 @@
   display: block;
   width: 100%;
   padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: none;
-  text-align: left;
-  font-family: 'Creato Display Medium', serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--primary-green, #059669);
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.user-status-dropdown-item:hover {
-  background: rgba(5, 150, 105, 0.1);
-  color: var(--primary-green-dark, #047857);
 }
 
 .user-status-availability-section {
-  border-top: 1px solid var(--border, #e5e7eb);
   padding: 0.5rem 0 0;
   margin-top: 0.25rem;
 }
@@ -123,12 +73,6 @@
 .user-status-availability-label {
   display: block;
   padding: 0.35rem 0.75rem 0.2rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-secondary, #374151);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-family: 'Creato Display Medium', serif;
 }
 
 .user-status-availability-options {
@@ -142,41 +86,15 @@
   gap: 0.5rem;
   width: 100%;
   padding: 0.4rem 0.75rem;
-  background: transparent;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  font-family: 'Creato Display Medium', serif;
-  font-size: 0.8rem;
-  color: #333;
-}
-
-.user-status-option:hover {
-  background: rgba(5, 150, 105, 0.1);
-}
-
-.user-status-option.active {
-  background: rgba(5, 150, 105, 0.15);
-  font-weight: 600;
 }
 
 .user-status-option-badge {
   display: inline-block;
-  font-size: 0.7rem;
-  line-height: 1;
   width: 14px;
-  text-align: center;
 }
 
 .user-status-option-label {
   flex: 1;
-}
-
-.user-status-option-check {
-  color: #059669;
-  font-weight: 700;
-  font-size: 0.85rem;
 }
 
 @keyframes pulse {
@@ -188,13 +106,11 @@
   }
 }
 
-/* Disable pulse for offline and away */
 .user-status-option[data-status='offline'] .user-status-option-badge,
 .user-status-option[data-status='away'] .user-status-option-badge {
   animation: none;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .user-status-dropdown-button {
     width: 32px;

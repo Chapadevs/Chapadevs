@@ -1,4 +1,5 @@
 import React from 'react'
+import { Button } from '../../ui-components'
 import './Hero.css'
 
 const Hero = () => {
@@ -26,9 +27,9 @@ const Hero = () => {
           </p>
 
           <div className="hero-buttons">
-            <button className="btn btn--primary" onClick={scrollToInquiryForm}>
+            <Button variant="secondary" size="hero" className="btn btn--primary" onClick={scrollToInquiryForm}>
               Start Your Project
-            </button>
+            </Button>
           </div>
         </div>
       </div>

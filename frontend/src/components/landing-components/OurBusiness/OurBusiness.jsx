@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
+import { Tag } from '../../ui-components'
 import './OurBusiness.css'
 
 const OurBusiness = () => {
@@ -118,10 +119,10 @@ const OurBusiness = () => {
                   We build fast and responsive web applications using modern frameworks and mobile design while ensuring excellent SEO.
                 </p>
                 <div className="service-tags">
-                  <span className="tag">REACT & ANGULAR</span>
-                  <span className="tag">MOBILE-FIRST DESIGN</span>
-                  <span className="tag">PROGRESSIVE WEB APPS</span>
-                  <span className="tag">CUSTOM UX/UI</span>
+                  <Tag variant="primary">REACT & ANGULAR</Tag>
+                  <Tag variant="primary">MOBILE-FIRST DESIGN</Tag>
+                  <Tag variant="primary">PROGRESSIVE WEB APPS</Tag>
+                  <Tag variant="primary">CUSTOM UX/UI</Tag>
                 </div>
               </div>
             </article>
@@ -137,10 +138,10 @@ const OurBusiness = () => {
                   We deliver business solutions with integrations, automation, and connectivity to boost your company's efficiency and growth.
                 </p>
                 <div className="service-tags">
-                  <span className="tag">E-COMMERCE PLATFORMS</span>
-                  <span className="tag">CRM INTEGRATION</span>
-                  <span className="tag">PAYMENT PROCESSING</span>
-                  <span className="tag">DATA ANALYTICS</span>
+                  <Tag variant="primary">E-COMMERCE PLATFORMS</Tag>
+                  <Tag variant="primary">CRM INTEGRATION</Tag>
+                  <Tag variant="primary">PAYMENT PROCESSING</Tag>
+                  <Tag variant="primary">DATA ANALYTICS</Tag>
                 </div>
               </div>
             </article>
@@ -181,10 +182,10 @@ const OurBusiness = () => {
                   We help businesses modernize their digital infrastructure with cutting-edge technologies and strategic implementation.
                 </p>
                 <div className="service-tags">
-                  <span className="tag">LEGACY MIGRATION</span>
-                  <span className="tag">CLOUD STRATEGY</span>
-                  <span className="tag">DEVOPS IMPLEMENTATION</span>
-                  <span className="tag">SECURITY AUDITING</span>
+                  <Tag variant="primary">LEGACY MIGRATION</Tag>
+                  <Tag variant="primary">CLOUD STRATEGY</Tag>
+                  <Tag variant="primary">DEVOPS IMPLEMENTATION</Tag>
+                  <Tag variant="primary">SECURITY AUDITING</Tag>
                 </div>
               </div>
             </article>

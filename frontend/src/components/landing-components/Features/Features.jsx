@@ -1,4 +1,5 @@
 import React from 'react'
+import { Tag } from '../../ui-components'
 import './Features.css'
 
 const Features = () => {
@@ -27,9 +28,9 @@ const Features = () => {
               requirements for optimal solutions.
             </p>
             <div className="tools-list">
-              <span className="tool-tag">Cursor AI</span>
-              <span className="tool-tag">Analytics</span>
-              <span className="tool-tag">Research</span>
+              <Tag variant="primary" className="tool-tag">Cursor AI</Tag>
+              <Tag variant="primary" className="tool-tag">Analytics</Tag>
+              <Tag variant="primary" className="tool-tag">Research</Tag>
             </div>
           </article>
 
@@ -41,9 +42,9 @@ const Features = () => {
               professional standards and brand alignment.
             </p>
             <div className="tools-list">
-              <span className="tool-tag">Lovable AI</span>
-              <span className="tool-tag">Figma</span>
-              <span className="tool-tag">Branding</span>
+              <Tag variant="primary" className="tool-tag">Lovable AI</Tag>
+              <Tag variant="primary" className="tool-tag">Figma</Tag>
+              <Tag variant="primary" className="tool-tag">Branding</Tag>
             </div>
           </article>
 
@@ -55,9 +56,9 @@ const Features = () => {
               optimization by our expert team.
             </p>
             <div className="tools-list">
-              <span className="tool-tag">React</span>
-              <span className="tool-tag">Spring Boot</span>
-              <span className="tool-tag">Testing</span>
+              <Tag variant="primary" className="tool-tag">React</Tag>
+              <Tag variant="primary" className="tool-tag">Spring Boot</Tag>
+              <Tag variant="primary" className="tool-tag">Testing</Tag>
             </div>
           </article>
 
@@ -69,9 +70,9 @@ const Features = () => {
               SEO, and user experience.
             </p>
             <div className="tools-list">
-              <span className="tool-tag">Analytics</span>
-              <span className="tool-tag">Search Console</span>
-              <span className="tool-tag">Monitoring</span>
+              <Tag variant="primary" className="tool-tag">Analytics</Tag>
+              <Tag variant="primary" className="tool-tag">Search Console</Tag>
+              <Tag variant="primary" className="tool-tag">Monitoring</Tag>
             </div>
           </article>
         </div>

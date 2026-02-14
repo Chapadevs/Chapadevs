@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { generateAIPreview, getVertexAIStatus, regenerateAIPreview } from '../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../utils/techStack'
 import JSZip from 'jszip'
+import { Button, Alert, Select, Textarea } from '../../ui-components'
 import './AIPreviewGenerator.css'
 
 const AIPreviewGenerator = () => {
@@ -421,87 +422,83 @@ npm start
       )}
 
       <form onSubmit={handleSubmit} className="generator-form">
-        <div className="form-group">
-          <label htmlFor="prompt">Project Description *</label>
-          <textarea
-            id="prompt"
-            name="prompt"
-            value={formData.prompt}
+        <Textarea
+          id="prompt"
+          name="prompt"
+          label="Project Description"
+          value={formData.prompt}
+          onChange={handleChange}
+          placeholder="Describe your project idea... (e.g., 'I need an e-commerce website for selling handmade crafts with payment integration')"
+          rows="4"
+          required
+          wrapperClassName="form-group"
+        />
+
+        <div className="form-row">
+          <Select
+            id="projectType"
+            name="projectType"
+            label="Project Type"
+            value={formData.projectType}
             onChange={handleChange}
-            placeholder="Describe your project idea... (e.g., 'I need an e-commerce website for selling handmade crafts with payment integration')"
-            rows="4"
-            required
-          />
+            wrapperClassName="form-group"
+          >
+            <option value="">Select type...</option>
+            <option value="New Website Design & Development">New Website</option>
+            <option value="Website Redesign/Refresh">Website Redesign</option>
+            <option value="E-commerce Store">E-commerce</option>
+            <option value="Landing Page">Landing Page</option>
+            <option value="Web Application">Web Application</option>
+            <option value="Mobile App">Mobile App</option>
+            <option value="Other">Other</option>
+          </Select>
+
+          <Select
+            id="budget"
+            name="budget"
+            label="Budget"
+            value={formData.budget}
+            onChange={handleChange}
+            wrapperClassName="form-group"
+          >
+            <option value="">Select budget...</option>
+            <option value="Under $5,000">Under $5,000</option>
+            <option value="$5,000 - $10,000">$5,000 - $10,000</option>
+            <option value="$10,000 - $25,000">$10,000 - $25,000</option>
+            <option value="$25,000 - $50,000">$25,000 - $50,000</option>
+            <option value="$50,000+">$50,000+</option>
+          </Select>
         </div>
 
         <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="projectType">Project Type</label>
-            <select
-              id="projectType"
-              name="projectType"
-              value={formData.projectType}
-              onChange={handleChange}
-            >
-              <option value="">Select type...</option>
-              <option value="New Website Design & Development">New Website</option>
-              <option value="Website Redesign/Refresh">Website Redesign</option>
-              <option value="E-commerce Store">E-commerce</option>
-              <option value="Landing Page">Landing Page</option>
-              <option value="Web Application">Web Application</option>
-              <option value="Mobile App">Mobile App</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="budget">Budget</label>
-            <select
-              id="budget"
-              name="budget"
-              value={formData.budget}
-              onChange={handleChange}
-            >
-              <option value="">Select budget...</option>
-              <option value="Under $5,000">Under $5,000</option>
-              <option value="$5,000 - $10,000">$5,000 - $10,000</option>
-              <option value="$10,000 - $25,000">$10,000 - $25,000</option>
-              <option value="$25,000 - $50,000">$25,000 - $50,000</option>
-              <option value="$50,000+">$50,000+</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="timeline">Timeline</label>
-            <select
-              id="timeline"
-              name="timeline"
-              value={formData.timeline}
-              onChange={handleChange}
-            >
-              <option value="">Select timeline...</option>
-              <option value="1-2 weeks">1-2 weeks</option>
-              <option value="2-4 weeks">2-4 weeks</option>
-              <option value="1-2 months">1-2 months</option>
-              <option value="2-3 months">2-3 months</option>
-              <option value="3-6 months">3-6 months</option>
-              <option value="6+ months">6+ months</option>
-            </select>
-          </div>
+          <Select
+            id="timeline"
+            name="timeline"
+            label="Timeline"
+            value={formData.timeline}
+            onChange={handleChange}
+            wrapperClassName="form-group"
+          >
+            <option value="">Select timeline...</option>
+            <option value="1-2 weeks">1-2 weeks</option>
+            <option value="2-4 weeks">2-4 weeks</option>
+            <option value="1-2 months">1-2 months</option>
+            <option value="2-3 months">2-3 months</option>
+            <option value="3-6 months">3-6 months</option>
+            <option value="6+ months">6+ months</option>
+          </Select>
 
           <div className="form-group">
             <label htmlFor="modelId">AI Model</label>
-                    <select
-                      id="modelId"
-                      name="modelId"
-                      value={formData.modelId}
-                      onChange={handleChange}
-                    >
-                      <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
-                      <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
-                    </select>
+            <Select
+              id="modelId"
+              name="modelId"
+              value={formData.modelId}
+              onChange={handleChange}
+            >
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
+            </Select>
             <p className="form-hint">Flash: Faster, lower cost. Pro: Higher quality, higher cost.</p>
           </div>
         </div>
@@ -533,9 +530,9 @@ npm start
           </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <Alert variant="error">{error}</Alert>}
 
-        <button type="submit" className="generate-button" disabled={loading}>
+        <Button type="submit" variant="primary" className="generate-button" disabled={loading}>
           {loading ? (
             <>
               <span className="spinner"></span>
@@ -544,7 +541,7 @@ npm start
           ) : (
             'Generate Project Preview'
           )}
-        </button>
+        </Button>
       </form>
 
       {loading && (
@@ -558,19 +555,21 @@ npm start
       {(result || websitePreview) && (
         <div className="results-container">
           <div className="results-tabs">
-            <button 
+            <Button 
+              variant="ghost"
               className={`tab-button ${activeTab === 'analysis' ? 'active' : ''}`}
               onClick={() => setActiveTab('analysis')}
             >
               📋 Project Analysis
-            </button>
+            </Button>
             {websitePreview && (
-              <button 
+              <Button 
+                variant="ghost"
                 className={`tab-button ${activeTab === 'preview' ? 'active' : ''}`}
                 onClick={() => setActiveTab('preview')}
               >
                 🌐 Website Preview
-              </button>
+              </Button>
             )}
           </div>
 
@@ -589,25 +588,28 @@ npm start
               </div>
               
               <div className="preview-actions">
-                <button 
+                <Button 
+                  variant="secondary"
                   onClick={handleCopyCode}
                   className="action-button copy-button"
                 >
                   {copySuccess ? '✓ Copied!' : '📋 Copy Code'}
-                </button>
-                <button 
+                </Button>
+                <Button 
+                  variant="secondary"
                   onClick={handleDownloadCode}
                   className="action-button download-button"
                 >
                   💾 Download ZIP
-                </button>
-                <button 
+                </Button>
+                <Button 
+                  variant="secondary"
                   onClick={handleRegenerate}
                   className="action-button regenerate-button"
                   disabled={regenerating || !previewId}
                 >
                   {regenerating ? '🔄 Regenerating...' : '🎨 Regenerate Style'}
-                </button>
+                </Button>
               </div>
 
               <div className="sandpack-container">

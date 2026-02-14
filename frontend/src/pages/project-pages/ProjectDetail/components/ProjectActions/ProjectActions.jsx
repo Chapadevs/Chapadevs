@@ -1,3 +1,4 @@
+import { Button } from '../../../../../components/ui-components'
 import './ProjectActions.css'
 
 const ProjectActions = ({
@@ -10,18 +11,19 @@ const ProjectActions = ({
   return (
     <div className="project-actions">
       {canMarkReady && (
-        <button
+        <Button
           onClick={onMarkReady}
-          className="btn btn-primary"
+          variant="primary"
+          size="md"
           disabled={markingReady}
         >
           {markingReady ? 'Marking...' : 'Mark as Ready'}
-        </button>
+        </Button>
       )}
       {canDelete && (
-        <button onClick={onDelete} className="btn btn-danger">
+        <Button onClick={onDelete} variant="danger" size="md">
           Delete Project
-        </button>
+        </Button>
       )}
     </div>
   )

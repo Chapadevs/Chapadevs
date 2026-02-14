@@ -1,6 +1,6 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
+import { Button, Tag } from '../../ui-components'
 import './OurServices.css'
 
 const OurServices = () => {
@@ -70,18 +70,15 @@ const OurServices = () => {
           </div>
 
           <div className="services-tags">
-            <span className="service-tag">Powered by Vertex AI</span>
-            <span className="service-tag">Live Preview</span>
-            <span className="service-tag">Tech Stack Recommendations</span>
+            <Tag variant="primary" className="service-tag">Powered by Vertex AI</Tag>
+            <Tag variant="primary" className="service-tag">Live Preview</Tag>
+            <Tag variant="primary" className="service-tag">Tech Stack Recommendations</Tag>
           </div>
 
           <div className="services-cta">
-            <Link
-              to={isAuthenticated ? '/projects/create' : '/register'}
-              className="btn btn--primary"
-            >
+            <Button to={isAuthenticated ? '/projects/create' : '/register'} variant="secondary" size="hero" className="btn btn--primary">
               Get Started
-            </Link>
+            </Button>
           </div>
         </div>
       </div>

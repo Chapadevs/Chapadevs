@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button, Input, Textarea } from '../../ui-components'
 import './SubStep.css'
 
 const SubStep = ({ subStep, canEdit, onUpdate }) => {
@@ -33,14 +34,14 @@ const SubStep = ({ subStep, canEdit, onUpdate }) => {
   if (isEditing && canEdit) {
     return (
       <div className="substep-item substep-editing">
-        <input
+        <Input
           type="text"
           className="substep-title-input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Sub-step title"
         />
-        <textarea
+        <Textarea
           className="substep-notes-input"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -48,11 +49,13 @@ const SubStep = ({ subStep, canEdit, onUpdate }) => {
           rows={2}
         />
         <div className="substep-actions">
-          <button type="button" className="btn btn-primary btn-sm" onClick={handleSave}>
+          <Button type="button" variant="primary" size="sm" className="btn btn-primary btn-sm" onClick={handleSave}>
             Save
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             className="btn btn-secondary btn-sm"
             onClick={() => {
               setIsEditing(false)
@@ -61,7 +64,7 @@ const SubStep = ({ subStep, canEdit, onUpdate }) => {
             }}
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -81,14 +84,15 @@ const SubStep = ({ subStep, canEdit, onUpdate }) => {
           <span className="substep-title">{subStep.title || 'Untitled sub-step'}</span>
         </label>
         {canEdit && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             className="substep-edit-btn"
             onClick={() => setIsEditing(true)}
             aria-label="Edit sub-step"
           >
             ✎
-          </button>
+          </Button>
         )}
       </div>
       {subStep.notes && (

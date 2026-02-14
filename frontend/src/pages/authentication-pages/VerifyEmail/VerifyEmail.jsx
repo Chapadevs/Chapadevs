@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { authAPI } from '../../../services/api'
+import { Button, Card } from '../../../components/ui-components'
 import './VerifyEmail.css'
 
 const VerifyEmail = () => {
@@ -44,7 +45,7 @@ const VerifyEmail = () => {
 
   return (
     <div className="verify-email-container">
-      <div className="verify-email-card">
+      <Card variant="outline" className="verify-email-card">
         {status === 'loading' && (
           <>
             <h1>Verifying your email...</h1>
@@ -55,17 +56,17 @@ const VerifyEmail = () => {
           <>
             <h1>Email verified</h1>
             <p>{message}</p>
-            <Link to="/login" className="verify-email-link">Go to login</Link>
+            <Button to="/login" variant="primary" size="md" className="verify-email-link">Go to login</Button>
           </>
         )}
         {status === 'error' && (
           <>
             <h1>Verification failed</h1>
             <p>{message}</p>
-            <Link to="/login" className="verify-email-link">Go to login</Link>
+            <Button to="/login" variant="primary" size="md" className="verify-email-link">Go to login</Button>
           </>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

@@ -1,0 +1,33 @@
+import { forwardRef } from 'react'
+
+const Input = forwardRef(({ label, error, required, className = '', wrapperClassName = '', id, ...props }, ref) => {
+  return (
+    <div className={`flex flex-col gap-1 ${wrapperClassName}`}>
+      {label && (
+        <label
+          htmlFor={id}
+          className="font-heading text-xs text-ink-secondary uppercase tracking-wider font-bold"
+        >
+          {label}{required && ' *'}
+        </label>
+      )}
+      <input
+        id={id}
+        ref={ref}
+        className={[
+          'w-full px-5 py-3.5 border-2 rounded-none font-body text-sm text-ink',
+          'bg-white border-border placeholder:text-ink-muted',
+          'focus:border-primary-light focus:outline-none transition-colors duration-200',
+          'disabled:bg-surface-gray disabled:cursor-not-allowed',
+          error ? 'border-red-500 focus:border-red-500' : '',
+          className,
+        ].join(' ')}
+        {...props}
+      />
+      {error && <span className="text-red-500 text-xs font-body">{error}</span>}
+    </div>
+  )
+})
+
+Input.displayName = 'Input'
+export default Input

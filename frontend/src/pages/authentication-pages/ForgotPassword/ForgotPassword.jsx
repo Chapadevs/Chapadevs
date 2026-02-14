@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { authAPI } from '../../../services/api'
+import { Button, Card, Alert, Input } from '../../../components/ui-components'
 import '../Login/Login.css'
 import './ForgotPassword.css'
 
@@ -42,46 +43,36 @@ const ForgotPassword = () => {
         <p className="login-brand-tagline">Build with us</p>
       </div>
       <div className="login-form-panel">
-        <div className="login-card">
+        <Card variant="outline" className="login-card">
           <div className="login-header">
             <h1>Forgot password</h1>
             <p>Enter your email and we&apos;ll send you a reset link</p>
           </div>
 
           {status === 'success' && (
-            <div className="login-info-message">
+            <Alert variant="info" className="login-info-message">
               {message}
               <p className="forgot-back-link">
                 <Link to="/login">Back to sign in</Link>
               </p>
-            </div>
+            </Alert>
           )}
 
           {status !== 'success' && (
             <form onSubmit={handleSubmit} className="login-form">
               {status === 'error' && message && (
-                <div className="error-message">{message}</div>
+                <Alert variant="error">{message}</Alert>
               )}
-              <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  disabled={status === 'loading'}
-                />
-              </div>
-              <button
+              <Input type="email" id="email" label="Email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" required disabled={status === 'loading'} wrapperClassName="form-group" />
+              <Button
                 type="submit"
-                className="login-button"
+                variant="primary"
+                size="lg"
+                className="w-full login-button"
                 disabled={status === 'loading'}
               >
                 {status === 'loading' ? 'Sending...' : 'Send reset link'}
-              </button>
+              </Button>
             </form>
           )}
 
@@ -92,7 +83,7 @@ const ForgotPassword = () => {
               </p>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   )

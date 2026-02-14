@@ -1,4 +1,7 @@
-/* Font Face Declarations */
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* ── Font Face Declarations ── */
 @font-face {
   font-family: "Code Bold";
   src: url("/assets/fonts/Code-Bold.otf") format("opentype");
@@ -16,6 +19,14 @@
 }
 
 @font-face {
+  font-family: "Sansation-Regular";
+  src: url("/assets/fonts/Sansation-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Creato Display Medium";
   src: url("/assets/fonts/CreatoDisplay-Medium.otf") format("opentype");
   font-weight: 500;
@@ -23,72 +34,86 @@
   font-display: swap;
 }
 
-/* CSS Variables */
-:root {
-  --primary-green: #059669;
-  --primary-green-dark: #047857;
-  --primary-green-light: #10b981;
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-light: #6b7280;
-  --background: #ffffff;
-  --background-gray: #f9fafb;
-  --background-light-green: #ecfdf5;
-  --border: #e5e7eb;
-  --shadow: rgba(0, 0, 0, 0.1);
+@font-face {
+  font-family: "GoogleSansCode";
+  src: url("/assets/fonts/GoogleSansCode.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* Global Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+
+/* ── Base Layer: Default styling for raw HTML tags ── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 70px;
+    font-family: "Sansation-Regular", Arial, Helvetica, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+    color: #111827;
+  }
+
+  body {
+    line-height: 1.6;
+    background-color: #ffffff;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Coolvetica", Arial, Helvetica, sans-serif;
+    line-height: 1.2;
+    color: #111827;
+  }
+
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  h3 {
+    font-size: 1.15rem;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-left: 0.75rem;
+    border-left: 4px solid #059669;
+  }
+  h4 { font-size: 1rem; }
+  h5, h6 { font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+
+  /* Body text */
+  p { color: #374151; margin-bottom: 0.75rem; }
+  small { font-size: 0.75rem; color: #6b7280; }
+  strong, b { font-weight: bold; color: #111827; }
+
+  /* Links */
+  a { color: #059669; text-decoration: none; transition: color 0.2s ease; }
+  a:hover { color: #047857; }
+
+  /* Lists */
+  ul, ol { padding-left: 1.5rem; color: #374151; line-height: 1.6; }
+  li { margin-bottom: 0.25rem; }
+
+  /* Dividers */
+  hr { border: none; border-top: 2px solid #e5e7eb; margin: 1.5rem 0; }
+
+  /* Code */
+  code { font-family: "Code Bold", monospace; font-size: 0.875em; background: #f9fafb; padding: 0.15em 0.4em; color: #059669; }
+  pre { background: #f9fafb; padding: 1rem; overflow-x: auto; border-left: 4px solid #059669; }
+  pre code { background: none; padding: 0; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  th { font-family: "Code Bold", monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 0.75rem 1rem; background: #f9fafb; border-bottom: 2px solid #e5e7eb; }
+  td { padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; color: #374151; }
+
+  /* Form base */
+  label { font-family: "Code Bold", monospace; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+  input, select, textarea { font-family: "Coolvetica", Arial, Helvetica, sans-serif; font-size: 0.875rem; }
+  img { max-width: 100%; height: auto; }
 }
 
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 70px;
-  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
-  font-weight: 300;
-  letter-spacing: 0.01em;
-  color: var(--text-primary);
-}
-
-body {
-  font-family: "Coolvetica", Arial, Helvetica, sans-serif;
-  font-weight: 300;
-  letter-spacing: 0.01em;
-  line-height: 1.6;
-  color: var(--text-primary);
-  background-color: #ffffff;
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Code Bold", Arial, Helvetica, sans-serif;
-  line-height: 1.2;
-  margin-bottom: 1rem;
-}
-
-/* Unified h3 style (design pattern) */
-h3 {
-  font-family: "Code Bold", monospace;
-  font-size: 1.15rem;
-  font-weight: bold;
-  color: var(--primary-green);
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding-left: 0.75rem;
-  border-left: 4px solid var(--primary-green);
-}
-
-/* Container */
+/* ── Layout Utility ── */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
 }
-
-/* Note: Component-specific styles are imported in their respective component files */
-

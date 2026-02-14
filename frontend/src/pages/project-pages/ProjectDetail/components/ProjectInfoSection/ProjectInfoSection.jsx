@@ -1,9 +1,10 @@
+import { SectionTitle } from '../../../../../components/ui-components'
 import './ProjectInfoSection.css'
 
 const ProjectInfoSection = ({ project }) => {
   return (
     <section className="project-section project-info-section">
-      <h3 className="project-tab-panel-title">Project Information</h3>
+      <SectionTitle className="project-tab-panel-title mb-4">Project Information</SectionTitle>
       <div className="project-info-grid">
         <div className="info-item">
           <strong>Client:</strong>

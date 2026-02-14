@@ -1,31 +1,8 @@
+/* TeamStatusBanner — layout and spacing only */
 .team-status-banner {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.75rem;
-  border-radius: 0;
   margin-bottom: 1rem;
-  font-size: 0.8rem;
-  font-family: 'Creato Display Medium', serif;
-  font-weight: 600;
-  border-left: 4px solid var(--primary-green);
-}
-
-.team-status-banner.team-open {
-  background-color: var(--background-light-green);
-  color: var(--primary-green-dark);
-}
-
-.team-status-banner.team-closed {
-  background-color: var(--background-gray);
-  color: var(--text-secondary);
-  border-left-color: var(--border);
-}
-
-.team-status-icon {
-  font-size: 0.9rem;
-}
-
-.team-status-text {
-  font-weight: 600;
 }
