@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import { useAuth } from '../../../context/AuthContext'
-import { calculatePermissions } from '../../../pages/project-pages/ProjectDetail/utils/projectUtils'
-import { projectAPI } from '../../../services/api'
+import { useAuth } from '../../../../../context/AuthContext'
+import { calculatePermissions } from '../../utils/projectUtils'
+import { projectAPI } from '../../../../../services/api'
 import PhaseDetail from './PhaseDetail'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
-import { getPhasesPendingApproval } from '../../../utils/phaseApprovalUtils'
-import { Button, Alert, Input, Card, Badge } from '../../ui-components'
-import './Timeline.css'
+import { getPhasesPendingApproval } from '../../../../../utils/phaseApprovalUtils'
+import { Button, Alert, Input, Card, Badge } from '../../../../../components/ui-components'
+import ProjectInfoSection from '../../components/ProjectInfoSection/ProjectInfoSection'
+import ProjectOverview from '../../components/ProjectOverview/ProjectOverview'
+import './Workspace.css'
 
 const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }) => {
   const { user } = useAuth()
@@ -199,6 +201,8 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
 
   return (
     <>
+      <ProjectInfoSection project={project} />
+      <ProjectOverview project={project} />
       <section className="project-section project-phases">
         <h3 className="project-tab-panel-title">Development Progress</h3>
 

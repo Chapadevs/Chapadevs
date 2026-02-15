@@ -122,7 +122,7 @@ const Header = () => {
           >
             <Button
               type="button"
-              variant="nav"
+              variant="ghost"
               className="header-btn header-btn--platform"
               aria-expanded={platformOpen}
               aria-haspopup="true"
@@ -162,7 +162,7 @@ const Header = () => {
           >
             <Button
               type="button"
-              variant="nav"
+              variant="ghost"
               className="header-btn header-btn--resources"
               aria-expanded={resourcesOpen}
               aria-haspopup="true"
@@ -185,6 +185,9 @@ const Header = () => {
                 <Link to="/contact" className="resources-dropdown-link" role="menuitem" onClick={closeResources}>
                   Contact
                 </Link>
+                <Link to="/team" className="resources-dropdown-link" role="menuitem" onClick={closeResources}>
+                  Team
+                </Link>
               </div>
             </div>
           </div>
@@ -196,33 +199,16 @@ const Header = () => {
           >
             <Button
               type="button"
-              variant="nav"
+              variant="ghost"
               className="header-btn header-btn--explore"
-              aria-expanded={exploreOpen}
+              to="/assignments"
               aria-haspopup="true"
               aria-controls="explore-dropdown"
               id="explore-trigger"
-              onClick={() => setExploreOpen((prev) => !prev)}
-              onKeyDown={handleExploreKeyDown}
+
             >
               EXPLORE
             </Button>
-            <div
-              id="explore-dropdown"
-              className={`explore-dropdown ${exploreOpen ? 'explore-dropdown--open' : ''}`}
-              role="menu"
-              aria-labelledby="explore-trigger"
-              aria-hidden={!exploreOpen}
-            >
-              <div className="resources-dropdown-group">
-                <Link to="/assignments" className="resources-dropdown-link" role="menuitem" onClick={closeExplore}>
-                  Available projects
-                </Link>
-                <Link to="/team" className="resources-dropdown-link" role="menuitem" onClick={closeExplore}>
-                  Team
-                </Link>
-              </div>
-            </div>
           </div>
         </div>
         <nav className="header-navigation" aria-label="Account and actions">

@@ -45,7 +45,6 @@ const AIPreviewTab = ({
   setError,
 }) => {
   const { id } = useParams()
-  const [showGenerateForm, setShowGenerateForm] = useState(false)
   
   // Initialize form data with project data when form is shown
   const initialFormData = useMemo(() => ({
@@ -81,7 +80,6 @@ const AIPreviewTab = ({
       }
       await generateAIPreview(payload)
       await loadPreviews()
-      setShowGenerateForm(false)
       setGenerateFormData(initialFormData)
     } catch (err) {
       setGenerateError(err.message || 'Failed to generate preview')
@@ -124,21 +122,6 @@ const AIPreviewTab = ({
         {isAssignedProgrammer && !isClientOwner && " View and download the client's generated preview code to start development."}
       </p>
 
-      {isClientOwner && canGeneratePreviews && !showGenerateForm && (
-        <Button
-          type="button"
-          variant="primary"
-          className="btn btn-primary project-generate-preview-btn"
-          onClick={() => {
-            setGenerateFormData(initialFormData)
-            setShowGenerateForm(true)
-          }}
-        >
-          Generate new Website
-        </Button>
-      )}
-
-      {showGenerateForm && (
         <AIPreviewForm
           generateFormData={generateFormData}
           setGenerateFormData={setGenerateFormData}
@@ -152,7 +135,6 @@ const AIPreviewTab = ({
             setGenerateFormData(initialFormData)
           }}
         />
-      )}
 
       {previewsLoading ? (
         <p className="project-previews-loading">Loading previews...</p>

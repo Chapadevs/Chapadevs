@@ -21,7 +21,7 @@ const ProjectSidebar = ({
             className={`project-tab-link ${activeTab === 'description' ? 'active' : ''}`}
             onClick={() => onTabChange('description')}
           >
-            Requirements
+            Description
             {hasDescriptionNotifications && <span className="project-tab-notification-badge"></span>}
           </Button>
           {showAIPreviewsSection && (

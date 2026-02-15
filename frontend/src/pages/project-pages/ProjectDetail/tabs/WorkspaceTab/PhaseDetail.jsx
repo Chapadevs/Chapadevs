@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { projectAPI } from '../../../services/api'
+import { projectAPI } from '../../../../../services/api'
 import SubStep from './SubStep'
 import ClientQuestion from './ClientQuestion'
 import AttachmentManager from './AttachmentManager'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
-import { isPendingApproval } from '../../../utils/phaseApprovalUtils'
-import { Button, Alert, Textarea } from '../../ui-components'
+import { isPendingApproval } from '../../../../../utils/phaseApprovalUtils'
+import { Button, Alert, Textarea } from '../../../../../components/ui-components'
 import './PhaseDetail.css'
 
 const PhaseDetail = ({

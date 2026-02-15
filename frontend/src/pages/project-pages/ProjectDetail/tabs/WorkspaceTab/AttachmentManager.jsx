@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { projectAPI } from '../../../services/api'
-import { Button, Alert } from '../../ui-components'
+import { projectAPI } from '../../../../../services/api'
+import { Button, Alert } from '../../../../../components/ui-components'
 import './AttachmentManager.css'
 
 const AttachmentManager = ({

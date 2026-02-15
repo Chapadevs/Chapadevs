@@ -1,7 +1,7 @@
 import React from 'react'
-import Header from '../../components/layout-components/Header/Header'
-import InquiryForm from '../../components/landing-components/InquiryForm/InquiryForm'
-import Footer from '../../components/layout-components/Footer/Footer'
+import Header from '../../../components/layout-components/Header/Header'
+import InquiryForm from '../../../components/landing-components/InquiryForm/InquiryForm'
+import Footer from '../../../components/layout-components/Footer/Footer'
 import './Contact.css'
 
 const Contact = () => {

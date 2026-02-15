@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import Header from '../../components/layout-components/Header/Header'
-import TeamSection from '../../components/landing-components/Team/Team'
-import AI from '../../components/landing-components/AI/AI'
-import Footer from '../../components/layout-components/Footer/Footer'
-import { useAuth } from '../../context/AuthContext'
-import { Button } from '../../components/ui-components'
+import Header from '../../../components/layout-components/Header/Header'
+import TeamSection from '../../../components/landing-components/Team/Team'
+import AI from '../../../components/landing-components/AI/AI'
+import Footer from '../../../components/layout-components/Footer/Footer'
+import { useAuth } from '../../../context/AuthContext'
+import { Button } from '../../../components/ui-components'
 import './Team.css'
 
 const Team = () => {

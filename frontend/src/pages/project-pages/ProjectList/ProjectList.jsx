@@ -73,7 +73,7 @@ const ProjectList = () => {
         <PageTitle>Projects</PageTitle>
         <div className="project-list-header-actions">
           <RoleGate allow={['client', 'user']}>
-            <Button to="/projects/create" variant="primary" size="md">New Project</Button>
+            <Button to="/projects/create" variant="ghost" size="md">New Project</Button>
           </RoleGate>
         </div>
       </div>

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
-import { Alert, Button } from '../../../components/ui-components'
+import { Alert, Button, SecondaryButton } from '../../../components/ui-components'
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
 import ProjectDescriptionModal from './components/ProjectDescriptionModal/ProjectDescriptionModal'
-import Timeline from '../../../components/project-components/Timeline/Timeline'
+import WorkspaceTab from './tabs/WorkspaceTab/Workspace'
 import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
 import { useProjectNotifications } from './hooks/useProjectNotifications'
@@ -17,7 +17,6 @@ import DescriptionTab from './tabs/DescriptionTab/DescriptionTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
 import ProgrammersTab from './tabs/ProgrammersTab/ProgrammersTab'
 import CommentsTab from './tabs/CommentsTab/CommentsTab'
-import './ProjectDetail.css'
 
 const MAX_PREVIEWS_PER_PROJECT = 5
 
@@ -26,6 +25,7 @@ function ProjectDetail() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  
   const {
     project,
     setProject,
@@ -37,6 +37,7 @@ function ProjectDetail() {
     loadProject,
     loadPreviews,
   } = useProjectData()
+  
   const { getUserStatus } = useUserStatuses(project)
   const {
     hasDescriptionNotifications,
@@ -46,6 +47,7 @@ function ProjectDetail() {
     hasCommentsNotifications,
   } = useProjectNotifications(project)
 
+  // --- UI States for Actions ---
   const [markingReady, setMarkingReady] = useState(false)
   const [confirmingReady, setConfirmingReady] = useState(false)
   const [markingHolding, setMarkingHolding] = useState(false)
@@ -59,146 +61,105 @@ function ProjectDetail() {
   const [descriptionFetching, setDescriptionFetching] = useState(false)
   const [descriptionFetchAttempted, setDescriptionFetchAttempted] = useState(false)
 
-  const handleMarkReady = async () => {
-    if (!window.confirm('Mark this project as Ready? This will close the team and allow programmers to start development.')) {
-      return
-    }
+  // --- Restoration of Handler Logic ---
 
+  const handleMarkReady = async () => {
+    if (!window.confirm('Mark this project as Ready? This will close the team and allow programmers to start development.')) return
     try {
-      setMarkingReady(true)
-      setError(null)
+      setMarkingReady(true); setError(null)
       const updatedProject = await projectAPI.markReady(id)
       setProject(updatedProject)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to mark project as ready')
-    } finally {
-      setMarkingReady(false)
-    }
+      setError(err.response?.data?.message || err.message || 'Failed to mark ready')
+    } finally { setMarkingReady(false) }
   }
 
   const handleConfirmReady = async () => {
-    if (!window.confirm("Confirm you're ready to start development on this project?")) return
-
+    if (!window.confirm("Confirm you're ready to start development?")) return
     try {
-      setConfirmingReady(true)
-      setError(null)
+      setConfirmingReady(true); setError(null)
       const updatedProject = await projectAPI.confirmReady(id)
       setProject(updatedProject)
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Failed to confirm ready")
-    } finally {
-      setConfirmingReady(false)
-    }
+    } finally { setConfirmingReady(false) }
   }
 
   const handleToggleTeamClosed = async () => {
     const newStatus = !project.teamClosed
-    const action = newStatus ? 'close' : 'open'
-    const message = newStatus
-      ? 'Close the team and return to On Hold? This will remove the project from the available list. Programmers already assigned will remain assigned.'
-      : 'Open the team? This will allow programmers to join the project.'
-    if (!window.confirm(message)) return
-
+    if (!window.confirm(newStatus ? 'Close team?' : 'Open team?')) return
     try {
-      setTogglingTeamClosed(true)
-      setError(null)
+      setTogglingTeamClosed(true); setError(null)
       const updatedProject = await projectAPI.toggleTeamClosed(id, newStatus)
       setProject(updatedProject)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || `Failed to ${action} team`)
-    } finally {
-      setTogglingTeamClosed(false)
-    }
+      setError(err.response?.data?.message || err.message || 'Toggle failed')
+    } finally { setTogglingTeamClosed(false) }
   }
 
   const handleStartDevelopment = async () => {
-    if (!window.confirm('Start development for this project?')) return
-
+    if (!window.confirm('Start development?')) return
     try {
-      setStartingDevelopment(true)
-      setError(null)
+      setStartingDevelopment(true); setError(null)
       const updatedProject = await projectAPI.startDevelopment(id)
       setProject(updatedProject)
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to start development')
-    } finally {
-      setStartingDevelopment(false)
-    }
+    } finally { setStartingDevelopment(false) }
   }
 
   const handleStopDevelopment = async () => {
-    if (!window.confirm('Stop development and return to Ready? Programmers can start development again when ready.')) return
-
+    if (!window.confirm('Stop development and return to Ready?')) return
     try {
-      setStoppingDevelopment(true)
-      setError(null)
+      setStoppingDevelopment(true); setError(null)
       const updatedProject = await projectAPI.stopDevelopment(id)
       setProject(updatedProject)
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to stop development')
-    } finally {
-      setStoppingDevelopment(false)
-    }
+    } finally { setStoppingDevelopment(false) }
   }
 
   const handleMarkHolding = async () => {
-    if (!window.confirm('Set this project to On Hold? You can open the team again later to allow more programmers to join.')) return
-
+    if (!window.confirm('Set to On Hold?')) return
     try {
-      setMarkingHolding(true)
-      setError(null)
+      setMarkingHolding(true); setError(null)
       const updatedProject = await projectAPI.markHolding(id)
       setProject(updatedProject)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to set project to On Hold')
-    } finally {
-      setMarkingHolding(false)
-    }
+      setError(err.response?.data?.message || err.message || 'Failed to set On Hold')
+    } finally { setMarkingHolding(false) }
   }
 
   const handleLeaveProject = async () => {
-    if (!window.confirm('Are you sure you want to leave this project? This action cannot be undone.')) {
-      return
-    }
-
+    if (!window.confirm('Leave project?')) return
     try {
-      setLeavingProject(true)
-      setError(null)
+      setLeavingProject(true); setError(null)
       await assignmentAPI.leave(id)
-      // Navigate back to projects list after leaving
       navigate('/projects')
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to leave project')
+      setError(err.response?.data?.message || err.message || 'Failed to leave')
       setLeavingProject(false)
     }
   }
 
   const handleRemoveProgrammer = async (programmerId) => {
-    if (!window.confirm('Remove this programmer from the project? They will be notified.')) {
-      return
-    }
+    if (!window.confirm('Remove programmer?')) return
     try {
-      setRemovingProgrammerId(programmerId)
-      setError(null)
+      setRemovingProgrammerId(programmerId); setError(null)
       const updatedProject = await assignmentAPI.removeProgrammer(id, programmerId)
       setProject(updatedProject)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to remove programmer')
-    } finally {
-      setRemovingProgrammerId(null)
-    }
+      setError(err.response?.data?.message || err.message || 'Failed to remove')
+    } finally { setRemovingProgrammerId(null) }
   }
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      return
-    }
-
+    if (!window.confirm('Delete this project?')) return
     try {
       await projectAPI.delete(id)
       navigate('/projects')
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to delete project')
+      setError(err.response?.data?.message || err.message || 'Failed to delete')
     }
   }
 
@@ -209,25 +170,20 @@ function ProjectDetail() {
         (p._id || p.id) === (updatedPhase._id || updatedPhase.id) ? updatedPhase : p
       ),
     }))
-    // Reload project to get latest data
     loadProject()
   }
 
+  // --- Effects & Unauthorized Handling ---
   const isNotAuthorized = error && typeof error === 'string' && error.toLowerCase().includes('not authorized')
   const hasDescriptionFromState = location.state?.description != null || location.state?.title != null
   const isProgrammerUnauthorized = error && !project && isProgrammer(user) && isNotAuthorized
-  const hasDescription = hasDescriptionFromState || descriptionPreview
-  const showDescriptionModal = isProgrammerUnauthorized && hasDescription
+  const showDescriptionModal = isProgrammerUnauthorized && (hasDescriptionFromState || descriptionPreview)
 
   useEffect(() => {
-    if (
-      isProgrammerUnauthorized && id &&
-      !hasDescriptionFromState && !descriptionPreview && !descriptionFetchAttempted
-    ) {
+    if (isProgrammerUnauthorized && id && !hasDescriptionFromState && !descriptionPreview && !descriptionFetchAttempted) {
       setDescriptionFetchAttempted(true)
       setDescriptionFetching(true)
-      assignmentAPI
-        .getProjectDescriptionPublic(id)
+      assignmentAPI.getProjectDescriptionPublic(id)
         .then((data) => setDescriptionPreview(data))
         .catch(() => {})
         .finally(() => setDescriptionFetching(false))
@@ -239,168 +195,155 @@ function ProjectDetail() {
     navigate('/assignments')
   }
 
-  if (loading) {
-    return <div className="project-detail-loading">Loading project...</div>
-  }
+  if (loading) return <div className="flex h-screen items-center justify-center text-ink-muted animate-pulse">Loading project...</div>
 
   if (error && !project) {
     if (showDescriptionModal) {
-      const basicInfo = {
-        title: location.state?.title ?? descriptionPreview?.title,
-        description: location.state?.description ?? descriptionPreview?.description,
-        status: location.state?.status ?? descriptionPreview?.status,
-        projectType: location.state?.projectType ?? descriptionPreview?.projectType,
-        budget: location.state?.budget ?? descriptionPreview?.budget,
-        timeline: location.state?.timeline ?? descriptionPreview?.timeline,
-        priority: location.state?.priority ?? descriptionPreview?.priority,
-        client: location.state?.client ?? descriptionPreview?.client,
-      }
       return (
         <>
           <Header />
-          <div className="project-detail-container">
-            <ProjectDescriptionModal
-              basicInfo={basicInfo}
-              onClose={handleDescriptionModalClose}
-            />
-          </div>
-        </>
-      )
-    }
-    if (isProgrammerUnauthorized && descriptionFetching) {
-      return (
-        <>
-          <Header />
-          <div className="project-detail-container">
-            <div className="project-detail-loading">Loading project description...</div>
+          <div className="mx-auto max-w-7xl px-4 py-8">
+             <ProjectDescriptionModal 
+               basicInfo={{ ...location.state, ...descriptionPreview }} 
+               onClose={handleDescriptionModalClose} 
+             />
           </div>
         </>
       )
     }
     return (
-      <div className="project-detail-container">
-        <Alert variant="error">{error}</Alert>
-        <Button to="/projects" variant="ghost" size="sm" className="project-detail-back">← Back to Projects</Button>
+      <div className="mx-auto max-w-7xl px-4 py-20 text-center">
+        <Alert variant="error" className="mb-4">{error}</Alert>
+        <SecondaryButton onClick={() => navigate('/projects')}>← Back to Projects</SecondaryButton>
       </div>
     )
   }
 
-  if (!project) {
-    return <div className="project-detail-container">Project not found</div>
-  }
+  if (!project) return <div className="p-20 text-center text-ink-muted">Project not found</div>
 
-  const {
-    isClientOwner,
-    isAssignedProgrammer,
-    isProgrammerInProject,
-    canEdit,
-    canDelete,
-    canMarkReady,
-    canConfirmReady,
-    allTeamConfirmedReady,
-    canToggleTeamClosed,
-    canStartDevelopment,
-    canStopDevelopment,
-    canSetToHolding,
-  } = calculatePermissions(user, project)
-
-  const canGeneratePreviews = isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT
-  const showAIPreviewsSection = isClientOwner || isAssignedProgrammer
+  const permissions = calculatePermissions(user, project)
+  const showAIPreviewsSection = permissions.isClientOwner || permissions.isAssignedProgrammer
+  const canGeneratePreviews = permissions.isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT
 
   return (
-    <>
+    <div className="min-h-screen bg-surface">
       <Header />
-      <div className="project-detail-container">
-        <ProjectHeader 
-          project={project} 
-          isClientOwner={isClientOwner}
-          canDelete={canDelete}
-          onDelete={handleDelete}
-          markingReady={markingReady}
-          onMarkReady={handleMarkReady}
-          canMarkReady={canMarkReady}
-          allTeamConfirmedReady={allTeamConfirmedReady}
-          canConfirmReady={canConfirmReady}
-          confirmingReady={confirmingReady}
-          onConfirmReady={handleConfirmReady}
-          canToggleTeamClosed={canToggleTeamClosed}
-          togglingTeamClosed={togglingTeamClosed}
-          onToggleTeamClosed={handleToggleTeamClosed}
-          canStartDevelopment={canStartDevelopment}
-          startingDevelopment={startingDevelopment}
-          onStartDevelopment={handleStartDevelopment}
-          canStopDevelopment={canStopDevelopment}
-          stoppingDevelopment={stoppingDevelopment}
-          onStopDevelopment={handleStopDevelopment}
-          canSetToHolding={canSetToHolding}
-          markingHolding={markingHolding}
-          onMarkHolding={handleMarkHolding}
-          isProgrammerInProject={isProgrammerInProject}
-          leavingProject={leavingProject}
-          onLeaveProject={handleLeaveProject}
-        />
-        {error && <Alert variant="error">{error}</Alert>}
-
-        <div className="project-detail-content">
-        <ProjectSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            showAIPreviewsSection={showAIPreviewsSection}
-            hasDescriptionNotifications={hasDescriptionNotifications}
-            hasAIPreviewNotifications={hasAIPreviewNotifications}
-            hasProgrammersNotifications={hasProgrammersNotifications}
-            hasTimelineNotifications={hasTimelineNotifications}
-            hasCommentsNotifications={hasCommentsNotifications}
+      
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header with Shadcn-like spacing */}
+        <div className="mb-10">
+          <ProjectHeader 
+            project={project} 
+            isClientOwner={permissions.isClientOwner}
+            canDelete={permissions.canDelete}
+            onDelete={handleDelete}
+            markingReady={markingReady}
+            onMarkReady={handleMarkReady}
+            canMarkReady={permissions.canMarkReady}
+            allTeamConfirmedReady={permissions.allTeamConfirmedReady}
+            canConfirmReady={permissions.canConfirmReady}
+            confirmingReady={confirmingReady}
+            onConfirmReady={handleConfirmReady}
+            canToggleTeamClosed={permissions.canToggleTeamClosed}
+            togglingTeamClosed={togglingTeamClosed}
+            onToggleTeamClosed={handleToggleTeamClosed}
+            canStartDevelopment={permissions.canStartDevelopment}
+            startingDevelopment={startingDevelopment}
+            onStartDevelopment={handleStartDevelopment}
+            canStopDevelopment={permissions.canStopDevelopment}
+            stoppingDevelopment={stoppingDevelopment}
+            onStopDevelopment={handleStopDevelopment}
+            canSetToHolding={permissions.canSetToHolding}
+            markingHolding={markingHolding}
+            onMarkHolding={handleMarkHolding}
+            isProgrammerInProject={permissions.isProgrammerInProject}
+            leavingProject={leavingProject}
+            onLeaveProject={handleLeaveProject}
           />
-          <div className="project-main">
-            {activeTab === 'description' && (
+        </div>
+
+        {error && <Alert variant="error" className="mb-6">{error}</Alert>}
+
+        {/* The Sidebar & Content Grid */}
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start">
+          
+          {/* Sidebar Area */}
+          <aside className="w-full shrink-0 lg:w-64">
+            <div className="sticky top-24">
+              <ProjectSidebar
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                showAIPreviewsSection={showAIPreviewsSection}
+                hasDescriptionNotifications={hasDescriptionNotifications}
+                hasAIPreviewNotifications={hasAIPreviewNotifications}
+                hasProgrammersNotifications={hasProgrammersNotifications}
+                hasTimelineNotifications={hasTimelineNotifications}
+                hasCommentsNotifications={hasCommentsNotifications}
+              />
+            </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <section className="flex-1 min-w-0 bg-white border border-border rounded-xl shadow-sm p-8 min-h-[600px]">
+          {activeTab === 'description' && (
               <DescriptionTab
                 project={project}
+                // Pass all permission flags from the calculatePermissions hook
+                {...permissions} 
+                // Pass handler functions
+                onDelete={handleDelete}
+                onMarkReady={handleMarkReady}
+                onConfirmReady={handleConfirmReady}
+                onToggleTeamClosed={handleToggleTeamClosed}
+                onStartDevelopment={handleStartDevelopment}
+                onStopDevelopment={handleStopDevelopment}
+                onMarkHolding={handleMarkHolding}
+                onLeaveProject={handleLeaveProject}
+                // Pass loading states
+                markingReady={markingReady}
+                confirmingReady={confirmingReady}
+                togglingTeamClosed={togglingTeamClosed}
+                startingDevelopment={startingDevelopment}
+                stoppingDevelopment={stoppingDevelopment}
+                markingHolding={markingHolding}
+                leavingProject={leavingProject}
               />
             )}
-
             {activeTab === 'ai-preview' && showAIPreviewsSection && (
               <AIPreviewTab
                 project={project}
                 previews={previews}
                 previewsLoading={previewsLoading}
-                isClientOwner={isClientOwner}
-                isAssignedProgrammer={isAssignedProgrammer}
+                isClientOwner={permissions.isClientOwner}
+                isAssignedProgrammer={permissions.isAssignedProgrammer}
                 canGeneratePreviews={canGeneratePreviews}
                 loadPreviews={loadPreviews}
                 setError={setError}
               />
             )}
-
             {activeTab === 'programmers' && (
               <ProgrammersTab
                 project={project}
                 getUserStatus={getUserStatus}
-                isClientOwner={isClientOwner}
+                isClientOwner={permissions.isClientOwner}
                 onRemoveProgrammer={handleRemoveProgrammer}
                 removingProgrammerId={removingProgrammerId}
               />
             )}
-
             {activeTab === 'timeline' && (
-              <div className="project-tab-panel">
-                <Timeline 
-                  project={project} 
-                  previews={previews}
-                  onPhaseUpdate={handlePhaseUpdate}
-                  onTimelineConfirmed={loadProject}
-                />
-              </div>
+              <WorkspaceTab 
+                project={project} 
+                previews={previews}
+                onPhaseUpdate={handlePhaseUpdate}
+                onTimelineConfirmed={loadProject}
+              />
             )}
-
-            {activeTab === 'comments' && (
-              <CommentsTab project={project} user={user} />
-            )}
-          </div>
+            {activeTab === 'comments' && <CommentsTab project={project} user={user} />}
+          </section>
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   )
 }
 
-export { ProjectDetail as default }
+export default ProjectDetail

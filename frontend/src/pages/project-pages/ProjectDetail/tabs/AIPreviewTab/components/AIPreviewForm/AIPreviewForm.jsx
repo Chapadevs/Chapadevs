@@ -1,4 +1,5 @@
-import { Button, Alert, Select, Textarea } from '../../../../../../../components/ui-components'
+import { SecondaryButton, Button, Alert, Select, Textarea } from '../../../../../../../components/ui-components'
+// Keep your CSS if you have specific layout constraints not covered by Tailwind
 import './AIPreviewForm.css'
 
 const AIPreviewForm = ({
@@ -6,119 +7,88 @@ const AIPreviewForm = ({
   setGenerateFormData,
   generating,
   generateError,
-  techStackByCategory,
   onSubmit,
   onCancel,
 }) => {
+  
+  // Helper to handle form field changes
+  const handleChange = (field, value) => {
+    setGenerateFormData({ ...generateFormData, [field]: value });
+  };
+
   return (
-    <form onSubmit={onSubmit} className="project-preview-form">
-      <Textarea
-        id="preview-prompt"
-        label="Project description"
-        value={generateFormData.prompt}
-        onChange={(e) => setGenerateFormData({ ...generateFormData, prompt: e.target.value })}
-        placeholder="Describe the preview you want..."
-        rows={3}
-        required
-        wrapperClassName="project-preview-form-group"
-      />
-      <div className="project-preview-form-row">
-        <Select
-          id="preview-budget"
-          label="Budget"
-          value={generateFormData.budget}
-          onChange={(e) => setGenerateFormData({ ...generateFormData, budget: e.target.value })}
-          wrapperClassName="project-preview-form-group"
+    <form onSubmit={onSubmit} className="project-preview-form space-y-6">
+      {/* AI Model Selection */}
+      <div className="project-preview-form-group flex flex-col gap-2">
+        <label 
+          htmlFor="preview-modelId" 
+          className="font-heading text-[10px] text-ink-muted uppercase tracking-[0.1em] font-bold px-1"
         >
-          <option value="">Select...</option>
-          <option value="Under $5,000">Under $5,000</option>
-          <option value="$5,000 - $10,000">$5,000 - $10,000</option>
-          <option value="$10,000 - $25,000">$10,000 - $25,000</option>
-          <option value="$25,000+">$25,000+</option>
-        </Select>
-        <Select
-          id="preview-timeline"
-          label="Timeline"
-          value={generateFormData.timeline}
-          onChange={(e) => setGenerateFormData({ ...generateFormData, timeline: e.target.value })}
-          wrapperClassName="project-preview-form-group"
-        >
-          <option value="">Select...</option>
-          <option value="1-2 weeks">1-2 weeks</option>
-          <option value="2-4 weeks">2-4 weeks</option>
-          <option value="1-2 months">1-2 months</option>
-          <option value="2-3 months">2-3 months</option>
-        </Select>
-      </div>
-      <div className="project-preview-form-group">
-        <label htmlFor="preview-modelId">AI Model</label>
+          AI Model
+        </label>
         <Select
           id="preview-modelId"
           value={generateFormData.modelId}
-          onChange={(e) => setGenerateFormData({ ...generateFormData, modelId: e.target.value })}
+          onChange={(e) => handleChange('modelId', e.target.value)}
+          className="w-full"
         >
           <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
           <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
         </Select>
-        <p className="project-preview-form-hint">Flash: Faster, lower cost. Pro: Higher quality, higher cost.</p>
+        <p className="text-[11px] text-ink-muted italic px-1">
+          Flash: Faster, lower cost. Pro: Higher quality, higher cost.
+        </p>
       </div>
-      <div className="project-preview-form-group">
-        <label>Tech Stack</label>
-        <div className="tech-stack-categories">
-          {Object.entries(techStackByCategory).map(([category, options]) => {
-            const currentSelection = generateFormData.techStack.find((tech) =>
-              options.some((opt) => opt.value === tech)
-            ) || ''
-            
-            return (
-              <div key={category} className="tech-stack-category">
-                <label htmlFor={`preview-tech-${category}`} className="tech-stack-category-label">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </label>
-                <Select
-                  id={`preview-tech-${category}`}
-                  name={`preview-tech-${category}`}
-                  className="tech-stack-select"
-                  value={currentSelection}
-                  onChange={(e) => {
-                    const selectedValue = e.target.value
-                    const otherCategoryTechs = generateFormData.techStack.filter((tech) =>
-                      !options.some((opt) => opt.value === tech)
-                    )
-                    setGenerateFormData((prev) => ({
-                      ...prev,
-                      techStack: selectedValue
-                        ? [...otherCategoryTechs, selectedValue]
-                        : otherCategoryTechs,
-                    }))
-                  }}
-                >
-                  <option value="">Select {category}</option>
-                  {options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            )
-          })}
+
+      {/* Main Prompt Input with Integrated Buttons */}
+      <Textarea
+        id="preview-prompt"
+        label="Project description"
+        value={generateFormData.prompt}
+        onChange={(e) => handleChange('prompt', e.target.value)}
+        placeholder="Describe the preview you want AI to generate..."
+        required
+        className="min-h-[120px]"
+      >
+
+
+      {/* Inside the Textarea children */}
+        <div className="flex w-full items-center justify-between">
+          <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block">
+            {generateFormData.prompt?.length || 0} characters
+          </span>
+          
+          <div className="flex items-center gap-1.5">
+            <SecondaryButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-ink-muted hover:text-ink font-normal lowercase" // Lowercase for subtle feel
+              onClick={onCancel}
+            >
+              cancel
+            </SecondaryButton>
+
+            <Button 
+              type="submit" 
+              disabled={generating || !generateFormData.prompt}
+              size="sm"
+              className="h-8 px-4 text-xs font-medium rounded-lg shadow-sm"
+            >
+              {generating ? 'Generating...' : 'Generate'}
+            </Button>
+          </div>
         </div>
-      </div>
-      {generateError && <Alert variant="error">{generateError}</Alert>}
-      <div className="project-preview-form-actions">
-        <Button type="submit" variant="primary" className="btn btn-primary" disabled={generating}>
-          {generating ? 'Generating...' : 'Generate preview'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="btn btn-secondary"
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
-      </div>
+
+
+      </Textarea>
+
+      {/* Error Handling */}
+      {generateError && (
+        <Alert variant="error" className="mt-4">
+          {generateError}
+        </Alert>
+      )}
     </form>
   )
 }
