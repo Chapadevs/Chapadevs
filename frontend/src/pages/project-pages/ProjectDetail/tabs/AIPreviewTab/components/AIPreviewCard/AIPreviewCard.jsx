@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Button } from '../../../../../../../components/ui-components'
-import { parsePreviewResult, buildPreviewIframeSrcDoc } from '../../../../utils/previewUtils'
+import { parsePreviewResult } from '../../../../utils/previewUtils'
 import './AIPreviewCard.css'
+import { Sandpack } from "@codesandbox/sandpack-react"
 
 const AIPreviewCard = ({
   preview,
@@ -43,6 +44,76 @@ const AIPreviewCard = ({
       </div>
     )
   }
+
+  // Helper to unescape string-encoded code (fixes literal \n and \")
+  const unescapeCode = (str) => {
+    if (typeof str !== 'string') return str;
+    try {
+      return JSON.parse(`"${str}"`);
+    } catch (e) {
+      return str
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+    }
+  };
+
+  const cleanCode = unescapeCode(code);
+
+  // Sandpack setup for React template + Tailwind
+  const sandpackFiles = {
+    "/App.js": {
+      code: cleanCode
+    },
+    "/index.js": {
+      code: `
+    import React from "react";
+    import { createRoot } from "react-dom/client";
+    import App from "./App";
+    import "./index.css";
+
+    const root = createRoot(document.getElementById("root"));
+    root.render(<App />);
+          `.trim()
+        },
+        "/index.css": {
+          code: `
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+      `.trim()
+    },
+    // Empty tailwind.config.js for Sandpack to recognize Tailwind imports (no actual config needed for CDN base)
+    "/tailwind.config.js": {
+      code: `
+    module.exports = {
+      content: ["./src/**/*.{js,jsx,ts,tsx}"],
+      theme: { extend: {} },
+      plugins: [],
+    };
+          `.trim()
+        },
+        "/public/index.html": {
+          code: `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" href="favicon.ico" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>React + Tailwind Preview</title>
+      </head>
+      <body>
+        <div id="root"></div>
+        <!-- Tailwind via CDN for fast preview -->
+        <script src="https://cdn.tailwindcss.com"></script>
+      </body>
+    </html>
+      `.trim()
+    }
+  };
 
   return (
     <div className="project-preview-card">
@@ -91,12 +162,15 @@ const AIPreviewCard = ({
             <>
               <div className="project-preview-iframe-block">
                 <h4>Website Preview</h4>
-                <div className="project-preview-iframe-wrap">
-                  <iframe
-                    title="Website Preview"
-                    sandbox="allow-scripts allow-same-origin"
-                    srcDoc={buildPreviewIframeSrcDoc(code)}
-                    className="project-preview-iframe"
+                <div className="project-preview-iframe-wrap" style={{ minHeight: 320 }}>
+                  {/* Use Sandpack with react template and Tailwind included */}
+                  <Sandpack
+                    template="react"
+                    files={sandpackFiles}
+                    options={{
+                      showNavigator: true,
+                      showPreview: false, // Hide the right-side preview
+                    }}
                   />
                 </div>
                 <div className="project-preview-code-actions">
@@ -104,7 +178,6 @@ const AIPreviewCard = ({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="btn btn-secondary btn-sm"
                     onClick={() => onCopyCode(previewId, code)}
                   >
                     {copySuccessId === previewId ? 'Copied!' : 'Copy code'}
@@ -113,25 +186,23 @@ const AIPreviewCard = ({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="btn btn-secondary btn-sm"
                     onClick={() => onDownloadCode(code)}
                   >
                     Download ZIP
                   </Button>
+                  {isClientOwner && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => onDeletePreview(previewId)}
+                    >
+                      Delete preview
+                    </Button>
+                  )}
                 </div>
               </div>
             </>
-          )}
-          {isClientOwner && (
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              className="btn btn-danger btn-sm project-preview-delete"
-              onClick={() => onDeletePreview(previewId)}
-            >
-              Delete preview
-            </Button>
           )}
         </div>
       )}
