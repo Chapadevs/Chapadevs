@@ -5,9 +5,9 @@ import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
 import RoleGate from '../../../components/layout-components/RoleGate/RoleGate'
 import { Button, Badge, PageTitle, Alert, Card, Select } from '../../../components/ui-components'
-import './Assignment.css'
+import './AvailableProjects.css'
 
-const Assignment = () => {
+const AvailableProjects = () => {
   const { user, isAdmin, isProgrammer } = useRole()
   const [availableProjects, setAvailableProjects] = useState([])
   const [programmers, setProgrammers] = useState([])
@@ -242,4 +242,4 @@ const Assignment = () => {
   )
 }
 
-export default Assignment
+export default AvailableProjects

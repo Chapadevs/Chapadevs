@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectChat } from '../../hooks/useProjectChat'
-import { Button, Alert, SectionTitle, Textarea } from '../../../../../components/ui-components'
+import { 
+  Button, 
+  Alert, 
+  SectionTitle, 
+  Textarea, 
+  Avatar, 
+  AvatarImage, 
+  AvatarFallback 
+} from '../../../../../components/ui-components'
 import './CommentsTab.css'
 
 const CommentsTab = ({ project, user }) => {
@@ -12,19 +20,29 @@ const CommentsTab = ({ project, user }) => {
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
 
-  // Auto-scroll to bottom when new messages arrive
+  // Helper to resolve avatar URLs (Consistent with Header/Profile)
+  const getAvatarUrl = (avatar) => {
+    if (!avatar) return null
+    if (avatar.startsWith('data:image/')) return avatar
+    if (avatar.startsWith('/uploads/')) {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
+      const baseUrl = backendUrl.replace('/api', '').replace(/\/$/, '')
+      return `${baseUrl}${avatar}`
+    }
+    return avatar
+  }
+
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
 
-  // Mark messages as read when tab is active
   useEffect(() => {
     if (projectId && messages.length > 0) {
       markAsRead()
     }
-  }, [projectId, markAsRead]) // Only mark as read on mount, not on every message change
+  }, [projectId, markAsRead])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -49,14 +67,14 @@ const CommentsTab = ({ project, user }) => {
     const diffMs = now - date
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+    const diffDays = Math.floor(diffMs / 8400000)
 
     if (diffMins < 1) return 'Just now'
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
     
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
   const isOwnMessage = (message) => {
@@ -65,76 +83,62 @@ const CommentsTab = ({ project, user }) => {
     return senderId?.toString() === userId?.toString()
   }
 
-  if (!projectId) {
-    return (
-      <div className="project-tab-panel">
-        <p>Project not found</p>
-      </div>
-    )
-  }
+  if (!projectId) return <div className="project-tab-panel"><p>Project not found</p></div>
 
   return (
     <div className="project-tab-panel chat-container">
       <SectionTitle className="project-tab-panel-title mb-4">Comments</SectionTitle>
 
-      {error && (
-        <Alert variant="error" className="chat-error">
-          {error}
-        </Alert>
-      )}
+      {error && <Alert variant="error" className="chat-error">{error}</Alert>}
 
       <div className="chat-messages-container" ref={messagesContainerRef}>
         {loading ? (
           <div className="chat-loading">Loading messages...</div>
         ) : messages.length === 0 ? (
-          <div className="chat-empty">
-            <p>No messages yet. Start the conversation!</p>
-          </div>
+          <div className="chat-empty"><p>No messages yet. Start the conversation!</p></div>
         ) : (
           <div className="chat-messages-list">
             {messages.map((message) => {
               const own = isOwnMessage(message)
-              const senderName = message.senderId?.name || message.senderId?.email || 'Unknown'
-              const senderRole = message.senderId?.role || 'user'
-              const senderId = message.senderId?._id || message.senderId
-              const senderAvatar = message.senderId?.avatar
-              const initials = senderName.split(/\s+/).map((s) => s[0]).join('').toUpperCase().slice(0, 2)
+              const sender = message.senderId || {}
+              const senderName = sender.name || sender.email || 'Unknown'
+              const senderId = sender._id || sender
 
+              console.log(sender)
+              
               const handleSenderClick = (e) => {
                 e.preventDefault()
-                if (senderId) {
-                  navigate(`/users/${senderId}`)
-                }
+                if (senderId) navigate(`/users/${senderId}`)
               }
 
               return (
                 <div key={message._id || message.id} className={`chat-message ${own ? 'own' : 'other'}`}>
-                  <div
-                    className="chat-message-avatar"
-                    onClick={senderId ? handleSenderClick : undefined}
-                    role={senderId ? 'button' : undefined}
-                    aria-label={senderId ? `View ${senderName}` : undefined}
+                  {/* Updated Avatar Implementation */}
+                  <div 
+                    className="chat-message-avatar cursor-pointer transition-opacity hover:opacity-80"
+                    onClick={handleSenderClick}
                   >
-                    {senderAvatar ? (
-                      <img src={senderAvatar} alt="" />
-                    ) : (
-                      <span className="chat-message-avatar-initials">{initials}</span>
-                    )}
+                    <Avatar className="w-8 h-8 border border-white/10">
+                      <AvatarImage 
+                        src={getAvatarUrl(sender.avatar)} 
+                        alt={senderName} 
+                      />
+                      <AvatarFallback className="text-[10px] bg-surface-gray">
+                        {senderName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                   </div>
+
                   <div className="chat-message-content">
                     <div className="chat-message-header">
-                      {senderId ? (
-                        <span
-                          className="chat-message-sender chat-message-sender-link"
-                          onClick={handleSenderClick}
-                        >
-                          {senderName}
-                        </span>
-                      ) : (
-                        <span className="chat-message-sender">{senderName}</span>
-                      )}
-                      {senderRole !== 'user' && (
-                        <span className="chat-message-role">{senderRole}</span>
+                      <span 
+                        className="chat-message-sender chat-message-sender-link"
+                        onClick={handleSenderClick}
+                      >
+                        {senderName}
+                      </span>
+                      {sender.role && sender.role !== 'user' && (
+                        <span className="chat-message-role">{sender.role}</span>
                       )}
                     </div>
                     <div className="chat-message-text">{message.content}</div>
@@ -148,6 +152,7 @@ const CommentsTab = ({ project, user }) => {
         )}
       </div>
 
+      {/* Form section remains mostly the same */}
       <form className="chat-input-form" onSubmit={handleSubmit}>
         <div className="chat-input-wrapper">
           <Textarea
@@ -161,14 +166,11 @@ const CommentsTab = ({ project, user }) => {
             maxLength={5000}
           />
           <div className="chat-input-footer">
-            <span className="chat-input-counter">
-              {messageContent.length}/5000
-            </span>
+            <span className="chat-input-counter">{messageContent.length}/5000</span>
             <Button
               type="submit"
               variant="primary"
               size="sm"
-              className="chat-send-button"
               disabled={!messageContent.trim() || sending}
             >
               {sending ? 'Sending...' : 'Send'}

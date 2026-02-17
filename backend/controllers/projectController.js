@@ -931,10 +931,6 @@ export const deleteProject = asyncHandler(async (req, res) => {
       res.status(403)
       throw new Error('Not authorized to delete this project')
     }
-    if (!['Holding', 'Development'].includes(project.status)) {
-      res.status(403)
-      throw new Error('Can only delete projects in Holding or Development status')
-    }
   }
 
   await ProjectPhase.deleteMany({ projectId: project._id })

@@ -9,4 +9,8 @@ export { default as SectionTitle } from './SectionTitle/SectionTitle'
 export { default as Container } from './Container/Container'
 export { default as Alert } from './Alert/Alert'
 export { default as Tag } from './Tag/Tag'
+export { default as NotificationBell } from './NotificationBell/NotificationBell'
 export { default as SecondaryButton } from './SecondaryButton/SecondaryButton'
+export { default as NavDropdown } from './NavDropdown/NavDropdown'
+export { default as StatusDropdown } from './StatusDropdown/StatusDropdown'
+export * from './Avatar/Avatar';

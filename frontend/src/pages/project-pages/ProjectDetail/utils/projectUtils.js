@@ -49,6 +49,8 @@ export const calculatePermissions = (user, project) => {
 
   const canEdit = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Open', 'Ready'].includes(project.status)
   const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Open', 'Ready', 'Development'].includes(project.status)
+
+
   // Open/Close team: Holding (show Open) or Open (show Close)
   const canToggleTeamClosed = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&

@@ -1,6 +1,6 @@
 import { Button, SecondaryButton } from '../../../../../components/ui-components'
 
-const DescriptionTab = ({
+const SettingsTab = ({
   project,
   onDelete,
   onMarkReady,
@@ -68,16 +68,6 @@ const DescriptionTab = ({
         )}
       </div>
 
-      {/* PROJECT DESCRIPTION */}
-      <article className="prose max-w-none">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
-          Project Description
-        </h3>
-        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-          {project.description || "No description provided."}
-        </p>
-      </article>
-
       {/* DANGER ZONE */}
       {(permissions.canDelete || permissions.isProgrammerInProject) && (
         <div className="mt-12 p-4 rounded-lg border border-red-100 bg-red-50/30">
@@ -100,4 +90,4 @@ const DescriptionTab = ({
   )
 }
 
-export default DescriptionTab
+export default SettingsTab

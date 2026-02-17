@@ -3,11 +3,21 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useRole } from '../../../hooks/useRole'
 import Header from '../../../components/layout-components/Header/Header'
-import NotificationBadge from '../../../components/user-components/NotificationBadge/NotificationBadge'
-import { Button, Card, Alert, SectionTitle, Input, Textarea } from '../../../components/ui-components'
-import './Profile.css'
+import NotificationBadge from '../../../components/ui-components/NotificationBadge/NotificationBadge'
+import { 
+  Button, 
+  Card, 
+  Alert, 
+  SectionTitle, 
+  Input, 
+  Textarea,
+  Avatar,        // Add these
+  AvatarImage, 
+  AvatarFallback 
+} from '../../../components/ui-components'
+import './EditProfile.css'
 
-const Profile = () => {
+const EditProfile = () => {
   const { user, updateProfile, changePassword, deleteProfile, logout, loading, error: authError } = useAuth()
   const { isClient, isProgrammer } = useRole()
 
@@ -333,35 +343,32 @@ const Profile = () => {
           </Link>
           <div className="profile-header-with-avatar">
             <div className="profile-avatar-container">
-              <label htmlFor="avatar-upload" className="profile-avatar-label">
-                <div className="profile-avatar-preview">
-                  {avatarPreview ? (
-                    <img 
+              <label htmlFor="avatar-upload" className="profile-avatar-label cursor-pointer group">
+                <div className="relative">
+                  {/* The New Avatar Component */}
+                  <Avatar className="w-24 h-24 border-2 border-primary/20">
+                    <AvatarImage 
                       src={avatarPreview} 
-                      alt="Avatar" 
-                      className="profile-avatar-image"
-                      onError={(e) => {
-                        // If image fails to load, show placeholder
-                        console.error('Avatar image failed to load:', avatarPreview)
-                        setAvatarPreview(null)
-                        e.target.style.display = 'none'
-                      }}
+                      alt={user?.name} 
                     />
-                  ) : (
-                    <div className="profile-avatar-placeholder">
+                    <AvatarFallback className="text-2xl bg-surface-gray">
                       {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                  )}
-                  <div className="profile-avatar-overlay">
-                    <span className="profile-avatar-icon">📷</span>
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* The Upload Overlay (simplified) */}
+                  <div className="profile-avatar-overlay group-hover:opacity-100 transition-opacity">
+                    <span className="profile-avatar-icon text-white">📷</span>
                   </div>
                 </div>
+
                 <input
                   type="file"
                   id="avatar-upload"
                   accept="image/*"
                   onChange={handleAvatarChange}
                   className="profile-avatar-input"
+                  hidden // Better to use hidden than a custom class if possible
                   disabled={loading}
                 />
               </label>
@@ -544,7 +551,7 @@ const Profile = () => {
   )
 }
 
-export default Profile
+export default EditProfile
 
 
 

@@ -12,14 +12,14 @@ import ForgotPassword from './pages/authentication-pages/ForgotPassword/ForgotPa
 import ResetPassword from './pages/authentication-pages/ResetPassword/ResetPassword'
 import ConfirmPasswordChange from './pages/authentication-pages/ConfirmPasswordChange/ConfirmPasswordChange'
 import Dashboard from './pages/dashboard-pages/Dashboard/Dashboard'
-import Profile from './pages/dashboard-pages/Profile/Profile'
+import EditProfile from './pages/profile-pages/EditProfile/EditProfile'
 import UserProfileView from './pages/profile-pages/UserProfileView/UserProfileView'
 import ChangePassword from './pages/authentication-pages/ChangePassword/ChangePassword'
 import ProjectList from './pages/project-pages/ProjectList/ProjectList'
 import CreateProject from './pages/project-pages/CreateProject/CreateProject'
 import ProjectDetail from './pages/project-pages/ProjectDetail/ProjectDetail'
 import Team from './pages/resource-pages/Team/Team'
-import Assignment from './pages/explore-pages/Assignment/Assignment'
+import AvailableProjects from './pages/explore-pages/AvailableProjects/AvailableProjects'
 import './styles.css'
 
 function App() {
@@ -49,7 +49,7 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile />
+                <EditProfile />
               </ProtectedRoute>
             }
           />
@@ -105,7 +105,7 @@ function App() {
             path="/assignments"
             element={
               <ProtectedRoute>
-                <Assignment />
+                <AvailableProjects />
               </ProtectedRoute>
             }
           />

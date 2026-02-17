@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
 import RoleGate from '../../../components/layout-components/RoleGate/RoleGate'
 import { Button, Badge, PageTitle, Card } from '../../../components/ui-components'
-import '../../../components/user-components/NotificationBadge/NotificationBadge.css'
+import '../../../components/ui-components/NotificationBadge/NotificationBadge.css'
 import './ProjectList.css'
 
 const ProjectList = () => {

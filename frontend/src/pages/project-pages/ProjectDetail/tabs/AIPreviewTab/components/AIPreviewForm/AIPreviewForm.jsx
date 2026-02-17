@@ -50,8 +50,6 @@ const AIPreviewForm = ({
         required
         className="min-h-[120px]"
       >
-
-
       {/* Inside the Textarea children */}
         <div className="flex w-full items-center justify-between">
           <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block">
@@ -79,7 +77,6 @@ const AIPreviewForm = ({
             </Button>
           </div>
         </div>
-
 
       </Textarea>
 

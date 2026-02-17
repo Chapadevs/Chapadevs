@@ -5,7 +5,7 @@ import { Alert, Button, SecondaryButton } from '../../../components/ui-component
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
-import ProjectDescriptionModal from './components/ProjectDescriptionModal/ProjectDescriptionModal'
+import ProjectSettingsModal from './components/ProjectSettingsModal/ProjectSettingsModal'
 import WorkspaceTab from './tabs/WorkspaceTab/Workspace'
 import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
@@ -13,7 +13,7 @@ import { useProjectNotifications } from './hooks/useProjectNotifications'
 import { calculatePermissions } from './utils/projectUtils'
 import ProjectHeader from './components/ProjectHeader/ProjectHeader'
 import ProjectSidebar from './components/ProjectSidebar/ProjectSidebar'
-import DescriptionTab from './tabs/DescriptionTab/DescriptionTab'
+import SettingsTab from './tabs/SettingsTab/SettingsTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
 import ProgrammersTab from './tabs/ProgrammersTab/ProgrammersTab'
 import CommentsTab from './tabs/CommentsTab/CommentsTab'
@@ -40,7 +40,7 @@ function ProjectDetail() {
   
   const { getUserStatus } = useUserStatuses(project)
   const {
-    hasDescriptionNotifications,
+    hasSettingsNotifications,
     hasAIPreviewNotifications,
     hasProgrammersNotifications,
     hasTimelineNotifications,
@@ -56,10 +56,10 @@ function ProjectDetail() {
   const [stoppingDevelopment, setStoppingDevelopment] = useState(false)
   const [leavingProject, setLeavingProject] = useState(false)
   const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
-  const [activeTab, setActiveTab] = useState('description')
-  const [descriptionPreview, setDescriptionPreview] = useState(null)
-  const [descriptionFetching, setDescriptionFetching] = useState(false)
-  const [descriptionFetchAttempted, setDescriptionFetchAttempted] = useState(false)
+  const [activeTab, setActiveTab] = useState('settings')
+  const [settingsPreview, setSettingsPreview] = useState(null)
+  const [settingsFetching, setSettingsFetching] = useState(false)
+  const [settingsFetchAttempted, setSettingsFetchAttempted] = useState(false)
 
   // --- Restoration of Handler Logic ---
 
@@ -175,37 +175,37 @@ function ProjectDetail() {
 
   // --- Effects & Unauthorized Handling ---
   const isNotAuthorized = error && typeof error === 'string' && error.toLowerCase().includes('not authorized')
-  const hasDescriptionFromState = location.state?.description != null || location.state?.title != null
+  const hasSettingsFromState = location.state?.description != null || location.state?.title != null
   const isProgrammerUnauthorized = error && !project && isProgrammer(user) && isNotAuthorized
-  const showDescriptionModal = isProgrammerUnauthorized && (hasDescriptionFromState || descriptionPreview)
+  const showSettingsModal = isProgrammerUnauthorized && (hasSettingsFromState || settingsPreview)
 
   useEffect(() => {
-    if (isProgrammerUnauthorized && id && !hasDescriptionFromState && !descriptionPreview && !descriptionFetchAttempted) {
-      setDescriptionFetchAttempted(true)
-      setDescriptionFetching(true)
-      assignmentAPI.getProjectDescriptionPublic(id)
-        .then((data) => setDescriptionPreview(data))
+    if (isProgrammerUnauthorized && id && !hasSettingsFromState && !settingsPreview && !settingsFetchAttempted) {
+      setSettingsFetchAttempted(true)
+      setSettingsFetching(true)
+      assignmentAPI.getProjectSettingsPublic(id)
+        .then((data) => setSettingsPreview(data))
         .catch(() => {})
-        .finally(() => setDescriptionFetching(false))
+        .finally(() => setSettingsFetching(false))
     }
-  }, [error, project, user, id, hasDescriptionFromState, descriptionPreview, descriptionFetchAttempted, isNotAuthorized])
+  }, [error, project, user, id, hasSettingsFromState, settingsPreview, settingsFetchAttempted, isNotAuthorized])
 
-  const handleDescriptionModalClose = () => {
-    setDescriptionPreview(null)
+  const handleSettingsModalClose = () => {
+    setSettingsPreview(null)
     navigate('/assignments')
   }
 
   if (loading) return <div className="flex h-screen items-center justify-center text-ink-muted animate-pulse">Loading project...</div>
 
   if (error && !project) {
-    if (showDescriptionModal) {
+    if (showSettingsModal) {
       return (
         <>
           <Header />
           <div className="mx-auto max-w-7xl px-4 py-8">
-             <ProjectDescriptionModal 
-               basicInfo={{ ...location.state, ...descriptionPreview }} 
-               onClose={handleDescriptionModalClose} 
+             <ProjectSettingsModal 
+               basicInfo={{ ...location.state, ...settingsPreview }} 
+               onClose={handleSettingsModalClose} 
              />
           </div>
         </>
@@ -235,7 +235,6 @@ function ProjectDetail() {
           <ProjectHeader 
             project={project} 
             isClientOwner={permissions.isClientOwner}
-            canDelete={permissions.canDelete}
             onDelete={handleDelete}
             markingReady={markingReady}
             onMarkReady={handleMarkReady}
@@ -274,7 +273,7 @@ function ProjectDetail() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 showAIPreviewsSection={showAIPreviewsSection}
-                hasDescriptionNotifications={hasDescriptionNotifications}
+                hasSettingsNotifications={hasSettingsNotifications}
                 hasAIPreviewNotifications={hasAIPreviewNotifications}
                 hasProgrammersNotifications={hasProgrammersNotifications}
                 hasTimelineNotifications={hasTimelineNotifications}
@@ -285,8 +284,8 @@ function ProjectDetail() {
 
           {/* Main Content Area */}
           <section className="flex-1 min-w-0 bg-white border border-border rounded-xl shadow-sm p-8 min-h-[600px]">
-          {activeTab === 'description' && (
-              <DescriptionTab
+          {activeTab === 'settings' && (
+              <SettingsTab
                 project={project}
                 // Pass all permission flags from the calculatePermissions hook
                 {...permissions} 

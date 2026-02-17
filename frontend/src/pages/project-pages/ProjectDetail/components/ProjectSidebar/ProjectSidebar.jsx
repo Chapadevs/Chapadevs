@@ -5,7 +5,7 @@ const ProjectSidebar = ({
   activeTab,
   onTabChange,
   showAIPreviewsSection,
-  hasDescriptionNotifications,
+  hasSettingsNotifications,
   hasAIPreviewNotifications,
   hasProgrammersNotifications,
   hasTimelineNotifications,
@@ -18,11 +18,11 @@ const ProjectSidebar = ({
         <nav className="project-tab-nav">
           <Button
             variant="ghost"
-            className={`project-tab-link ${activeTab === 'description' ? 'active' : ''}`}
-            onClick={() => onTabChange('description')}
+            className={`project-tab-link ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => onTabChange('settings')}
           >
-            Description
-            {hasDescriptionNotifications && <span className="project-tab-notification-badge"></span>}
+            Settings
+            {hasSettingsNotifications && <span className="project-tab-notification-badge"></span>}
           </Button>
           {showAIPreviewsSection && (
             <Button
