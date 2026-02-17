@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils/shadcn"
 
 const Textarea = forwardRef(({ label, error, required, className, wrapperClassName, id, children, ...props }, ref) => {
   return (

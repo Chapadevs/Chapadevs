@@ -13,4 +13,5 @@ export { default as NotificationBell } from './NotificationBell/NotificationBell
 export { default as SecondaryButton } from './SecondaryButton/SecondaryButton'
 export { default as NavDropdown } from './NavDropdown/NavDropdown'
 export { default as StatusDropdown } from './StatusDropdown/StatusDropdown'
+export * from './Sidebar';
 export * from './Avatar/Avatar';

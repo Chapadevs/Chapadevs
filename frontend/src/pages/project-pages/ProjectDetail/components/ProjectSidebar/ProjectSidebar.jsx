@@ -1,5 +1,23 @@
-import { Button, SectionTitle } from '../../../../../components/ui-components'
-import './ProjectSidebar.css'
+import { 
+  Settings, 
+  Layout, 
+  Users, 
+  FolderKanban, 
+  MessageSquare 
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger
+} from "@/components/ui-components";
 
 const ProjectSidebar = ({
   activeTab,
@@ -11,57 +29,58 @@ const ProjectSidebar = ({
   hasTimelineNotifications,
   hasCommentsNotifications,
 }) => {
-  return (
-    <div className="project-sidebar">
-      <section className="project-sidebar-tabs">
-        <SectionTitle className="mb-4">Navigation</SectionTitle>
-        <nav className="project-tab-nav">
-          <Button
-            variant="ghost"
-            className={`project-tab-link ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => onTabChange('settings')}
-          >
-            Settings
-            {hasSettingsNotifications && <span className="project-tab-notification-badge"></span>}
-          </Button>
-          {showAIPreviewsSection && (
-            <Button
-              variant="ghost"
-              className={`project-tab-link ${activeTab === 'ai-preview' ? 'active' : ''}`}
-              onClick={() => onTabChange('ai-preview')}
-            >
-              Previews
-              {hasAIPreviewNotifications && <span className="project-tab-notification-badge"></span>}
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            className={`project-tab-link ${activeTab === 'programmers' ? 'active' : ''}`}
-            onClick={() => onTabChange('programmers')}
-          >
-            Team
-            {hasProgrammersNotifications && <span className="project-tab-notification-badge"></span>}
-          </Button>
-          <Button
-            variant="ghost"
-            className={`project-tab-link ${activeTab === 'timeline' ? 'active' : ''}`}
-            onClick={() => onTabChange('timeline')}
-          >
-            Workspace
-            {hasTimelineNotifications && <span className="project-tab-notification-badge"></span>}
-          </Button>
-          <Button
-            variant="ghost"
-            className={`project-tab-link ${activeTab === 'comments' ? 'active' : ''}`}
-            onClick={() => onTabChange('comments')}
-          >
-            Chat
-            {hasCommentsNotifications && <span className="project-tab-notification-badge"></span>}
-          </Button>
-        </nav>
-      </section>
-    </div>
-  )
-}
+  const navItems = [
+    { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },
+    { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
+    { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
+    { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasTimelineNotifications, show: true },
+    { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
+  ];
 
-export default ProjectSidebar
+  return (
+<Sidebar 
+      variant="sidebar" 
+      collapsible="icon" 
+      className="relative border-r"
+    >
+
+      <SidebarTrigger 
+        className="absolute right-[-14px] top-20 z-50 h-7 w-7 rounded-full border bg-white shadow-md hover:bg-gray-50 flex items-center justify-center" 
+      />
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                if (!item.show) return null;
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onTabChange(item.id)}
+                      isActive={activeTab === item.id}
+                      tooltip={item.label}
+                    >
+                      <item.icon className="size-4 shrink-0" /> 
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {item.label}
+                      </span>
+                    </SidebarMenuButton>
+                    {item.hasNotification && (
+                      <SidebarMenuBadge className="bg-primary" />
+                    )}
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+};
+
+export default ProjectSidebar;
