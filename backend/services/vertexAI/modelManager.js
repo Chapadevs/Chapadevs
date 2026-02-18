@@ -19,12 +19,13 @@ export async function getModel(vertex, modelInstances, modelId = 'gemini-2.0-fla
     return modelInstances.get(modelId);
   }
 
-  // Create model instance
+  // Create model instance (2.5-pro gets higher limit to avoid truncating long code)
+  const maxOutputTokens = modelId === "gemini-2.5-pro" ? 16384 : 8192;
   try {
     const model = vertex.getGenerativeModel({
       model: modelId,
       generationConfig: {
-        maxOutputTokens: 8192,
+        maxOutputTokens,
         temperature: 0.8,
         topP: 0.95,
       },

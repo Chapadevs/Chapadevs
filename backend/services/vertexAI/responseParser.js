@@ -76,6 +76,19 @@ function safeSyntaxFix(code) {
   }
 }
 
+function fixJSXExpressions(code) {
+  return code
+    // remove semicolons inside JSX braces
+    .replace(/\{([^{}]*?);+\}/g, "{$1}")
+
+    // remove trailing commas inside JSX braces
+    .replace(/\{([^{}]*?),+\}/g, "{$1}")
+
+    // remove stray periods
+    .replace(/\{([^{}]*?)\.\}/g, "{$1}");
+}
+
+
 /**
  * Normalizes AI component code into valid React component
  */
@@ -116,14 +129,50 @@ export function normalizeComponentCode(code) {
     c += "\n\nexport default App;";
   }
 
-  // Final syntax safety pass
+  /* -------------------------------------- */
+  /* JSX EXPRESSION SANITIZER (CRITICAL)   */
+  /* fixes Gemini 2.5 JSX syntax mistakes  */
+  /* -------------------------------------- */
+  c = c
+    .replace(/\{([^{}]*?);+\}/g, "{$1}")   // {value;} → {value}
+    .replace(/\{([^{}]*?),+\}/g, "{$1}")   // {value,} → {value}
+    .replace(/\{([^{}]*?)\.\}/g, "{$1}")   // {value.} → {value}
+    .replace(/\{;\}/g, "{}");              // {;} → {}
+
+  /* -------------------------------------- */
+  /* FINAL JS SAFETY PASS                   */
+  /* -------------------------------------- */
   c = safeSyntaxFix(c);
 
   return c.trim();
 }
 
+
 /**
- * Manual recovery if JSON.parse fails
+ * Find the index of the closing quote for the "code" JSON string value.
+ * Respects backslash escapes (\" and \\) so we don't truncate at a quote inside the code.
+ * Only treats a quote as closing if it's followed by optional whitespace and then , or }.
+ */
+function findCodeStringEnd(text, valueStart) {
+  let i = valueStart;
+  while (i < text.length) {
+    if (text[i] === "\\") {
+      i += 2; // skip backslash and escaped char
+      continue;
+    }
+    if (text[i] === '"') {
+      const after = text.substring(i + 1).match(/^\s*[,}]/);
+      if (after) return i;
+      // Unescaped quote not followed by , or } — malformed, treat as content and continue
+    }
+    i++;
+  }
+  return -1;
+}
+
+/**
+ * Manual recovery if JSON.parse fails.
+ * Uses escape-aware scanning so we don't truncate the code at a " inside the content.
  */
 function repairAndParseManual(text) {
   const codeStart = text.indexOf('"code"');
@@ -135,25 +184,18 @@ function repairAndParseManual(text) {
   }
 
   const firstQuote = text.indexOf('"', codeStart + 6);
-  const start = firstQuote + 1;
-  const lastBrace = text.lastIndexOf("}");
-
-  let end = -1;
-
-  for (let i = start; i < lastBrace; i++) {
-    if (text[i] === '"' && text[i - 1] !== "\\") {
-      const next = text.substring(i + 1).match(/^\s*[,}]/);
-      if (next) {
-        end = i;
-        break;
-      }
-    }
+  if (firstQuote === -1) {
+    return { analysis: "Recovered manually", code: text };
   }
 
-  let code =
+  const start = firstQuote + 1;
+  const end = findCodeStringEnd(text, start);
+  const lastBrace = text.lastIndexOf("}");
+
+  const code =
     end !== -1
       ? text.substring(start, end)
-      : text.substring(start, lastBrace);
+      : text.substring(start, Math.max(start, lastBrace));
 
   return {
     analysis: "Recovered manually",
@@ -178,8 +220,8 @@ export function parseCombinedResponse(text) {
   const match = clean.match(/\{[\s\S]*\}/);
   if (match) clean = match[0];
 
-  // Remove control chars
-  clean = clean.replace(/[\x00-\x1F\x7F]/g, "");
+  // Remove control chars except \n and \r so pretty-printed JSON isn't corrupted
+  clean = clean.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "");
 
   let parsed;
 
