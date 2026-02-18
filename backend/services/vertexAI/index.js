@@ -85,6 +85,61 @@ class VertexAIService {
   }
 
   /**
+   * STREAMING: combined preview with real-time chunks via onChunk(text).
+   * Returns { result, usage } when stream ends. Does not use cache (streaming is always live).
+   */
+  async generateCombinedPreviewStream(prompt, userInputs, modelId = 'gemini-2.0-flash', onChunk) {
+    if (!this.initialized || !this.vertex) {
+      console.warn('⚠️ Vertex AI not initialized');
+      const mock = await generateMockCombined(prompt, userInputs, this.cache);
+      if (onChunk && mock.analysis?.overview) onChunk(mock.analysis.overview);
+      return { result: mock, usage: null };
+    }
+
+    const model = await this.getModel(modelId);
+    if (!model) {
+      const mock = await generateMockCombined(prompt, userInputs, this.cache);
+      if (onChunk && mock.analysis?.overview) onChunk(mock.analysis.overview);
+      return { result: mock, usage: null };
+    }
+
+    const combinedPrompt = buildCombinedPrompt(prompt, userInputs);
+    const request = {
+      contents: [{ role: 'user', parts: [{ text: combinedPrompt }] }],
+    };
+
+    let fullText = '';
+    try {
+      const result = await model.generateContentStream(request);
+      if (!result?.stream) {
+        const fallback = await this.generateCombinedPreview(prompt, userInputs, modelId);
+        if (onChunk && fallback.result?.analysis?.overview) onChunk(fallback.result.analysis.overview);
+        return fallback;
+      }
+      for await (const item of result.stream) {
+        const text = item?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          fullText += text;
+          if (onChunk) onChunk(text);
+        }
+      }
+      let usage = null;
+      try {
+        if (result.response) usage = extractUsage(result.response);
+      } catch (_) {}
+      const parsed = parseCombinedResponse(fullText);
+      if (parsed.code) {
+        parsed.code = normalizeComponentCode(parsed.code);
+        parsed.code = fixBrokenImageSrc(parsed.code);
+      }
+      return { result: parsed, usage };
+    } catch (error) {
+      console.error('Stream Generation Error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * GENERATES THE WEBSITE PREVIEW (HTML only)
    */
   async generateWebsitePreview(prompt, userInputs) {

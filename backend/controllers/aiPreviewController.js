@@ -136,6 +136,126 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
   }
 })
 
+/** Send SSE event (newline-delimited JSON). */
+function sendSSE(res, data) {
+  res.write(`data: ${JSON.stringify(data)}\n\n`)
+}
+
+// @desc    Generate AI preview with streaming (real-time thinking in form area)
+// @route   POST /api/ai-previews/stream
+// @access  Private
+export const generateAIPreviewStream = asyncHandler(async (req, res) => {
+  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, modelId } = req.body
+
+  if (!prompt) {
+    res.status(400).json({ error: 'Please provide a prompt for the AI preview' })
+    return
+  }
+
+  costMonitor.trackRequest()
+
+  const oneHourAgo = new Date(Date.now() - 3600000)
+  const recentPreviews = await AIPreview.countDocuments({
+    userId: req.user._id,
+    createdAt: { $gte: oneHourAgo }
+  })
+
+  if (projectId) {
+    const project = await Project.findById(projectId)
+    if (!project || project.clientId.toString() !== req.user._id.toString()) {
+      res.status(403).json({ error: 'Not authorized to generate preview for this project' })
+      return
+    }
+    const projectPreviewCount = await AIPreview.countDocuments({
+      projectId,
+      status: 'completed'
+    })
+    if (projectPreviewCount >= 10) {
+      res.status(400).json({ error: 'This project already has 10 AI previews. Delete one to generate another.' })
+      return
+    }
+  }
+
+  const selectedModelId = modelId || 'gemini-2.0-flash'
+
+  const preview = await AIPreview.create({
+    userId: req.user._id,
+    projectId: projectId || null,
+    prompt,
+    previewType: previewType || 'text',
+    previewResult: '',
+    status: 'generating',
+    metadata: { budget, timeline, techStack, projectType, modelId: selectedModelId }
+  })
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+  res.flushHeaders?.()
+
+  sendSSE(res, { type: 'start', previewId: preview._id.toString() })
+
+  try {
+    const userInputs = { budget, timeline, techStack, projectType }
+    const { result, usage } = await vertexAIService.generateCombinedPreviewStream(
+      prompt,
+      userInputs,
+      selectedModelId,
+      (text) => sendSSE(res, { type: 'chunk', text })
+    )
+
+    if (!result) {
+      preview.status = 'failed'
+      preview.previewResult = 'No result from AI'
+      await preview.save()
+      sendSSE(res, { type: 'error', message: 'No result from AI' })
+      res.end()
+      return
+    }
+
+    const analysis = result.analysis || {}
+    const code = result.code || ''
+    const analysisJson = JSON.stringify(analysis)
+    const estimatedTokens = usage?.totalTokenCount ?? Math.ceil(analysisJson.length / 4) + Math.ceil(code.length / 4)
+
+    preview.previewResult = analysisJson
+    preview.status = 'completed'
+    preview.tokenUsage = estimatedTokens
+    preview.metadata = {
+      ...preview.metadata,
+      websitePreviewCode: code,
+      usage: usage ? {
+        combined: {
+          promptTokenCount: usage.promptTokenCount || 0,
+          candidatesTokenCount: usage.candidatesTokenCount || 0,
+          totalTokenCount: usage.totalTokenCount || 0
+        }
+      } : null,
+    }
+    await preview.save()
+
+    if (!usage) costMonitor.trackCacheHit()
+    else costMonitor.trackAPICall()
+
+    sendSSE(res, {
+      type: 'done',
+      previewId: preview._id.toString(),
+      status: 'completed',
+      result: analysis,
+      tokenUsage: estimatedTokens,
+    })
+  } catch (error) {
+    costMonitor.trackError()
+    preview.status = 'failed'
+    preview.previewResult = error.message
+    await preview.save()
+    sendSSE(res, { type: 'error', message: error.message || 'AI generation failed' })
+  }
+
+  res.end()
+})
+
 // @desc    Get AI usage for current user
 // @route   GET /api/ai-previews/usage
 // @access  Private

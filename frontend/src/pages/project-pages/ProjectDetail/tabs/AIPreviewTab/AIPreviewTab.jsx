@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { generateAIPreview, deleteAIPreview } from '../../../../../services/api'
+import { generateAIPreviewStream, deleteAIPreview } from '../../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
 import { Button } from '../../../../../components/ui-components'
@@ -58,6 +58,7 @@ const AIPreviewTab = ({
   
   const [generateFormData, setGenerateFormData] = useState(initialFormData)
   const [generating, setGenerating] = useState(false)
+  const [streamedThinking, setStreamedThinking] = useState('')
   const [generateError, setGenerateError] = useState('')
   const [expandedPreviewId, setExpandedPreviewId] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
@@ -70,22 +71,29 @@ const AIPreviewTab = ({
     }
     setGenerating(true)
     setGenerateError('')
-    try {
-      const payload = {
-        ...generateFormData,
-        projectId: id,
-        techStack: Array.isArray(generateFormData.techStack)
-          ? generateFormData.techStack.join(', ')
-          : String(generateFormData.techStack || ''),
-      }
-      await generateAIPreview(payload)
-      await loadPreviews()
-      setGenerateFormData(initialFormData)
-    } catch (err) {
-      setGenerateError(err.message || 'Failed to generate preview')
-    } finally {
-      setGenerating(false)
+    setStreamedThinking('')
+    const payload = {
+      ...generateFormData,
+      projectId: id,
+      techStack: Array.isArray(generateFormData.techStack)
+        ? generateFormData.techStack.join(', ')
+        : String(generateFormData.techStack || ''),
     }
+    generateAIPreviewStream(payload, {
+      onChunk: (text) => setStreamedThinking((prev) => prev + text),
+      onDone: async (data) => {
+        setGenerating(false)
+        setStreamedThinking('')
+        setGenerateFormData(initialFormData)
+        await loadPreviews()
+        if (data?.previewId) setExpandedPreviewId(data.previewId)
+      },
+      onError: (message) => {
+        setGenerating(false)
+        setStreamedThinking('')
+        setGenerateError(message || 'Failed to generate preview')
+      },
+    })
   }
 
   const handleDeletePreview = async (previewId) => {
@@ -119,11 +127,11 @@ const AIPreviewTab = ({
           generateFormData={generateFormData}
           setGenerateFormData={setGenerateFormData}
           generating={generating}
+          streamedThinking={streamedThinking}
           generateError={generateError}
           techStackByCategory={TECH_STACK_BY_CATEGORY}
           onSubmit={handleGenerateSubmit}
           onCancel={() => { 
-            setShowGenerateForm(false)
             setGenerateError('')
             setGenerateFormData(initialFormData)
           }}

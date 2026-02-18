@@ -1,174 +1,50 @@
 ---
-description: Design system for Chapadevs - modern IT consultancy look (white, green, black)
-globs: frontend/**/*.css, frontend/**/*.jsx, frontend/**/*.tsx
+description: Unified Design System for Chapadevs - Modern IT Consultancy (Green/White/Black)
+globs: frontend/**/*.jsx, frontend/**/*.tsx, frontend/**/*.css
 alwaysApply: false
 ---
 
-# Chapadevs Design Pattern
+# Chapadevs Unified Design System & Workflow
 
-IT consultancy focused on small business, with a big-company design. Modern, sharp, professional.
+## 🎯 Component Strategy
+- **Hybrid Core**: Use Shadcn for complex layout structures (Sidebar, Tabs, Dialog) and local `ui-components` for atomic elements (Button, Card, Badge, PageTitle).
+- **Barrel Export**: All components MUST be exported and imported via `@/components/ui-components/index.js`.
+- **Standardization**: Never create one-off styles. Use the library components below.
 
-## UI Component Library
+## 🛠️ Workflow: Adding New Shadcn Components
+1. **CLI**: Run `npx shadcn@latest add "component-name"`.
+2. **Folder**: Create a new folder `frontend/src/components/shadcn-components/shadcn-"component-name"/`.
+3. **Move**: Relocate the generated `.jsx` file into this folder.
+4. **Reskin (MANDATORY)**:
+   - Replace all `rounded-*` classes with `rounded-none`.
+   - Map typography to `font-heading` for headers and `font-body` for content.
+5. **Export**: Add `export * from "@/components/shadcn-components/shadcn-folder/file"` to the barrel index.
 
-All reusable UI elements live in `frontend/src/components/ui-components/`. Always import from the barrel export:
+## 🎨 Visual Identity & Style Guide
+- **Sharp Look**: `border-radius: 0` (rounded-none) on everything (Buttons, Cards, Inputs, Modals).
+- **Typography**:
+  - Headings: `font-heading` (Code Bold, monospace, uppercase).
+  - Buttons/Nav: `font-button` (Creato Display Medium).
+  - Body: `font-body` (Coolvetica).
+- **Color Palette**:
+  - Primary: `#059669` (bg-primary / text-primary).
+  - Surface: `#ffffff` (bg-surface).
+  - Border: `#e5e7eb` (border-border).
 
-```jsx
-import { Button, Card, Input, Select, Textarea, Badge, PageTitle, SectionTitle, Container, Alert, Tag } from '../../components/ui-components'
-```
+## 📑 Component Reference (Legacy Styles)
+| Component | Variant / Usage |
+|-----------|-----------------|
+| `Button` | Variants: `primary`, `secondary`, `ghost`, `danger`. Renders as `Link` if `to` prop is present. |
+| `Card` | Variants: `default`, `elevated`, `accent` (green bottom border), `ghost`, `outline`. |
+| `Badge` | Status: `holding`, `open`, `ready`, `development`, `completed`. Semantic: `success`, `error`, `neutral`. |
+| `PageTitle`| H1 with green left border, Code Bold, Uppercase. |
+| `Alert` | Conditionally rendered variants: `error` (red), `success` (green), `info` (blue), `warning` (amber). |
 
-**Never create one-off button, card, input, badge, or alert styles in component CSS.** Use the standardized components below.
+## 🛠️ Sidebar Docking Rule
+- The `SidebarTrigger` MUST be absolute-positioned inside the `Sidebar` at `right-[-14px] top-20 z-50` to stay docked to the border.
 
----
-
-## Component Reference
-
-### Button
-
-```jsx
-<Button variant="primary" size="md" to="/path" onClick={fn} disabled={bool}>Text</Button>
-```
-
-| Prop | Values | Default |
-|------|--------|---------|
-| `variant` | `primary`, `secondary`, `ghost`, `danger` | `primary` |
-| `size` | `xs`, `sm`, `md`, `lg`, `hero` | `md` |
-| `to` | Route path (renders as Link) | — |
-| `href` | External URL (renders as anchor) | — |
-| `as` | Custom element tag | `button` |
-
-### Card
-
-```jsx
-<Card variant="accent" className="p-6">{children}</Card>
-```
-
-| Variant | Usage |
-|---------|-------|
-| `default` | General purpose card with border + shadow |
-| `elevated` | Higher shadow for emphasis |
-| `accent` | Green bottom border (dashboard blocks) |
-| `ghost` | Gray background, subtle |
-| `outline` | Green-tinted border (auth cards) |
-
-### Input / Select / Textarea
-
-```jsx
-<Input id="email" label="Email" required error="Invalid email" placeholder="you@example.com" />
-<Select id="role" label="Role" required>{options}</Select>
-<Textarea id="desc" label="Description" rows={3} />
-```
-
-All form components support: `label`, `error`, `required`, `id`, `className`, `wrapperClassName`, and forward refs.
-
-### Badge
-
-```jsx
-<Badge variant="development">In Progress</Badge>
-```
-
-| Category | Variants |
-|----------|----------|
-| Semantic | `success`, `warning`, `error`, `neutral`, `info` |
-| Status | `holding`, `open`, `ready`, `development`, `completed`, `cancelled`, `default` |
-| Role | `admin`, `client`, `programmer`, `user` |
-
-### PageTitle / SectionTitle
-
-```jsx
-<PageTitle>Dashboard</PageTitle>
-<SectionTitle className="mb-4">Project Details</SectionTitle>
-```
-
-- `PageTitle` → h1 with green left border, Code Bold, uppercase
-- `SectionTitle` → h3 with green left border, Code Bold, uppercase (accepts `as` prop for different tag)
-
-### Container
-
-```jsx
-<Container>{children}</Container>
-```
-
-Max-width 1200px, centered, with horizontal padding.
-
-### Alert
-
-```jsx
-<Alert variant="error">{message}</Alert>
-```
-
-| Variant | Usage |
-|---------|-------|
-| `error` | Red — validation errors, API failures |
-| `success` | Green — confirmations |
-| `info` | Blue — informational messages |
-| `warning` | Amber — warnings |
-
-Returns `null` if no children (safe to render conditionally).
-
-### Tag
-
-```jsx
-<Tag variant="skill">React</Tag>
-```
-
-| Variant | Usage |
-|---------|-------|
-| `default` | Gray background, neutral |
-| `primary` | Green tint, service/feature tags |
-| `skill` | Green tint, skill/tech tags |
-| `outline` | Border only, no fill |
-
----
-
-## Color Palette
-
-Defined in `tailwind.config.js` and CSS variables in `styles.css`.
-
-| Role | Tailwind Class | CSS Variable | Hex |
-|------|---------------|-------------|-----|
-| Primary | `bg-primary`, `text-primary` | `--primary-green` | #059669 |
-| Primary Dark | `bg-primary-dark` | `--primary-green-dark` | #047857 |
-| Primary Light | `bg-primary-light` | `--primary-green-light` | #10b981 |
-| Text Main | `text-ink` | `--text-primary` | #111827 |
-| Text Secondary | `text-ink-secondary` | `--text-secondary` | #374151 |
-| Text Muted | `text-ink-muted` | `--text-light` | #6b7280 |
-| Surface | `bg-surface` | `--background` | #ffffff |
-| Surface Gray | `bg-surface-gray` | `--background-gray` | #f9fafb |
-| Surface Green | `bg-surface-green` | `--background-light-green` | #ecfdf5 |
-| Border | `border-border` | `--border` | #e5e7eb |
-
-**Avoid**: Neon greens (#00ff87), blue accents, purple, or colors outside this palette.
-
-## Typography
-
-Defined in `tailwind.config.js`:
-
-| Role | Tailwind Class | Font Family |
-|------|---------------|-------------|
-| Headings | `font-heading` | Code Bold, monospace |
-| Buttons/Nav | `font-button` | Creato Display Medium, serif |
-| Body | `font-body` | Coolvetica, Arial, Helvetica, sans-serif |
-
-## Sharp Modern Look
-
-- `border-radius: 0` on everything — Tailwind config sets `rounded` default to `0`
-- Clean lines, minimal decoration
-- Shadows: `shadow-sm`, `shadow-md`, `shadow-lg`, `shadow-xl`
-
-## Layout
-
-- **Max content width**: `max-w-[1200px]` or `<Container>`
-- **Container padding**: `px-8`
-
-## Quick Checks
-
-- [ ] Using UI components (`Button`, `Card`, `Input`, etc.) instead of raw `<button>`, `<div>` with one-off styles
-- [ ] No `border-radius` on buttons/cards (enforced by Tailwind config)
-- [ ] Font families match: `font-heading` / `font-button` / `font-body`
-- [ ] No neon or off-palette greens (#00ff87, etc.)
-- [ ] Page titles use `<PageTitle>` component
-- [ ] Section titles use `<SectionTitle>` component
-- [ ] Error/success messages use `<Alert>` component
-- [ ] Status badges use `<Badge>` with status variant
-- [ ] Tags/chips use `<Tag>` component
-- [ ] Import from `components/ui-components` barrel export, not individual files
+## 🚀 Pre-flight Checklist
+- [ ] Component installed via Shadcn CLI and moved to dedicated folder?
+- [ ] All `rounded` classes removed?
+- [ ] Exported via `@/components/ui-components`?
+- [ ] Content wrapped in `max-w-[1200px] mx-auto` or `<Container>`?

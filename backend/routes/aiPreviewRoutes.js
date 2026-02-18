@@ -1,6 +1,7 @@
 import express from 'express'
 import {
   generateAIPreview,
+  generateAIPreviewStream,
   getAIPreviewUsage,
   getAIPreviews,
   getAIPreviewById,
@@ -15,6 +16,8 @@ const router = express.Router()
 router.use(protect)
 
 router.get('/usage', getAIPreviewUsage)
+
+router.post('/stream', generateAIPreviewStream)
 
 router.route('/')
   .post(generateAIPreview)

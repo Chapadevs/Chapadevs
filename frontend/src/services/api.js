@@ -12,6 +12,7 @@ export { assignmentAPI } from './assignmentApi'
 export { userAPI } from './userApi'
 export {
   generateAIPreview,
+  generateAIPreviewStream,
   regenerateAIPreview,
   submitInquiry,
   getVertexAIStatus,
