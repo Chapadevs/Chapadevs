@@ -1,6 +1,32 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { SecondaryButton, Button, Alert, Select, Textarea } from '../../../../../../../components/ui-components'
 import './AIPreviewForm.css'
+
+/** Make streamed JSON/code readable: literal \n → newline, \t → tab, \" → ", \\ → \ */
+function unescapeStreamDisplay(str) {
+  if (typeof str !== 'string' || !str) return ''
+  let out = str
+    .replace(/\\\\/g, '\u0000')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+    .replace(/\u0000/g, '\\')
+  // Strip markdown fences so we don't show raw ```json / ```
+  out = out.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/g, '')
+  return out.trim() || '…'
+}
+
+/** Infer current phase from streamed content for human-readable status */
+function getStreamPhase(raw) {
+  if (!raw || raw.length < 10) return 'Starting…'
+  const s = raw
+  if (s.includes('export default App') || s.includes('export default App;')) return 'Finalizing…'
+  if (s.includes('"code"') || s.includes('function App') || s.includes('import { useState }')) return 'Writing component…'
+  if (s.includes('<section') || s.includes('className=')) return 'Building layout…'
+  if (s.includes('features') || s.includes('techStack')) return 'Planning features & tech stack…'
+  if (s.includes('analysis') && (s.includes('overview') || s.includes('title'))) return 'Analyzing project…'
+  return 'Generating…'
+}
 
 const AIPreviewForm = ({
   generateFormData,
@@ -12,6 +38,9 @@ const AIPreviewForm = ({
   onCancel,
 }) => {
   const thinkingEndRef = useRef(null)
+
+  const displayText = useMemo(() => unescapeStreamDisplay(streamedThinking), [streamedThinking])
+  const phase = useMemo(() => getStreamPhase(streamedThinking), [streamedThinking])
 
   useEffect(() => {
     if (generating && streamedThinking && thinkingEndRef.current) {
@@ -25,15 +54,14 @@ const AIPreviewForm = ({
 
   return (
     <form onSubmit={onSubmit} className="project-preview-form space-y-6">
-      {/* When generating: show real-time thinking in the same form area */}
       {generating ? (
         <div className="project-preview-form-thinking-wrap">
           <div className="project-preview-form-thinking-header font-heading text-xs uppercase tracking-wider text-ink flex items-center gap-2">
             <span className="project-preview-form-thinking-dot" aria-hidden />
-            Generating — real-time analysis
+            Generating — {phase}
           </div>
           <div className="project-preview-form-thinking-body font-body text-ink-secondary text-sm whitespace-pre-wrap break-words overflow-y-auto">
-            {streamedThinking || 'Starting...'}
+            {displayText || 'Starting…'}
             <span ref={thinkingEndRef} />
           </div>
         </div>
