@@ -115,13 +115,6 @@ const AIPreviewTab = ({
 
   return (
     <section className="project-section project-section-previews">
-      <h3 className="project-tab-panel-title">AI Previews</h3>
-      <p className="project-previews-intro">
-        {previews.length} / {MAX_PREVIEWS_PER_PROJECT} previews.
-        {isClientOwner && ' Generate up to 10 AI previews for this project. Programmers can view and use the code once assigned.'}
-        {isAssignedProgrammer && !isClientOwner && " View and download the client's generated preview code to start development."}
-      </p>
-
         <AIPreviewForm
           generateFormData={generateFormData}
           setGenerateFormData={setGenerateFormData}
@@ -135,6 +128,13 @@ const AIPreviewTab = ({
             setGenerateFormData(initialFormData)
           }}
         />
+
+    <h3 className="project-tab-panel-title">AI Previews</h3>  
+      <p className="project-previews-intro">
+        {previews.length} / {MAX_PREVIEWS_PER_PROJECT} previews.
+        {isClientOwner && ' Generate up to 10 AI previews for this project. Programmers can view and use the code once assigned.'}
+        {isAssignedProgrammer && !isClientOwner && " View and download the client's generated preview code to start development."}
+      </p>
 
       {previewsLoading ? (
         <p className="project-previews-loading">Loading previews...</p>

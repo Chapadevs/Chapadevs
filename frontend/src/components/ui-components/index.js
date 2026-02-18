@@ -2,7 +2,6 @@ export { default as Button } from './Button/Button'
 export { default as Card } from './Card/Card'
 export { default as Input } from './Input/Input'
 export { default as Select } from './Select/Select'
-export { default as Textarea } from './Textarea/Textarea'
 export { default as Badge } from './Badge/Badge'
 export { default as PageTitle } from './PageTitle/PageTitle'
 export { default as SectionTitle } from './SectionTitle/SectionTitle'
@@ -13,5 +12,6 @@ export { default as NotificationBell } from './NotificationBell/NotificationBell
 export { default as SecondaryButton } from './SecondaryButton/SecondaryButton'
 export { default as NavDropdown } from './NavDropdown/NavDropdown'
 export { default as StatusDropdown } from './StatusDropdown/StatusDropdown'
+export * from './Textarea/Textarea'
 export * from './Sidebar';
 export * from './Avatar/Avatar';

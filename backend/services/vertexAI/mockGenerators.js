@@ -1,4 +1,4 @@
-import { hashString } from './codeUtils.js';
+import { hashString } from './responseParser.js';
 
 /**
  * Mock data generators for when Vertex AI is unavailable

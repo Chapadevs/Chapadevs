@@ -17,8 +17,6 @@ class WebSocketService {
     })
 
     this.wss.on('connection', (ws, req) => {
-      console.log('🔌 New WebSocket connection attempt')
-
       // Authenticate connection
       const token = this.extractToken(req)
       
@@ -70,9 +68,6 @@ class WebSocketService {
         this.clients.set(ws.userId, new Set())
       }
       this.clients.get(ws.userId).add(ws)
-
-      console.log(`✅ WebSocket authenticated for user: ${user.email} (${ws.userId})`)
-
       // Send connection confirmation
       ws.send(JSON.stringify({
         type: 'connected',
@@ -158,7 +153,6 @@ class WebSocketService {
           })
         }
       }
-      console.log(`🔌 WebSocket disconnected for user: ${ws.userId}`)
     }
   }
 

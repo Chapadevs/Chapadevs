@@ -1,184 +1,198 @@
 /**
- * Response parsing utilities for Vertex AI combined responses
+ * responseParser.js
+ * Universal AI response parser for Sandpack rendering
  */
-import { fixBrokenImageSrc } from './utils.js';
 
-/**
- * Parse combined response JSON with robust error handling
- */
-export function parseCombinedResponse(text) {
-  // Remove markdown code blocks
-  let cleanText = text.trim();
-  
-  if (cleanText.startsWith('```json')) {
-    cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
-  } else if (cleanText.startsWith('```')) {
-    cleanText = cleanText.replace(/```\n?/g, '');
+export function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
   }
-  
-  // Try to extract JSON object if embedded in text
-  const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    cleanText = jsonMatch[0];
-  }
-  
-  // Remove control characters that break JSON (keep \n, \r, \t for formatting)
-  // But we need to be careful - these should be escaped in strings
-  cleanText = cleanText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-  
-  let parsed;
-  try {
-    parsed = JSON.parse(cleanText);
-  } catch (parseError) {
-    console.error('Failed to parse JSON response:', parseError.message);
-    const errorPos = parseError.message.match(/position (\d+)/)?.[1];
-    if (errorPos) {
-      const pos = parseInt(errorPos);
-      console.error('Error around position:', cleanText.substring(Math.max(0, pos - 50), pos + 50));
-    }
-    
-    // Try to fix common JSON issues - escape control characters in string values
-    try {
-      // More sophisticated fix: properly escape strings
-      // This regex finds string values and escapes control characters in them
-      let fixedText = cleanText.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match, content) => {
-        if (!content) return match;
-        // Escape control characters in string content
-        const escaped = content
-          .replace(/\\/g, '\\\\')  // Escape backslashes first
-          .replace(/"/g, '\\"')    // Escape quotes
-          .replace(/\n/g, '\\n')    // Escape newlines
-          .replace(/\r/g, '\\r')   // Escape carriage returns
-          .replace(/\t/g, '\\t');  // Escape tabs
-        return `"${escaped}"`;
-      });
-      
-      parsed = JSON.parse(fixedText);
-      console.log('✅ Fixed JSON parsing issues (escaped control characters in strings)');
-    } catch (retryError) {
-      // Last attempt: manually extract and reconstruct the code field
-      try {
-        const codeFieldStart = cleanText.indexOf('"code"');
-        if (codeFieldStart === -1) throw retryError;
-        
-        // Find opening quote of code value
-        const quoteStart = cleanText.indexOf('"', codeFieldStart + 6);
-        if (quoteStart === -1) throw retryError;
-        const valueStart = quoteStart + 1;
-        
-        // Find the end of JSON object
-        const lastBrace = cleanText.lastIndexOf('}');
-        if (lastBrace <= valueStart) throw retryError;
-        
-        // Extract code value - look for closing quote, but if unterminated, use everything up to last brace
-        let codeValue = '';
-        let valueEnd = -1;
-        
-        // Try to find a properly closed string first
-        for (let i = valueStart; i < lastBrace; i++) {
-          if (cleanText[i] === '"' && cleanText[i-1] !== '\\') {
-            // Check if this is followed by comma/brace (end of field)
-            const next = cleanText.substring(i+1).match(/^\s*[,}]/);
-            if (next) {
-              valueEnd = i;
-              codeValue = cleanText.substring(valueStart, i);
-              break;
-            }
-          }
-        }
-        
-        // If no proper end found, extract to last brace and find where it should end
-        if (valueEnd === -1) {
-          const beforeBrace = cleanText.substring(0, lastBrace);
-          // Look for pattern that indicates end of code field (quote followed by comma/brace)
-          const endPattern = /"\s*[,}]/;
-          const endMatch = beforeBrace.substring(valueStart).match(endPattern);
-          if (endMatch) {
-            valueEnd = valueStart + endMatch.index;
-            codeValue = cleanText.substring(valueStart, valueEnd);
-          } else {
-            // Extract everything and trim trailing quote if present
-            codeValue = beforeBrace.substring(valueStart);
-            codeValue = codeValue.replace(/^[\s\n]*/, '').replace(/[\s\n]*$/, '');
-            if (codeValue.endsWith('"')) codeValue = codeValue.slice(0, -1);
-            valueEnd = lastBrace;
-          }
-        }
-        
-        // Escape the code value properly
-        codeValue = codeValue
-          .replace(/\\/g, '\\\\')
-          .replace(/"/g, '\\"')
-          .replace(/\n/g, '\\n')
-          .replace(/\r/g, '\\r')
-          .replace(/\t/g, '\\t');
-        
-        // Reconstruct JSON
-        const beforeCode = cleanText.substring(0, valueStart);
-        let afterCode = '';
-        if (valueEnd < lastBrace) {
-          // Find what comes after the code field
-          const afterMatch = cleanText.substring(valueEnd).match(/^"\s*([,}])/);
-          if (afterMatch) {
-            afterCode = '"' + afterMatch[1] + cleanText.substring(valueEnd + afterMatch[0].length);
-          } else {
-            afterCode = '"}';
-          }
-        } else {
-          // Code field goes to the end, close it properly
-          afterCode = '"}';
-        }
-        
-        const fixedCodeJson = beforeCode + codeValue + afterCode;
-        parsed = JSON.parse(fixedCodeJson);
-        console.log('✅ Fixed JSON by manually extracting and escaping code field');
-      } catch (finalError) {
-        console.error('All JSON parsing attempts failed');
-        console.error('Response length:', cleanText.length);
-        console.error('First 1000 chars:', cleanText.substring(0, 1000));
-        throw new Error('AI returned invalid JSON format that could not be fixed');
-      }
-    }
-  }
-  
-  // Clean and validate code
-  if (parsed.code) {
-    let code = parsed.code;
-    code = code.replace(/```jsx?\n?/g, '').replace(/```\n?/g, '');
-    code = code.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
-    code = code.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
-    code = code.replace(/const GeneratedComponent\s*=/g, 'function App');
-    code = code.replace(/export default GeneratedComponent;?/g, 'export default App;');
-    code = code.replace(/function GeneratedComponent\(\)/g, 'function App()');
-    code = code.replace(/GeneratedComponent/g, 'App');
-    if (!code.includes('export default App')) {
-      code = code.replace(/export default \w+;?/g, 'export default App;');
-      if (!code.includes('export default')) {
-        code += '\n\nexport default App;';
-      }
-    }
-    parsed.code = fixBrokenImageSrc(code);
-  }
-  
-  return parsed;
+  return hash.toString(36);
 }
 
 /**
- * Normalize component name in code
+ * Replace unsafe images
  */
-export function normalizeComponentName(code) {
-  let cleanCode = code;
-  cleanCode = cleanCode.replace(/function\s+App\s*\(\)\s*=>/g, 'function App()');
-  cleanCode = cleanCode.replace(/const GeneratedComponent\s*=\s*\(\)\s*=>/g, 'function App()');
-  cleanCode = cleanCode.replace(/const GeneratedComponent\s*=/g, 'function App');
-  cleanCode = cleanCode.replace(/export default GeneratedComponent;?/g, 'export default App;');
-  cleanCode = cleanCode.replace(/function GeneratedComponent\(\)/g, 'function App()');
-  cleanCode = cleanCode.replace(/GeneratedComponent/g, 'App');
-  if (!cleanCode.includes('export default App')) {
-    cleanCode = cleanCode.replace(/export default \w+;?/g, 'export default App;');
-    if (!cleanCode.includes('export default')) {
-      cleanCode += '\n\nexport default App;';
+export function fixBrokenImageSrc(html) {
+  const allowlist = ["picsum.photos", "placehold.co", "placeholder.com"];
+
+  const isAllowed = (src) =>
+    allowlist.some((h) => (src || "").toLowerCase().includes(h));
+
+  return html.replace(
+    /<img([^>]*)\ssrc=["']([^"']*)["']([^>]*)>/gi,
+    (match, before, src, after) => {
+      if (isAllowed(src)) return match;
+
+      const altMatch = /alt=["']([^"']*)["']/i.exec(match);
+      const alt = altMatch
+        ? encodeURIComponent(altMatch[1].slice(0, 30))
+        : "Preview";
+
+      return `<img${before} src="https://placehold.co/400x300?text=${alt}"${after}>`;
+    }
+  );
+}
+
+/**
+ * Converts escaped AI strings into executable code
+ */
+function unescapeCode(code) {
+  if (!code) return "";
+
+  let c = code.trim();
+
+  try {
+    if (c.startsWith('"') && c.endsWith('"')) {
+      c = JSON.parse(c);
+    }
+  } catch {}
+
+  return c
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .replace(/\\t/g, "\t")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\");
+}
+
+/**
+ * Repairs small syntax mistakes AI models often generate
+ */
+function safeSyntaxFix(code) {
+  try {
+    new Function(code);
+    return code;
+  } catch {
+    return code
+      .replace(/;\s*}/g, "}")       // remove ; before }
+      .replace(/'\s*;/g, "'")       // string ending ;
+      .replace(/,\s*,/g, ",")       // double commas
+      .replace(/\{\s*,/g, "{")      // comma after {
+      .replace(/,\s*\}/g, "}");     // comma before }
+  }
+}
+
+/**
+ * Normalizes AI component code into valid React component
+ */
+export function normalizeComponentCode(code) {
+  if (!code) return "";
+
+  let c = unescapeCode(code);
+
+  // Remove markdown fences
+  c = c.replace(/```[\s\S]*?```/g, (m) =>
+    m.replace(/```[a-z]*/gi, "").replace(/```/g, "")
+  );
+
+  // Fix escaped quotes AI sometimes outputs
+  c = c.replace(/\\'(?=\s*[,\]\}])/g, "'");
+
+  // Escape apostrophes inside words
+  c = c.replace(/([a-zA-Z])'([a-zA-Z])/g, "$1\\'$2");
+
+  // Fix objects ending with semicolon
+  c = c.replace(/'\s*;/g, "'");
+
+  // Fix extra braces before export
+  c = c.replace(/\}\}\s*export default/g, "}\nexport default");
+
+  // Ensure component name = App
+  if (!c.includes("function App") && !c.includes("const App")) {
+    c = c.replace(
+      /(function|const|class)\s+([A-Z][a-zA-Z0-9_]*)/,
+      "$1 App"
+    );
+  }
+
+  // Ensure export default App
+  if (!c.includes("export default App")) {
+    c = c.replace(/export default\s+\w+;?/g, "");
+    if (!c.endsWith(";")) c += ";";
+    c += "\n\nexport default App;";
+  }
+
+  // Final syntax safety pass
+  c = safeSyntaxFix(c);
+
+  return c.trim();
+}
+
+/**
+ * Manual recovery if JSON.parse fails
+ */
+function repairAndParseManual(text) {
+  const codeStart = text.indexOf('"code"');
+  if (codeStart === -1) {
+    return {
+      analysis: "No JSON detected. Using raw response.",
+      code: text,
+    };
+  }
+
+  const firstQuote = text.indexOf('"', codeStart + 6);
+  const start = firstQuote + 1;
+  const lastBrace = text.lastIndexOf("}");
+
+  let end = -1;
+
+  for (let i = start; i < lastBrace; i++) {
+    if (text[i] === '"' && text[i - 1] !== "\\") {
+      const next = text.substring(i + 1).match(/^\s*[,}]/);
+      if (next) {
+        end = i;
+        break;
+      }
     }
   }
-  return cleanCode;
+
+  let code =
+    end !== -1
+      ? text.substring(start, end)
+      : text.substring(start, lastBrace);
+
+  return {
+    analysis: "Recovered manually",
+    code,
+  };
+}
+
+/**
+ * MAIN PARSER
+ */
+export function parseCombinedResponse(text) {
+  if (!text) throw new Error("Empty AI response");
+
+  let clean = text.trim();
+
+  // Remove markdown wrappers
+  clean = clean
+    .replace(/^```[a-z]*\n?/i, "")
+    .replace(/```$/i, "");
+
+  // Try extract JSON
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (match) clean = match[0];
+
+  // Remove control chars
+  clean = clean.replace(/[\x00-\x1F\x7F]/g, "");
+
+  let parsed;
+
+  try {
+    parsed = JSON.parse(clean);
+  } catch {
+    parsed = repairAndParseManual(clean);
+  }
+
+  if (parsed.code) {
+    parsed.code = normalizeComponentCode(parsed.code);
+    parsed.code = fixBrokenImageSrc(parsed.code);
+  }
+
+  return parsed;
 }

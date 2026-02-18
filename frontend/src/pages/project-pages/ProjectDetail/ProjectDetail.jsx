@@ -263,7 +263,7 @@ function ProjectDetail() {
 
               {error && <Alert variant="error" className="mb-6">{error}</Alert>}
 
-              <section className="bg-white border border-border rounded-xl shadow-sm p-8 min-h-[600px]">
+              <section>
                 {activeTab === 'settings' && (
                   <SettingsTab
                     project={project}
