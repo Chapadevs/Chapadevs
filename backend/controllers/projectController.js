@@ -702,9 +702,10 @@ export const updateProject = asyncHandler(async (req, res) => {
     }
   })
 
-  // If team is being closed from Open: go to Holding (On Hold)
+  // If team is being closed from Open: go to Holding (On Hold) — no one can be ready in Holding
   if (isClosingTeam && project.status === 'Open') {
     project.status = 'Holding'
+    project.readyConfirmedBy = []
   }
 
   // If team is being opened from Holding: go to Open (programmers can join)
@@ -972,6 +973,7 @@ export const updateProjectStatus = asyncHandler(async (req, res) => {
     }
     project.status = 'Holding'
     project.teamClosed = true
+    project.readyConfirmedBy = []
   }
 
   await project.save()

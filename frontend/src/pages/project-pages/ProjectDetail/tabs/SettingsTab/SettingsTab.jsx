@@ -41,9 +41,11 @@ const SettingsTab = ({
     permissions.showConfirmReady
   const hasDevActions =
     permissions.canStartDevelopment ||
+    permissions.showStartDevelopment ||
     permissions.canStopDevelopment ||
     permissions.canSetToHolding ||
-    permissions.canMarkCompleted
+    permissions.canMarkCompleted ||
+    (project.status === 'Ready' && permissions.isClientOwner)
 
   const clientName = project.clientId?.name ?? project.clientId ?? '—'
   const programmers = [
@@ -163,13 +165,18 @@ const SettingsTab = ({
       {hasDevActions && (
         <div className="flex flex-col gap-3 pb-6 border-b border-border">
           <h4 className="text-sm font-heading font-bold uppercase text-ink">Development</h4>
+          {project.status === 'Ready' && permissions.isClientOwner && (
+            <p className="font-body text-sm text-ink-muted">
+              Waiting for programmer to start the project.
+            </p>
+          )}
           <div className="flex flex-wrap gap-3">
-            {permissions.canStartDevelopment && (
+            {(permissions.showStartDevelopment || permissions.canStartDevelopment) && (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={onStartDevelopment}
-                disabled={startingDevelopment}
+                disabled={startingDevelopment || !permissions.canStartDevelopment}
               >
                 {startingDevelopment ? 'Starting...' : 'Start Development'}
               </Button>

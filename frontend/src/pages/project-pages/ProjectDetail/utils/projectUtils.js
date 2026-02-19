@@ -70,10 +70,14 @@ export const calculatePermissions = (user, project) => {
   const showConfirmReady = isProgrammerInProject &&
     (project.status === 'Holding' || project.status === 'Open')
 
-  // Start Development: programmer, when Ready + team closed
+  // Start Development: programmer, when Ready + team closed (clickable only when Ready)
   const canStartDevelopment = (user?.role === 'programmer' || user?.role === 'admin') &&
     isProgrammerInProject &&
     isReadyForDev
+  // Show Start Development for programmer when Open or Ready (disabled when Open — "everyone should be ready")
+  const showStartDevelopment = (user?.role === 'programmer' || user?.role === 'admin') &&
+    isProgrammerInProject &&
+    (project.status === 'Open' || project.status === 'Ready')
   // Stop Development: client or programmer in project, when Development
   const canStopDevelopment = project.status === 'Development' &&
     (isClientOwner || isProgrammerInProject || admin)
@@ -111,6 +115,7 @@ export const calculatePermissions = (user, project) => {
     allTeamConfirmedReady,
     canToggleTeamClosed,
     canStartDevelopment,
+    showStartDevelopment,
     canStopDevelopment,
     canSetToHolding,
     canMarkCompleted,

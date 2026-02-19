@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Input, Textarea } from '../../../../../components/ui-components'
+import { Button, Input, Textarea } from '../../../../../../components/ui-components'
 import './SubStep.css'
 
 const SubStep = ({ subStep, canEdit, onUpdate }) => {

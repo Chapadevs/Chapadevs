@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button, Textarea } from '../../../../../components/ui-components'
+import { Button, Textarea } from '../../../../../../components/ui-components'
 import './ClientQuestion.css'
 
 const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
