@@ -982,3 +982,80 @@ export const updateProjectStatus = asyncHandler(async (req, res) => {
 
   res.json(populated)
 })
+
+// @desc    Mark project as completed (Development -> Completed)
+// @route   PUT /api/projects/:id/complete
+// @access  Private (client, assigned programmer, or admin)
+export const markProjectCompleted = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const userIdStr = req.user._id.toString()
+  const isClientOwner = project.clientId.toString() === userIdStr
+  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+  const isProgrammerInProject = (req.user.role === 'programmer' || req.user.role === 'admin') && isInTeam
+
+  if (!isClientOwner && !isProgrammerInProject && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Only the project client or assigned programmers can mark the project as completed')
+  }
+
+  if (project.status !== 'Development') {
+    res.status(400)
+    throw new Error('Project must be in Development status to mark as completed')
+  }
+
+  project.status = 'Completed'
+  project.completedDate = new Date()
+  await project.save()
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+
+  res.json(populated)
+})
+
+// @desc    Mark project as cancelled
+// @route   PUT /api/projects/:id/cancel
+// @access  Private (client or admin)
+export const markProjectCancelled = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isClientOwner = project.clientId.toString() === req.user._id.toString()
+  if (!isClientOwner && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Only the project client or admin can cancel the project')
+  }
+
+  if (project.status === 'Completed') {
+    res.status(400)
+    throw new Error('Cannot cancel a completed project')
+  }
+
+  if (project.status === 'Cancelled') {
+    res.status(400)
+    throw new Error('Project is already cancelled')
+  }
+
+  project.status = 'Cancelled'
+  await project.save()
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+
+  res.json(populated)
+})

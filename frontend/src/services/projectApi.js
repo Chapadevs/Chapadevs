@@ -81,6 +81,16 @@ export const projectAPI = {
     return response.data
   },
 
+  markCompleted: async (id) => {
+    const response = await api.put(`/projects/${id}/complete`)
+    return response.data
+  },
+
+  markCancelled: async (id) => {
+    const response = await api.put(`/projects/${id}/cancel`)
+    return response.data
+  },
+
   updatePhase: async (projectId, phaseId, data) => {
     const response = await api.patch(`/projects/${projectId}/phases/${phaseId}`, data)
     return response.data

@@ -61,6 +61,8 @@ function ProjectDetail() {
   const [startingDevelopment, setStartingDevelopment] = useState(false)
   const [stoppingDevelopment, setStoppingDevelopment] = useState(false)
   const [leavingProject, setLeavingProject] = useState(false)
+  const [markingCompleted, setMarkingCompleted] = useState(false)
+  const [markingCancelled, setMarkingCancelled] = useState(false)
   const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
   const [activeTab, setActiveTab] = useState('ai-preview')
   const [settingsPreview, setSettingsPreview] = useState(null)
@@ -129,6 +131,26 @@ function ProjectDetail() {
     finally { setMarkingHolding(false) }
   }
 
+  const handleMarkCompleted = async () => {
+    if (!window.confirm('Mark this project as Completed?')) return
+    try {
+      setMarkingCompleted(true); setError(null)
+      const updatedProject = await projectAPI.markCompleted(id)
+      setProject(updatedProject)
+    } catch (err) { setError(err.response?.data?.message || 'Failed to mark completed') }
+    finally { setMarkingCompleted(false) }
+  }
+
+  const handleCancelProject = async () => {
+    if (!window.confirm('Cancel this project? This cannot be undone.')) return
+    try {
+      setMarkingCancelled(true); setError(null)
+      const updatedProject = await projectAPI.markCancelled(id)
+      setProject(updatedProject)
+    } catch (err) { setError(err.response?.data?.message || 'Failed to cancel project') }
+    finally { setMarkingCancelled(false) }
+  }
+
   const handleLeaveProject = async () => {
     if (!window.confirm('Leave project?')) return
     try {
@@ -146,6 +168,12 @@ function ProjectDetail() {
       setProject(updatedProject)
     } catch (err) { setError('Failed to remove') }
     finally { setRemovingProgrammerId(null) }
+  }
+
+  const handleEditSave = async (payload) => {
+    const updated = await projectAPI.update(id, payload)
+    setProject(updated)
+    return updated
   }
 
   const handleDelete = async () => {
@@ -286,7 +314,7 @@ function ProjectDetail() {
                 {activeTab === 'settings' && (
                   <SettingsTab
                     project={project}
-                    {...permissions} 
+                    {...permissions}
                     onDelete={handleDelete}
                     onMarkReady={handleMarkReady}
                     onConfirmReady={handleConfirmReady}
@@ -294,13 +322,18 @@ function ProjectDetail() {
                     onStartDevelopment={handleStartDevelopment}
                     onStopDevelopment={handleStopDevelopment}
                     onMarkHolding={handleMarkHolding}
+                    onMarkCompleted={handleMarkCompleted}
+                    onCancelProject={handleCancelProject}
                     onLeaveProject={handleLeaveProject}
+                    onEditSave={handleEditSave}
                     markingReady={markingReady}
                     confirmingReady={confirmingReady}
                     togglingTeamClosed={togglingTeamClosed}
                     startingDevelopment={startingDevelopment}
                     stoppingDevelopment={stoppingDevelopment}
                     markingHolding={markingHolding}
+                    markingCompleted={markingCompleted}
+                    markingCancelled={markingCancelled}
                     leavingProject={leavingProject}
                   />
                 )}

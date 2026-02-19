@@ -60,8 +60,15 @@ export const calculatePermissions = (user, project) => {
     isClientOwner &&
     isOpen &&
     hasProgrammers
+  // Show Mark Ready button when Holding or Open (before development) so flow is visible; disabled when Holding
+  const showMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
+    isClientOwner &&
+    (project.status === 'Holding' || project.status === 'Open')
   // Confirm ready: programmer in team, project Open, not yet confirmed
   const canConfirmReady = isProgrammerInProject && isOpen && !project.teamClosed && !hasUserConfirmedReady
+  // Show I'm Ready button when Holding or Open so flow is visible; disabled when Holding or team closed
+  const showConfirmReady = isProgrammerInProject &&
+    (project.status === 'Holding' || project.status === 'Open')
 
   // Start Development: programmer, when Ready + team closed
   const canStartDevelopment = (user?.role === 'programmer' || user?.role === 'admin') &&
@@ -74,6 +81,14 @@ export const calculatePermissions = (user, project) => {
   const canSetToHolding = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     project.status === 'Ready'
+
+  // Mark as Completed: client or programmer in project, when Development
+  const canMarkCompleted = project.status === 'Development' &&
+    (isClientOwner || isProgrammerInProject || admin)
+  // Cancel project: client or admin, when not Completed and not already Cancelled
+  const canCancel = (isClientOwner || admin) &&
+    project.status !== 'Completed' &&
+    project.status !== 'Cancelled'
 
   // Phase/timeline permissions (programmer or admin)
   const canChangePhaseStatus = isAssignedProgrammer || admin
@@ -91,11 +106,15 @@ export const calculatePermissions = (user, project) => {
     canDelete,
     canMarkReady,
     canConfirmReady,
+    showMarkReady,
+    showConfirmReady,
     allTeamConfirmedReady,
     canToggleTeamClosed,
     canStartDevelopment,
     canStopDevelopment,
     canSetToHolding,
+    canMarkCompleted,
+    canCancel,
     canChangePhaseStatus,
     canUpdateSubSteps,
     canSaveNotes,

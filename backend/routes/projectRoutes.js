@@ -21,6 +21,8 @@ import {
   markProjectReady,
   startDevelopment,
   stopDevelopment,
+  markProjectCompleted,
+  markProjectCancelled,
   upload,
 } from '../controllers/projectController.js'
 import { protect, authorizeProjectAccess } from '../middleware/authMiddleware.js'
@@ -45,6 +47,8 @@ router.put('/:id/confirm-ready', authorizeProjectAccess, confirmReady)
 router.put('/:id/mark-ready', authorizeProjectAccess, markProjectReady)
 router.put('/:id/start-development', authorizeProjectAccess, startDevelopment)
 router.put('/:id/stop-development', authorizeProjectAccess, stopDevelopment)
+router.put('/:id/complete', authorizeProjectAccess, markProjectCompleted)
+router.put('/:id/cancel', authorizeProjectAccess, markProjectCancelled)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
 router.get('/:id/phases/proposal', authorizeProjectAccess, getPhaseProposal)
 router.post('/:id/phases/confirm', authorizeProjectAccess, confirmPhases)

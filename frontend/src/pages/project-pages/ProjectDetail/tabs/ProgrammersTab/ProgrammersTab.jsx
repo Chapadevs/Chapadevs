@@ -10,6 +10,11 @@ const ProgrammersTab = ({
   onRemoveProgrammer,
   removingProgrammerId,
 }) => {
+  // Ready confirmed: set of programmer IDs who have confirmed "I'm ready"
+  const readyConfirmedIds = new Set(
+    (project.readyConfirmedBy || []).map((id) => (id?._id || id)?.toString()).filter(Boolean)
+  )
+
   // Get the primary assigned programmer ID for comparison
   const primaryAssignedId = project.assignedProgrammerId 
     ? (project.assignedProgrammerId._id || project.assignedProgrammerId)?.toString()
@@ -22,7 +27,11 @@ const ProgrammersTab = ({
   // Add primary assigned programmer if exists
   if (project.assignedProgrammerId && primaryAssignedId) {
     seenIds.add(primaryAssignedId)
-    allProgrammers.push({ ...project.assignedProgrammerId, isPrimary: true })
+    allProgrammers.push({
+      ...project.assignedProgrammerId,
+      isPrimary: true,
+      isReady: readyConfirmedIds.has(primaryAssignedId),
+    })
   }
   
   // Add other programmers from assignedProgrammerIds array
@@ -31,9 +40,12 @@ const ProgrammersTab = ({
       const programmerId = (programmer._id || programmer)?.toString()
       if (programmerId && !seenIds.has(programmerId)) {
         seenIds.add(programmerId)
-        // Only mark as primary if this programmer's ID matches the assignedProgrammerId
         const isPrimary = primaryAssignedId && programmerId === primaryAssignedId
-        allProgrammers.push({ ...programmer, isPrimary })
+        allProgrammers.push({
+          ...programmer,
+          isPrimary,
+          isReady: readyConfirmedIds.has(programmerId),
+        })
       }
     })
   }
@@ -74,6 +86,7 @@ const ProgrammersTab = ({
             role="Programmer"
             status={getUserStatus(programmer)}
             isPrimary={programmer.isPrimary}
+            isReady={programmer.isReady}
             isClientOwner={isClientOwner}
             onRemoveProgrammer={onRemoveProgrammer}
             removingProgrammerId={removingProgrammerId}
