@@ -47,7 +47,6 @@ const StatusDropdown = ({trigger}) => {
         </div>
 
         <Link to="/profile" className="resources-dropdown-link">Edit profile</Link>
-        <Link to="/dashboard" className="resources-dropdown-link">Dashboard</Link>
         
         <div className="resources-dropdown-group border-t border-white/10 mt-2 pt-2">
           <span className="resources-dropdown-label">Availability</span>

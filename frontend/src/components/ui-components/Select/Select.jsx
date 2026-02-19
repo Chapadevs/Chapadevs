@@ -5,7 +5,7 @@ const selectBase =
   'rounded-none cursor-pointer transition-all duration-300 ease-in-out ' +
   'hover:-translate-y-0.5 uppercase tracking-wider ' +
   'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ' +
-  'px-5 py-3.5 text-sm border-2 min-h-[36px] bg-white border-primary text-primary ' +
+  'px-3 py-2 text-xs border-2 min-h-[28px] bg-white border-primary text-primary ' +
   'focus:border-primary-dark focus:outline-none'
 
 const Select = forwardRef(

@@ -47,7 +47,7 @@ const NotificationBell = () => {
     if (notification.projectId) {
       navigate(`/projects/${notification.projectId._id || notification.projectId}`)
     } else {
-      navigate('/dashboard')
+      navigate('/')
     }
     setIsOpen(false)
   }
@@ -198,7 +198,7 @@ const NotificationBell = () => {
                 size="sm"
                 className="notification-view-all"
                 onClick={() => {
-                  navigate('/dashboard')
+                  navigate('/projects')
                   setIsOpen(false)
                 }}
               >

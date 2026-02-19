@@ -30,11 +30,11 @@ const ProjectSidebar = ({
   hasCommentsNotifications,
 }) => {
   const navItems = [
-    { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },
     { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
     { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
     { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasTimelineNotifications, show: true },
     { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
+    { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },
   ];
 
   return (

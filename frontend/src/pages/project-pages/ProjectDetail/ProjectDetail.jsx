@@ -5,7 +5,8 @@ import {
   Alert, 
   SidebarProvider, 
   SidebarInset, 
-  SidebarTrigger 
+  Button,
+  Badge
 } from '../../../components/ui-components'
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
@@ -16,7 +17,7 @@ import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
 import { useProjectNotifications } from './hooks/useProjectNotifications'
 import { calculatePermissions } from './utils/projectUtils'
-import ProjectHeader from './components/ProjectHeader/ProjectHeader'
+import { getStatusBadgeClass } from './utils/projectUtils'
 import ProjectSidebar from './components/ProjectSidebar/ProjectSidebar'
 import SettingsTab from './tabs/SettingsTab/SettingsTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
@@ -61,7 +62,7 @@ function ProjectDetail() {
   const [stoppingDevelopment, setStoppingDevelopment] = useState(false)
   const [leavingProject, setLeavingProject] = useState(false)
   const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
-  const [activeTab, setActiveTab] = useState('settings')
+  const [activeTab, setActiveTab] = useState('ai-preview')
   const [settingsPreview, setSettingsPreview] = useState(null)
   const [settingsFetching, setSettingsFetching] = useState(false)
   const [settingsFetchAttempted, setSettingsFetchAttempted] = useState(false)
@@ -185,7 +186,8 @@ function ProjectDetail() {
   if (error && !project) {
     if (showSettingsModal) {
       return (
-        <>
+      // Return a modal with the project settings when a programmer
+      <>
           <Header />
           <div className="mx-auto max-w-7xl px-4 py-8">
              <ProjectSettingsModal 
@@ -213,8 +215,6 @@ function ProjectDetail() {
   return (
     <SidebarProvider>
       <div className="flex flex-col min-h-screen w-full bg-surface">
-        <Header />
-        
         <div className="flex flex-1 overflow-hidden">
           <ProjectSidebar
             activeTab={activeTab}
@@ -227,64 +227,33 @@ function ProjectDetail() {
             hasCommentsNotifications={hasCommentsNotifications}
           />
 
-          <SidebarInset className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto w-full">
-              
-              <div className="mb-10 flex items-center gap-4">
-                {/* Trigger button for mobile/collapsed state */}
-                <ProjectHeader 
-                  project={project} 
-                  isClientOwner={permissions.isClientOwner}
-                  onDelete={handleDelete}
-                  markingReady={markingReady}
-                  onMarkReady={handleMarkReady}
-                  canMarkReady={permissions.canMarkReady}
-                  allTeamConfirmedReady={permissions.allTeamConfirmedReady}
-                  canConfirmReady={permissions.canConfirmReady}
-                  confirmingReady={confirmingReady}
-                  onConfirmReady={handleConfirmReady}
-                  canToggleTeamClosed={permissions.canToggleTeamClosed}
-                  togglingTeamClosed={togglingTeamClosed}
-                  onToggleTeamClosed={handleToggleTeamClosed}
-                  canStartDevelopment={permissions.canStartDevelopment}
-                  startingDevelopment={startingDevelopment}
-                  onStartDevelopment={handleStartDevelopment}
-                  canStopDevelopment={permissions.canStopDevelopment}
-                  stoppingDevelopment={stoppingDevelopment}
-                  onStopDevelopment={handleStopDevelopment}
-                  canSetToHolding={permissions.canSetToHolding}
-                  markingHolding={markingHolding}
-                  onMarkHolding={handleMarkHolding}
-                  isProgrammerInProject={permissions.isProgrammerInProject}
-                  leavingProject={leavingProject}
-                  onLeaveProject={handleLeaveProject}
-                />
+          {/* Increased padding-top, reduced top proximity, fully center main content */}
+          <SidebarInset className="flex-1 overflow-y-auto px-4 py-12 sm:px-8 lg:px-16">
+            <div className="max-w-3xl mx-auto w-full flex flex-col min-h-[calc(100vh-112px)] justify-start">
+              <div className="mb-12 flex items-center gap-4">
+                {/* Mobile/collapsed back trigger button */}
+                <Button 
+                  to="/projects" 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-fit text-ink-muted hover:text-ink pl-0"
+                >
+                  ← Back to Projects
+                </Button>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold">{project.title}</h1>
+                  <Badge 
+                    variant={project.status?.toLowerCase() || 'default'} 
+                    className={getStatusBadgeClass(project.status)}
+                  >
+                    {project.status}
+                  </Badge>
+                </div>
               </div>
 
               {error && <Alert variant="error" className="mb-6">{error}</Alert>}
 
               <section>
-                {activeTab === 'settings' && (
-                  <SettingsTab
-                    project={project}
-                    {...permissions} 
-                    onDelete={handleDelete}
-                    onMarkReady={handleMarkReady}
-                    onConfirmReady={handleConfirmReady}
-                    onToggleTeamClosed={handleToggleTeamClosed}
-                    onStartDevelopment={handleStartDevelopment}
-                    onStopDevelopment={handleStopDevelopment}
-                    onMarkHolding={handleMarkHolding}
-                    onLeaveProject={handleLeaveProject}
-                    markingReady={markingReady}
-                    confirmingReady={confirmingReady}
-                    togglingTeamClosed={togglingTeamClosed}
-                    startingDevelopment={startingDevelopment}
-                    stoppingDevelopment={stoppingDevelopment}
-                    markingHolding={markingHolding}
-                    leavingProject={leavingProject}
-                  />
-                )}
                 {activeTab === 'ai-preview' && showAIPreviewsSection && (
                   <AIPreviewTab
                     project={project}
@@ -312,6 +281,27 @@ function ProjectDetail() {
                     previews={previews}
                     onPhaseUpdate={handlePhaseUpdate}
                     onTimelineConfirmed={loadProject}
+                  />
+                )}
+                {activeTab === 'settings' && (
+                  <SettingsTab
+                    project={project}
+                    {...permissions} 
+                    onDelete={handleDelete}
+                    onMarkReady={handleMarkReady}
+                    onConfirmReady={handleConfirmReady}
+                    onToggleTeamClosed={handleToggleTeamClosed}
+                    onStartDevelopment={handleStartDevelopment}
+                    onStopDevelopment={handleStopDevelopment}
+                    onMarkHolding={handleMarkHolding}
+                    onLeaveProject={handleLeaveProject}
+                    markingReady={markingReady}
+                    confirmingReady={confirmingReady}
+                    togglingTeamClosed={togglingTeamClosed}
+                    startingDevelopment={startingDevelopment}
+                    stoppingDevelopment={stoppingDevelopment}
+                    markingHolding={markingHolding}
+                    leavingProject={leavingProject}
                   />
                 )}
                 {activeTab === 'comments' && <CommentsTab project={project} user={user} />}

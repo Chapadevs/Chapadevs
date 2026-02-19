@@ -21,7 +21,7 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard')
+      navigate('/')
     }
   }, [user, navigate])
 
@@ -45,7 +45,7 @@ const Login = () => {
     const result = await login(formData.email, formData.password)
 
     if (result.success) {
-      navigate('/dashboard')
+      navigate('/')
     } else {
       setLocalError(result.error || 'Login failed')
     }

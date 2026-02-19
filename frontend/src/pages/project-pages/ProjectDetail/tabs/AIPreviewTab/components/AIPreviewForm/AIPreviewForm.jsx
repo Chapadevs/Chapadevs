@@ -76,34 +76,41 @@ const AIPreviewForm = ({
             required
             className=""
           >
-            <div className="flex w-full items-center justify-between">
-              <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block">
+            <div className="flex w-full items-center justify-between gap-4 sm:gap-8">
+              <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block whitespace-nowrap">
                 {generateFormData.prompt?.length || 0} characters
               </span>
-              <div className="project-preview-form-group flex flex-col gap-2">
-                <label htmlFor="preview-modelId" className="font-heading text-[10px] text-ink-muted uppercase tracking-[0.1em] font-bold px-1">
-                  AI Model
-                </label>
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Select
                   id="preview-modelId"
                   value={generateFormData.modelId}
                   onChange={(e) => handleChange('modelId', e.target.value)}
-                  className="w-full"
+                  className="text-xs px-1 min-h-0 w-32" // Reduced sizing of select box
+                  wrapperClassName=""
+                  aria-label="AI Model"
                 >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                 </Select>
-                <p className="text-[11px] text-ink-muted italic px-1">
-                  Flash: Faster, lower cost. Pro: Higher quality, higher cost.
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <SecondaryButton type="button" variant="ghost" size="sm" className="text-ink-muted hover:text-ink font-normal lowercase" onClick={onCancel}>
-                  cancel
-                </SecondaryButton>
-                <Button type="submit" disabled={!generateFormData.prompt} size="sm" className="h-8 px-4 text-xs font-medium rounded-lg shadow-sm">
-                  Generate
-                </Button>
+                <div className="flex items-center gap-1 ml-2">
+                  <SecondaryButton
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-ink-muted hover:text-ink font-normal lowercase px-2"
+                    onClick={onCancel}
+                  >
+                    cancel
+                  </SecondaryButton>
+                  <Button
+                    type="submit"
+                    disabled={!generateFormData.prompt}
+                    size="sm"
+                    className="h-7 px-3 text-xs font-medium rounded-lg shadow-sm"
+                  >
+                    Generate
+                  </Button>
+                </div>
               </div>
             </div>
           </Textarea>

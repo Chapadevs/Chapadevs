@@ -338,7 +338,7 @@ const EditProfile = () => {
       <Header />
       <div className="profile-container">
         <Card variant="outline" className="profile-card p-8">
-          <Link to="/dashboard" className="profile-back">
+          <Link to="/" className="profile-back">
             ← Go back
           </Link>
           <div className="profile-header-with-avatar">

@@ -11,7 +11,6 @@ import VerifyEmail from './pages/authentication-pages/VerifyEmail/VerifyEmail'
 import ForgotPassword from './pages/authentication-pages/ForgotPassword/ForgotPassword'
 import ResetPassword from './pages/authentication-pages/ResetPassword/ResetPassword'
 import ConfirmPasswordChange from './pages/authentication-pages/ConfirmPasswordChange/ConfirmPasswordChange'
-import Dashboard from './pages/dashboard-pages/Dashboard/Dashboard'
 import EditProfile from './pages/profile-pages/EditProfile/EditProfile'
 import UserProfileView from './pages/profile-pages/UserProfileView/UserProfileView'
 import ChangePassword from './pages/authentication-pages/ChangePassword/ChangePassword'
@@ -38,14 +37,6 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/confirm-password-change" element={<ConfirmPasswordChange />} />
           <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -67,14 +58,6 @@ function App() {
               <ProtectedRoute>
                 <ChangePassword />
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <RoleProtectedRoute allowedRoles={['admin']}>
-                <Dashboard />
-              </RoleProtectedRoute>
             }
           />
           <Route

@@ -76,7 +76,7 @@ const UserProfileView = () => {
         <div className="profile-view-container">
           <Card variant="outline" className="profile-card p-8">
             <Alert variant="error">{error || 'User not found'}</Alert>
-            <Link to="/dashboard" className="profile-back">← Go back</Link>
+            <Link to="/" className="profile-back">← Go back</Link>
           </Card>
         </div>
       </>
@@ -91,7 +91,7 @@ const UserProfileView = () => {
       <Header />
       <div className="profile-view-container">
         <Card variant="outline" className="profile-card p-8">
-          <Link to="/dashboard" className="profile-back">← Go back</Link>
+          <Link to="/" className="profile-back">← Go back</Link>
 
           <div className="profile-header-with-avatar">
             <div className="profile-avatar-container">

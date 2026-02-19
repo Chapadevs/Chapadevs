@@ -70,7 +70,7 @@ const ChangePassword = () => {
       <Header />
       <div className="change-password-container">
         <Card variant="outline" className="change-password-card">
-          <Link to="/dashboard" className="change-password-back">
+          <Link to="/" className="change-password-back">
             ← Go back
           </Link>
           <div className="change-password-header">
