@@ -19,6 +19,8 @@ const notificationSchema = new mongoose.Schema(
         'project_updated',
         'project_completed',
         'project_accepted',
+        'programmer_left',
+        'removed_from_project',
         'message_received',
         'system',
       ],

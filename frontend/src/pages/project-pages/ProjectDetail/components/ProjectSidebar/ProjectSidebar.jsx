@@ -3,7 +3,8 @@ import {
   Layout, 
   Users, 
   FolderKanban, 
-  MessageSquare 
+  MessageSquare,
+  History
 } from "lucide-react";
 
 import {
@@ -13,11 +14,11 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger
 } from "@/components/ui-components";
+import NotificationBadge from "../../../../../components/ui-components/NotificationBadge/NotificationBadge";
 
 const ProjectSidebar = ({
   activeTab,
@@ -27,12 +28,14 @@ const ProjectSidebar = ({
   hasAIPreviewNotifications,
   hasProgrammersNotifications,
   hasTimelineNotifications,
+  hasActivityNotifications,
   hasCommentsNotifications,
 }) => {
   const navItems = [
     { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
     { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
     { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasTimelineNotifications, show: true },
+    { id: "activity", label: "Activity", icon: History, hasNotification: hasActivityNotifications, show: true },
     { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
     { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },
   ];
@@ -68,10 +71,10 @@ const ProjectSidebar = ({
                       <span className="group-data-[collapsible=icon]:hidden">
                         {item.label}
                       </span>
-                    </SidebarMenuButton>
                     {item.hasNotification && (
-                      <SidebarMenuBadge className="bg-primary" />
+                      <NotificationBadge />
                     )}
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}

@@ -1,6 +1,7 @@
 import Project from '../models/Project.js'
 import ProjectPhase from '../models/ProjectPhase.js'
 import { createNotification } from './notificationController.js'
+import { logProjectActivity } from '../utils/activityLogger.js'
 import asyncHandler from 'express-async-handler'
 
 // @desc    Get available projects (status Open – programmers can join)
@@ -111,6 +112,7 @@ export const assignProject = asyncHandler(async (req, res) => {
 
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'programmer.joined', 'project', project._id, { role: 'assigned' })
   await createNotification(
     project.clientId,
     'project_assigned',
@@ -176,6 +178,7 @@ export const acceptProject = asyncHandler(async (req, res) => {
 
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'programmer.joined', 'project', project._id, { role: 'accepted' })
   await createNotification(
     project.clientId,
     'project_accepted',
@@ -309,7 +312,7 @@ export const leaveProject = asyncHandler(async (req, res) => {
 
   await project.save()
 
-  // Create notification for client
+  await logProjectActivity(project._id, req.user._id, 'programmer.left', 'project', project._id, { programmerName: req.user.name })
   await createNotification(
     project.clientId,
     'programmer_left',
@@ -399,11 +402,19 @@ export const removeProgrammerFromProject = asyncHandler(async (req, res) => {
 
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'programmer.removed', 'project', project._id, { removedProgrammerId: programmerId })
   await createNotification(
     programmerId,
     'removed_from_project',
     'Removed from Project',
     `You have been removed from the project "${project.title}".`,
+    project._id
+  )
+  await createNotification(
+    project.clientId,
+    'project_updated',
+    'Programmer Removed',
+    `A programmer has been removed from the project "${project.title}".`,
     project._id
   )
 

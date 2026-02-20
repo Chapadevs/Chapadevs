@@ -23,6 +23,7 @@ import SettingsTab from './tabs/SettingsTab/SettingsTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
 import ProgrammersTab from './tabs/ProgrammersTab/ProgrammersTab'
 import CommentsTab from './tabs/CommentsTab/CommentsTab'
+import ActivityTab from './tabs/ActivityTab/ActivityTab'
 
 const MAX_PREVIEWS_PER_PROJECT = 10
 
@@ -50,8 +51,25 @@ function ProjectDetail() {
     hasAIPreviewNotifications,
     hasProgrammersNotifications,
     hasTimelineNotifications,
+    hasActivityNotifications,
     hasCommentsNotifications,
+    markTabAsRead,
+    markProjectAsRead,
   } = useProjectNotifications(project)
+
+  // When user opens this project, mark all its notifications as read once (clears list + sidebar badges)
+  useEffect(() => {
+    const projectId = project?._id || project?.id
+    if (projectId) {
+      markProjectAsRead()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when project id is set
+  }, [project?._id ?? project?.id])
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId)
+    markTabAsRead(tabId)
+  }
 
   // --- UI States for Actions ---
   const [markingReady, setMarkingReady] = useState(false)
@@ -246,12 +264,13 @@ function ProjectDetail() {
         <div className="flex flex-1 overflow-hidden">
           <ProjectSidebar
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
             showAIPreviewsSection={showAIPreviewsSection}
             hasSettingsNotifications={hasSettingsNotifications}
             hasAIPreviewNotifications={hasAIPreviewNotifications}
             hasProgrammersNotifications={hasProgrammersNotifications}
             hasTimelineNotifications={hasTimelineNotifications}
+            hasActivityNotifications={hasActivityNotifications}
             hasCommentsNotifications={hasCommentsNotifications}
           />
 
@@ -310,6 +329,9 @@ function ProjectDetail() {
                     onPhaseUpdate={handlePhaseUpdate}
                     onTimelineConfirmed={loadProject}
                   />
+                )}
+                {activeTab === 'activity' && (
+                  <ActivityTab project={project} />
                 )}
                 {activeTab === 'settings' && (
                   <SettingsTab

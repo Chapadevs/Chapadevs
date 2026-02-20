@@ -1,7 +1,9 @@
 import Project from '../models/Project.js'
 import ProjectPhase from '../models/ProjectPhase.js'
+import ProjectActivity from '../models/ProjectActivity.js'
 import AIPreview from '../models/AIPreview.js'
 import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
+import { logProjectActivity } from '../utils/activityLogger.js'
 import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import { createNotification } from './notificationController.js'
@@ -46,6 +48,8 @@ export const createProject = asyncHandler(async (req, res) => {
   }
 
   const project = await Project.create(projectData)
+
+  await logProjectActivity(project._id, req.user._id, 'project.created', 'project', project._id, { title: project.title })
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
@@ -247,6 +251,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
   )
 
   await ProjectPhase.insertMany(phasesToCreate)
+  await logProjectActivity(project._id, req.user._id, 'phases.confirmed', null, null, { phaseCount: phasesToCreate.length })
   const phases = await ProjectPhase.find({ projectId: project._id }).sort({ order: 1 }).lean()
   res.status(201).json(phases)
 })
@@ -263,7 +268,9 @@ export const updatePhase = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
   const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const isProgrammer = assignedId && req.user._id.toString() === assignedId
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
   const isClient = project.clientId?.toString() === req.user._id.toString()
   
   // Check permissions - programmer/admin can update most fields, client can only answer questions/approve
@@ -363,6 +370,12 @@ export const updatePhase = asyncHandler(async (req, res) => {
     )
   }
 
+  // Activity log for phase status changes
+  if (phase.status !== previousStatus) {
+    const action = phase.status === 'in_progress' ? 'phase.started' : phase.status === 'completed' ? 'phase.completed' : 'phase.updated'
+    await logProjectActivity(projectId, req.user._id, action, 'phase', phase._id, { phaseTitle: phase.title, fromStatus: previousStatus, toStatus: phase.status })
+  }
+
   const updated = await ProjectPhase.findById(phase._id).lean()
   res.json(updated)
 })
@@ -379,7 +392,9 @@ export const updateSubStep = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
   const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const isProgrammer = assignedId && req.user._id.toString() === assignedId
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
   if (req.user.role !== 'admin' && !isProgrammer) {
     res.status(403)
     throw new Error('Only the assigned programmer or admin can update sub-steps')
@@ -537,6 +552,10 @@ export const approvePhase = asyncHandler(async (req, res) => {
       projectId
     )
   }
+
+  if (phase.clientApproved) {
+    await logProjectActivity(projectId, req.user._id, 'phase.approved', 'phase', phase._id, { phaseTitle: phase.title })
+  }
   
   const updated = await ProjectPhase.findById(phase._id).lean()
   res.json(updated)
@@ -557,7 +576,9 @@ export const uploadAttachment = asyncHandler(async (req, res) => {
 
   const isClient = project.clientId?.toString() === req.user._id.toString()
   const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const isProgrammer = assignedId && req.user._id.toString() === assignedId
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
 
   if (!isClient && !isProgrammer && req.user.role !== 'admin') {
     res.status(403)
@@ -631,7 +652,9 @@ export const deleteAttachment = asyncHandler(async (req, res) => {
   const attachment = phase.attachments[attachmentIndex]
   const isUploader = attachment.uploadedBy?.toString() === req.user._id.toString()
   const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const isProgrammer = assignedId && req.user._id.toString() === assignedId
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
 
   if (!isUploader && !isProgrammer && req.user.role !== 'admin') {
     res.status(403)
@@ -692,6 +715,7 @@ export const updateProject = asyncHandler(async (req, res) => {
     }
   }
 
+  const previousStatus = project.status
   const wasTeamClosed = project.teamClosed
   const isClosingTeam = req.body.teamClosed === true && !wasTeamClosed
   const isOpeningTeam = req.body.teamClosed === false && wasTeamClosed
@@ -721,6 +745,10 @@ export const updateProject = asyncHandler(async (req, res) => {
   }
 
   await project.save()
+
+  if (project.status !== previousStatus) {
+    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: previousStatus, toStatus: project.status })
+  }
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
@@ -766,6 +794,7 @@ export const confirmReady = asyncHandler(async (req, res) => {
   if (!project.readyConfirmedBy.some(id => id.toString() === userIdStr)) {
     project.readyConfirmedBy.push(req.user._id)
     await project.save()
+    await logProjectActivity(project._id, req.user._id, 'programmer.confirmed_ready', 'project', project._id, {})
   }
 
   const populated = await Project.findById(project._id)
@@ -828,6 +857,8 @@ export const markProjectReady = asyncHandler(async (req, res) => {
   project.status = 'Ready'
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
+
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
@@ -869,6 +900,8 @@ export const startDevelopment = asyncHandler(async (req, res) => {
   }
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Development' })
+
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
@@ -907,6 +940,8 @@ export const stopDevelopment = asyncHandler(async (req, res) => {
 
   project.status = 'Ready'
   await project.save()
+
+  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Ready' })
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
@@ -1016,6 +1051,8 @@ export const markProjectCompleted = asyncHandler(async (req, res) => {
   project.completedDate = new Date()
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Completed' })
+
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
@@ -1054,10 +1091,51 @@ export const markProjectCancelled = asyncHandler(async (req, res) => {
   project.status = 'Cancelled'
   await project.save()
 
+  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { toStatus: 'Cancelled' })
+
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
     .populate('assignedProgrammerIds', 'name email')
 
   res.json(populated)
+})
+
+// @desc    Get project activity (audit log)
+// @route   GET /api/projects/:id/activity
+// @access  Private (project access)
+export const getProjectActivity = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20))
+  const action = req.query.action
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const filter = { projectId }
+  if (action) filter.action = action
+
+  const [activities, total] = await Promise.all([
+    ProjectActivity.find(filter)
+      .populate('actorId', 'name email')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    ProjectActivity.countDocuments(filter),
+  ])
+
+  res.json({
+    activities,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  })
 })

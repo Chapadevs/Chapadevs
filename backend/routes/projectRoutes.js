@@ -4,6 +4,7 @@ import {
   getProjects,
   getProjectById,
   getProjectPreviews,
+  getProjectActivity,
   getPhaseProposal,
   confirmPhases,
   updateProject,
@@ -50,6 +51,7 @@ router.put('/:id/stop-development', authorizeProjectAccess, stopDevelopment)
 router.put('/:id/complete', authorizeProjectAccess, markProjectCompleted)
 router.put('/:id/cancel', authorizeProjectAccess, markProjectCancelled)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
+router.get('/:id/activity', authorizeProjectAccess, getProjectActivity)
 router.get('/:id/phases/proposal', authorizeProjectAccess, getPhaseProposal)
 router.post('/:id/phases/confirm', authorizeProjectAccess, confirmPhases)
 router.patch('/:id/phases/:phaseId', authorizeProjectAccess, updatePhase)

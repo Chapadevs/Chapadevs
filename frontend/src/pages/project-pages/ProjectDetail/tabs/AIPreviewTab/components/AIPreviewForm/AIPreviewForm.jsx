@@ -76,10 +76,13 @@ const AIPreviewForm = ({
             required
             className=""
           >
+
             <div className="flex w-full items-center justify-between gap-4 sm:gap-8">
+
               <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block whitespace-nowrap">
                 {generateFormData.prompt?.length || 0} characters
               </span>
+              
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Select
                   id="preview-modelId"
@@ -92,7 +95,9 @@ const AIPreviewForm = ({
                   <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                   <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
                 </Select>
+
                 <div className="flex items-center gap-1 ml-2">
+
                   <SecondaryButton
                     type="button"
                     variant="ghost"
@@ -102,6 +107,7 @@ const AIPreviewForm = ({
                   >
                     cancel
                   </SecondaryButton>
+
                   <Button
                     type="submit"
                     disabled={!generateFormData.prompt}
@@ -110,9 +116,13 @@ const AIPreviewForm = ({
                   >
                     Generate
                   </Button>
+                  
                 </div>
+
               </div>
+
             </div>
+
           </Textarea>
         </>
       )}

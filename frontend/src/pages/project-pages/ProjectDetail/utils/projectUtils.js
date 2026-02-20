@@ -94,12 +94,13 @@ export const calculatePermissions = (user, project) => {
     project.status !== 'Completed' &&
     project.status !== 'Cancelled'
 
-  // Phase/timeline permissions (programmer or admin)
-  const canChangePhaseStatus = isAssignedProgrammer || admin
-  const canUpdateSubSteps = isAssignedProgrammer || admin
-  const canSaveNotes = isAssignedProgrammer || admin
+  // Phase/timeline permissions: any programmer in project (single assignee or team) or admin
+  const canConfirmTimeline = isAssignedProgrammer || isInTeam || admin
+  const canChangePhaseStatus = isAssignedProgrammer || isInTeam || admin
+  const canUpdateSubSteps = isAssignedProgrammer || isInTeam || admin
+  const canSaveNotes = isAssignedProgrammer || isInTeam || admin
   const canAnswerQuestion = isClientOwner || admin
-  const canUploadAttachments = isAssignedProgrammer || isClientOwner || admin
+  const canUploadAttachments = isAssignedProgrammer || isInTeam || isClientOwner || admin
   const isProgrammerOrAdmin = isAssignedProgrammer || admin
 
   return {
@@ -120,6 +121,7 @@ export const calculatePermissions = (user, project) => {
     canSetToHolding,
     canMarkCompleted,
     canCancel,
+    canConfirmTimeline,
     canChangePhaseStatus,
     canUpdateSubSteps,
     canSaveNotes,

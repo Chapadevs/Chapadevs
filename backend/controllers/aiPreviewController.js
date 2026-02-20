@@ -1,6 +1,7 @@
 import AIPreview from '../models/AIPreview.js'
 import Project from '../models/Project.js'
 import User from '../models/User.js'
+import { logProjectActivity } from '../utils/activityLogger.js'
 import asyncHandler from 'express-async-handler'
 import vertexAIService from '../services/vertexAI/index.js'
 import costMonitor from '../middleware/costMonitoring.js'
@@ -103,6 +104,9 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       } : null,
     }
     await preview.save()
+    if (preview.projectId) {
+      await logProjectActivity(preview.projectId, req.user._id, 'preview.generated', 'preview', preview._id, {})
+    }
 
     const usagePayload = {
       combined: usage,
@@ -234,6 +238,9 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
       } : null,
     }
     await preview.save()
+    if (preview.projectId) {
+      await logProjectActivity(preview.projectId, req.user._id, 'preview.generated', 'preview', preview._id, {})
+    }
 
     if (!usage) costMonitor.trackCacheHit()
     else costMonitor.trackAPICall()

@@ -18,7 +18,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
   const permissions = project && user ? calculatePermissions(user, project) : null
   const isClientOwner = permissions?.isClientOwner ?? false
   const isAssignedProgrammer = permissions?.isAssignedProgrammer ?? false
-  const canConfirmTimeline = permissions?.isProgrammerOrAdmin ?? false
+  const canConfirmTimeline = permissions?.canConfirmTimeline ?? false
 
   const [userRequestedCreateSteps, setUserRequestedCreateSteps] = useState(false)
   const [proposal, setProposal] = useState([])

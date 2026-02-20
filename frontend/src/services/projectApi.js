@@ -26,6 +26,11 @@ export const projectAPI = {
     return response.data
   },
 
+  getActivity: async (id, params = {}) => {
+    const response = await api.get(`/projects/${id}/activity`, { params })
+    return response.data
+  },
+
   getPhaseProposal: async (projectId) => {
     const response = await api.get(`/projects/${projectId}/phases/proposal`)
     return response.data
