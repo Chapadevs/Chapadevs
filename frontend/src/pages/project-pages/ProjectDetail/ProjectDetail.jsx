@@ -11,7 +11,7 @@ import {
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
-import ProjectSettingsModal from './components/ProjectSettingsModal/ProjectSettingsModal'
+import ProjectSettingsModal from '../../../components/modal-components/ProjectSettingsModal/ProjectSettingsModal'
 import WorkspaceTab from './tabs/WorkspaceTab/Workspace'
 import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
@@ -228,6 +228,7 @@ function ProjectDetail() {
   }, [error, project, user, id, hasSettingsFromState, settingsPreview, settingsFetchAttempted, isNotAuthorized])
 
   if (loading) return <div className="flex h-screen items-center justify-center animate-pulse">Loading project...</div>
+  console.log('CURRENT ACTIVE TAB:', activeTab);
 
   if (error && !project) {
     if (showSettingsModal) {

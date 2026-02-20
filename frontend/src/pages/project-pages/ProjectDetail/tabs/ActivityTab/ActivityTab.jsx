@@ -18,6 +18,17 @@ const ACTION_LABELS = {
   'programmer.left': 'Left the project',
   'programmer.removed': 'Removed a programmer from the project',
   'programmer.confirmed_ready': "Confirmed they're ready for development",
+  'phase.notes_updated': 'Updated phase notes',
+  'phase.description_updated': 'Updated phase description',
+  'phase.deliverables_updated': 'Updated phase deliverables',
+  'phase.substep_added': 'Added sub-step',
+  'phase.substep_updated': 'Updated sub-step',
+  'phase.substep_completed': 'Completed sub-step',
+  'phase.question_answered': 'Answered question',
+  'phase.attachment_uploaded': 'Uploaded attachment',
+  'phase.attachment_deleted': 'Deleted attachment',
+  'project.updated': 'Updated project',
+  'project.deleted': 'Deleted project',
 }
 
 function formatActionLabel(action, metadata) {

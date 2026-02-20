@@ -18,7 +18,7 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
   const permissions = project && user ? calculatePermissions(user, project) : null
   const isClientOwner = permissions?.isClientOwner ?? false
   const isAssignedProgrammer = permissions?.isAssignedProgrammer ?? false
-  const canConfirmTimeline = permissions?.canConfirmTimeline ?? false
+  const canConfirmTimeline = permissions?.canConfirmTimeline ?? true
 
   const [userRequestedCreateSteps, setUserRequestedCreateSteps] = useState(false)
   const [proposal, setProposal] = useState([])
@@ -30,6 +30,11 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
   const projectId = project?._id || project?.id
   const hasNoPhases = !project?.phases || project.phases.length === 0
   const showReviewTimeline = hasNoPhases && canConfirmTimeline
+
+  console.log('showReviewTimeline', showReviewTimeline)
+  console.log('has no phases', hasNoPhases)
+  console.log('can confirm timeline', canConfirmTimeline)
+  console.log('user requested create steps', calculatePermissions(user, project))
 
   useEffect(() => {
     if (!showReviewTimeline || !userRequestedCreateSteps || !projectId) return
@@ -106,7 +111,6 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
           <Button
             type="button"
             variant="primary"
-            className="btn btn-primary timeline-create-steps-cta"
             onClick={() => setUserRequestedCreateSteps(true)}
             aria-label="Create project steps"
           >
@@ -116,7 +120,6 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
       </section>
     )
   }
-
   if (showReviewTimeline && userRequestedCreateSteps) {
     return (
       <section className="project-section project-phases">
@@ -162,7 +165,6 @@ const Timeline = ({ project, previews = [], onPhaseUpdate, onTimelineConfirmed }
             <Button
               type="button"
               variant="primary"
-              className="btn btn-primary"
               onClick={handleConfirmTimeline}
               disabled={confirming}
             >

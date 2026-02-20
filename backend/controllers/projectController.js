@@ -746,6 +746,8 @@ export const updateProject = asyncHandler(async (req, res) => {
 
   await project.save()
 
+  
+
   if (project.status !== previousStatus) {
     await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: previousStatus, toStatus: project.status })
   }

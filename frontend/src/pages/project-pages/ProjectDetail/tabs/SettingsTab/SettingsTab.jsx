@@ -59,8 +59,8 @@ const SettingsTab = ({
 
   return (
     <div className="flex flex-col gap-8">
-            {/* Recruitment / Team */}
-            {hasTeamActions && (
+        {/* Recruitment / Team */}
+        {hasTeamActions && (
         <div className="flex flex-col gap-3 pb-6 border-b border-border">
           <h4 className="text-sm font-heading font-bold uppercase text-ink">Team & recruitment</h4>
           <div className="flex flex-wrap gap-3">
