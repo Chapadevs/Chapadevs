@@ -119,6 +119,11 @@ const projectSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    /** Set by client when they have reviewed the project; programmers can then create steps and confirm ready */
+    clientMarkedReady: {
+      type: Boolean,
+      default: false,
+    },
     readyConfirmedBy: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: 'User',

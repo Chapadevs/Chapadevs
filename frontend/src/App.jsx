@@ -12,7 +12,7 @@ import ForgotPassword from './pages/authentication-pages/ForgotPassword/ForgotPa
 import ResetPassword from './pages/authentication-pages/ResetPassword/ResetPassword'
 import ConfirmPasswordChange from './pages/authentication-pages/ConfirmPasswordChange/ConfirmPasswordChange'
 import EditProfile from './pages/profile-pages/EditProfile/EditProfile'
-import UserProfileView from './pages/profile-pages/UserProfileView/UserProfileView'
+import DisplayProfile from './pages/profile-pages/DisplayProfile/DisplayProfile'
 import ChangePassword from './pages/authentication-pages/ChangePassword/ChangePassword'
 import ProjectList from './pages/project-pages/ProjectList/ProjectList'
 import CreateProject from './pages/project-pages/CreateProject/CreateProject'
@@ -48,7 +48,7 @@ function App() {
             path="/users/:id"
             element={
               <ProtectedRoute>
-                <UserProfileView />
+                <DisplayProfile />
               </ProtectedRoute>
             }
           />

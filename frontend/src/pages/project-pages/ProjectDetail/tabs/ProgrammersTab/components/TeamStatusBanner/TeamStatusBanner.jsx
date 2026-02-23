@@ -15,11 +15,18 @@ const TeamStatusBanner = ({ project }) => {
   const confirmedCount = [...teamIds].filter((id) => id && confirmedIds.has(id)).length
   const teamCount = teamIds.size
 
+  const clientMarkedReady = project.clientMarkedReady === true
   let statusText
   if (isOpen) {
-    statusText = teamCount > 0
-      ? `Team is Open - ${confirmedCount} of ${teamCount} programmer${teamCount !== 1 ? 's' : ''} ready`
-      : 'Team is Open - Programmers can still join'
+    if (!clientMarkedReady) {
+      statusText = teamCount > 0
+        ? 'Team is Open - Waiting for client to mark ready (then you can create steps and confirm ready)'
+        : 'Team is Open - Programmers can still join'
+    } else {
+      statusText = teamCount > 0
+        ? `Client has marked ready - ${confirmedCount} of ${teamCount} programmer${teamCount !== 1 ? 's' : ''} confirmed ready`
+        : 'Team is Open - Client has marked ready'
+    }
   } else {
     statusText = 'Team is Closed - Ready for development'
   }

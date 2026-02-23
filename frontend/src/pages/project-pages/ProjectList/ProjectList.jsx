@@ -95,10 +95,13 @@ const ProjectList = () => {
       ) : (
         <div className="project-list-grid">
           {projects.map((project) => (
+          <Link
+          key={project.id || project._id}
+          to={`/projects/${project.id || project._id}`}
+          className="no-underline"
+          >
+
             <Card
-              as={Link}
-              key={project.id || project._id}
-              to={`/projects/${project.id || project._id}`}
               variant="accent"
               className="project-card px-5 py-5 flex flex-col no-underline hover:shadow-lg transition-shadow duration-300"
             >
@@ -138,6 +141,7 @@ const ProjectList = () => {
                 </div>
               </div>
             </Card>
+            </Link>
           ))}
         </div>
       )}

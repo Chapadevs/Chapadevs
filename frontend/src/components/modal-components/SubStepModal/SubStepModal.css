@@ -1,0 +1,179 @@
+/* SubStepModal — content box modal for task cards (align with design system) */
+
+.substep-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.substep-modal {
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-border, #e5e7eb);
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.substep-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-border, #e5e7eb);
+}
+
+.substep-modal-title {
+  margin: 0;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary, #059669);
+  font-family: var(--font-heading), monospace;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.substep-modal-close {
+  flex-shrink: 0;
+  padding: 0.25rem;
+}
+
+.substep-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.substep-modal-section {
+  margin-bottom: 1.5rem;
+}
+
+.substep-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.substep-modal-section-title {
+  margin: 0 0 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary, #059669);
+  font-family: var(--font-heading), monospace;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink, #111827);
+}
+
+.substep-modal-section-hint {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  color: var(--ink-muted, #6b7280);
+}
+
+.substep-modal-field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.substep-modal-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink, #111827);
+}
+
+.substep-modal-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-border, #e5e7eb);
+  border-radius: 0;
+  font-size: 0.875rem;
+  background: var(--bg-surface, #ffffff);
+}
+
+.substep-modal-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.substep-modal-checkbox-label input {
+  width: 18px;
+  height: 18px;
+}
+
+.substep-modal-readonly {
+  font-size: 0.875rem;
+}
+
+.substep-modal-readonly p {
+  margin: 0.5rem 0;
+}
+
+.substep-modal-assignee {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-border, #e5e7eb);
+  font-size: 0.875rem;
+}
+
+.substep-modal-assignee-label {
+  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--ink, #111827);
+}
+
+.substep-modal-assignee-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary, #059669);
+  text-decoration: none;
+  border-radius: 0;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.substep-modal-assignee-link:hover {
+  color: var(--primary, #059669);
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+.substep-modal-assignee-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.substep-modal-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.substep-modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-border, #e5e7eb);
+  flex-wrap: wrap;
+}
+
+.substep-modal-footer .btn {
+  padding: 0.6rem 1.25rem;
+}

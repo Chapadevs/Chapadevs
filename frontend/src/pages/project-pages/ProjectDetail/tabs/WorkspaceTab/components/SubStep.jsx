@@ -1,104 +1,52 @@
-import { useState } from 'react'
-import { Button, Input, Textarea } from '../../../../../../components/ui-components'
+import { Card } from '../../../../../../components/ui-components'
 import './SubStep.css'
 
-const SubStep = ({ subStep, canEdit, onUpdate }) => {
-  const [isEditing, setIsEditing] = useState(false)
-  const [title, setTitle] = useState(subStep.title || '')
-  const [notes, setNotes] = useState(subStep.notes || '')
-  const [completed, setCompleted] = useState(subStep.completed || false)
+const STATUS_LABELS = {
+  pending: 'Pending',
+  waiting_client: 'Waiting on client',
+  in_progress: 'In progress',
+  completed: 'Completed',
+}
 
-  const handleSave = () => {
-    if (onUpdate) {
-      onUpdate({
-        title,
-        notes,
-        completed,
-        order: subStep.order,
-      })
-    }
-    setIsEditing(false)
-  }
+/**
+ * Task card: content box summary. Click to open SubStepModal for full interaction.
+ */
+const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
 
-  const handleToggleComplete = () => {
-    if (canEdit && onUpdate) {
-      const newCompleted = !completed
-      setCompleted(newCompleted)
-      onUpdate({
-        ...subStep,
-        completed: newCompleted,
-      })
-    }
-  }
-
-  if (isEditing && canEdit) {
-    return (
-      <div className="substep-item substep-editing">
-        <Input
-          type="text"
-          className="substep-title-input"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Sub-step title"
-        />
-        <Textarea
-          className="substep-notes-input"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notes (optional)"
-          rows={2}
-        />
-        <div className="substep-actions">
-          <Button type="button" variant="primary" size="sm" className="btn btn-primary btn-sm" onClick={handleSave}>
-            Save
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              setIsEditing(false)
-              setTitle(subStep.title || '')
-              setNotes(subStep.notes || '')
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
-      </div>
-    )
-  }
+  const status = subStep.status ?? (subStep.completed ? 'completed' : 'pending')
+  const cardClasses = cardVariant ? `substep-card phase-cycle-card-style ${cardVariant}` : 'substep-card phase-cycle-card-style'
+  const notesPreview = subStep.notes ? (subStep.notes.slice(0, 80) + (subStep.notes.length > 80 ? '…' : '')) : null
 
   return (
-    <div className={`substep-item ${completed ? 'completed' : ''}`}>
-      <div className="substep-header">
-        <label className="substep-checkbox-label">
-          <input
-            type="checkbox"
-            checked={completed}
-            onChange={handleToggleComplete}
-            disabled={!canEdit}
-            className="substep-checkbox"
-          />
-          <span className="substep-title">{subStep.title || 'Untitled sub-step'}</span>
-        </label>
-        {canEdit && (
-          <Button
-            type="button"
-            variant="ghost"
-            className="substep-edit-btn"
-            onClick={() => setIsEditing(true)}
-            aria-label="Edit sub-step"
-          >
-            ✎
-          </Button>
+    <Card
+      variant="default"
+      className={"p-5"}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen?.()
+        }
+      }}
+      aria-label={`Open task: ${subStep.title || 'Untitled'}. Status: ${STATUS_LABELS[status] || status}`}
+    >
+      <div className="substep-card-title-row">
+        <span className="substep-card-title-text">{subStep.title || 'Untitled sub-step'}</span>
+      </div>
+        <span className={`substep-status-badge substep-status-badge--${status.replace('_', '-')}`} aria-hidden>
+          {STATUS_LABELS[status] || status}
+        </span>
+      <div className="substep-card-body">
+        {notesPreview ? (
+          <p className="substep-notes-preview">{notesPreview}</p>
+        ) : (
+          <p className="substep-notes-preview substep-notes-preview--hint">Click to open and edit</p>
         )}
       </div>
-      {subStep.notes && (
-        <div className="substep-notes">{subStep.notes}</div>
-      )}
-    </div>
+      {children}
+    </Card>
   )
 }
 

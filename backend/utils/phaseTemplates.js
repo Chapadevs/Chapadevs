@@ -3,7 +3,7 @@
  * Each item: { title, description?, order }
  */
 const FULL_TRACK = [
-  { title: 'Discovery & Planning', description: 'Requirements, scope, and timeline', order: 1 },
+  { title: 'Information Gathering & Requirements', description: 'Requirements, scope, and timeline', order: 1 },
   { title: 'Design', description: 'Wireframes, UI/UX, and design approval', order: 2 },
   { title: 'Development', description: 'Core build and integration', order: 3 },
   { title: 'Testing & QA', description: 'Quality assurance and fixes', order: 4 },
@@ -11,13 +11,13 @@ const FULL_TRACK = [
 ]
 
 const SHORT_TRACK = [
-  { title: 'Planning', description: 'Scope and approach', order: 1 },
+  { title: 'Information Gathering & Requirements', description: 'Scope and approach', order: 1 },
   { title: 'Implementation', description: 'Build and updates', order: 2 },
   { title: 'Review & Launch', description: 'QA and delivery', order: 3 },
 ]
 
 const DEFAULT_TRACK = [
-  { title: 'Planning', description: 'Scope, requirements, and approach', order: 1 },
+  { title: 'Information Gathering & Requirements', description: 'Scope, requirements, and approach', order: 1 },
   { title: 'Design', description: 'Wireframes, UI/UX, and design approval', order: 2 },
   { title: 'Development', description: 'Core build and integration', order: 3 },
   { title: 'Testing', description: 'Quality assurance and fixes', order: 4 },

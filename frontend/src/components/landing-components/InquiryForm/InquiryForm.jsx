@@ -15,7 +15,7 @@ const InquiryForm = () => {
     'Contact Info',
     'Project Details',
     'Features & Design',
-    'Timeline & Budget',
+    'Workspace & Budget',
     'Current Website',
     'Additional Details',
     'Review & Submit'
@@ -248,7 +248,7 @@ const InquiryForm = () => {
     { label: 'Required Features', key: 'features' },
     { label: 'Design Styles', key: 'styles' },
     { label: 'Budget', key: 'budget' },
-    { label: 'Timeline', key: 'timeline' },
+    { label: 'Workspace', key: 'timeline' },
     { label: 'Has Website', key: 'has_website' },
     { label: 'Website URL', key: 'website_url' },
     { label: 'Current Host', key: 'current_host' },
@@ -482,10 +482,10 @@ const InquiryForm = () => {
               </div>
             )}
 
-            {/* Step 4: Timeline & Budget */}
+            {/* Step 4: Workspace & Budget */}
             {step === 3 && (
               <div className="form-step">
-                <SectionTitle className="step-title mb-4">Timeline & Budget</SectionTitle>
+                <SectionTitle className="step-title mb-4">Workspace & Budget</SectionTitle>
                 <Select
                   id="budget"
                   label="Project Budget Range"

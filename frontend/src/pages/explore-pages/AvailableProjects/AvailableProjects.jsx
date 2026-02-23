@@ -160,7 +160,7 @@ const AvailableProjects = () => {
                 )}
                 {project.timeline && (
                   <div className="meta-item">
-                    <strong>Timeline:</strong> {project.timeline}
+                    <strong>Workspace:</strong> {project.timeline}
                   </div>
                 )}
               </div>

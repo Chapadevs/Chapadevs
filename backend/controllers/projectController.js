@@ -132,7 +132,31 @@ export const getProjectById = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  const phases = await ProjectPhase.find({ projectId: project._id })
+  let phases = await ProjectPhase.find({ projectId: project._id })
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .sort({ order: 1 })
+    .lean()
+
+  for (const phase of phases) {
+    if (!phase.subSteps || phase.subSteps.length === 0) {
+      const doc = await ProjectPhase.findById(phase._id)
+
+      if (doc && (!doc.subSteps || doc.subSteps.length === 0)) {
+        doc.subSteps = [{
+          title: doc.title,
+          completed: false,
+          order: 1,
+          notes: '',
+          status: 'pending',
+        }]
+
+        await doc.save()
+      }
+    }
+  }
+
+  phases = await ProjectPhase.find({ projectId: project._id })
+    .populate('subSteps.assignedTo', 'name email avatar')
     .sort({ order: 1 })
     .lean()
 
@@ -225,11 +249,30 @@ export const confirmPhases = asyncHandler(async (req, res) => {
         clientQuestions = getDefaultQuestionsForPhase(title)
       }
 
-      const subSteps = deliverables.map((deliverable, index) => ({
+      let subSteps = deliverables.map((deliverable, index) => ({
         title: deliverable,
         completed: false,
         order: index + 1,
         notes: '',
+        status: 'pending',
+      }))
+
+      if (subSteps.length === 0) {
+        subSteps = [
+          {
+            title: title,
+            completed: false,
+            order: 1,
+            notes: '',
+            status: 'pending',
+          },
+        ]
+      }
+
+      const numSubSteps = Math.max(1, subSteps.length)
+      const clientQuestionsWithSubStep = clientQuestions.map((q, i) => ({
+        ...q,
+        subStepOrder: (i % numSubSteps) + 1,
       }))
 
       return {
@@ -242,7 +285,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
         estimatedDurationDays,
         requiresClientApproval: requiresApproval,
         clientApproved: false,
-        clientQuestions,
+        clientQuestions: clientQuestionsWithSubStep,
         subSteps,
         notes: '',
         attachments: [],
@@ -331,7 +374,38 @@ export const updatePhase = asyncHandler(async (req, res) => {
   // Only programmer/admin can update these fields
   if (isProgrammer || req.user.role === 'admin') {
     if (req.body.subSteps !== undefined) {
-      phase.subSteps = req.body.subSteps
+      const existingSubSteps = phase.subSteps || []
+      phase.subSteps = req.body.subSteps.map((step) => {
+        const normalized = { ...step }
+        const existing = existingSubSteps.find(
+          (s) => (s._id || s.id)?.toString() === (step._id || step.id)?.toString()
+        )
+        const isNew = !existing
+        const changed =
+          isNew ||
+          existing.title !== step.title ||
+          existing.notes !== step.notes ||
+          existing.status !== step.status ||
+          existing.order !== step.order ||
+          (existing.completed !== step.completed && step.completed !== undefined)
+        if (normalized.assignedTo != null) {
+          normalized.assignedTo =
+            typeof normalized.assignedTo === 'object' &&
+            normalized.assignedTo !== null &&
+            normalized.assignedTo._id != null
+              ? normalized.assignedTo._id
+              : normalized.assignedTo
+        } else if (existing?.assignedTo != null) {
+          normalized.assignedTo =
+            typeof existing.assignedTo === 'object' && existing.assignedTo._id != null
+              ? existing.assignedTo._id
+              : existing.assignedTo
+        }
+        if (changed) {
+          normalized.assignedTo = req.user._id
+        }
+        return normalized
+      })
     }
     if (req.body.notes !== undefined) {
       phase.notes = req.body.notes
@@ -376,7 +450,9 @@ export const updatePhase = asyncHandler(async (req, res) => {
     await logProjectActivity(projectId, req.user._id, action, 'phase', phase._id, { phaseTitle: phase.title, fromStatus: previousStatus, toStatus: phase.status })
   }
 
-  const updated = await ProjectPhase.findById(phase._id).lean()
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .lean()
   res.json(updated)
 })
 
@@ -406,7 +482,9 @@ export const updateSubStep = asyncHandler(async (req, res) => {
     throw new Error('Phase not found')
   }
 
-  const { subStepId, title, completed, notes, order } = req.body
+  const { subStepId, title, completed, notes, order, status } = req.body
+
+  const validSubStepStatuses = ['pending', 'waiting_client', 'in_progress', 'completed']
 
   if (!phase.subSteps) {
     phase.subSteps = []
@@ -423,32 +501,46 @@ export const updateSubStep = asyncHandler(async (req, res) => {
     if (completed !== undefined) phase.subSteps[subStepIndex].completed = completed
     if (notes !== undefined) phase.subSteps[subStepIndex].notes = notes
     if (order !== undefined) phase.subSteps[subStepIndex].order = order
+    if (status !== undefined) {
+      if (!validSubStepStatuses.includes(status)) {
+        res.status(400)
+        throw new Error(`Invalid sub-step status. Must be one of: ${validSubStepStatuses.join(', ')}`)
+      }
+      phase.subSteps[subStepIndex].status = status
+      phase.subSteps[subStepIndex].completed = status === 'completed'
+    }
+    phase.subSteps[subStepIndex].assignedTo = req.user._id
   } else {
     // Add new sub-step
     const maxOrder = phase.subSteps.length > 0
       ? Math.max(...phase.subSteps.map((s) => s.order || 0))
       : 0
+    const newStatus = status && validSubStepStatuses.includes(status) ? status : 'pending'
     phase.subSteps.push({
       title: title || 'New sub-step',
-      completed: completed || false,
+      completed: completed ?? (newStatus === 'completed'),
       notes: notes || '',
       order: order !== undefined ? order : maxOrder + 1,
+      status: newStatus,
+      assignedTo: req.user._id,
     })
   }
 
   await phase.save()
-  const updated = await ProjectPhase.findById(phase._id).lean()
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .lean()
   res.json(updated)
 })
 
-// @desc    Answer a client question
+// @desc    Answer a client question (optionally scoped to a sub-step so each task has its own answers)
 // @route   POST /api/projects/:id/phases/:phaseId/questions/:questionId/answer
 // @access  Private (client, assigned programmer, or admin)
 export const answerQuestion = asyncHandler(async (req, res) => {
   const projectId = req.params.id
   const phaseId = req.params.phaseId
   const questionId = req.params.questionId
-  const { answer } = req.body
+  const { answer, subStepOrder } = req.body
 
   const project = await Project.findById(projectId).lean()
   if (!project) {
@@ -458,7 +550,9 @@ export const answerQuestion = asyncHandler(async (req, res) => {
 
   const isClient = project.clientId?.toString() === req.user._id.toString()
   const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const isProgrammer = assignedId && req.user._id.toString() === assignedId
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
 
   if (!isClient && !isProgrammer && req.user.role !== 'admin') {
     res.status(403)
@@ -485,10 +579,41 @@ export const answerQuestion = asyncHandler(async (req, res) => {
     throw new Error('Question not found')
   }
 
-  phase.clientQuestions[questionIndex].answer = answer || ''
+  const questionOrder = phase.clientQuestions[questionIndex].order
+
+  if (subStepOrder != null && Number.isInteger(Number(subStepOrder))) {
+    const subStepIndex = phase.subSteps.findIndex(
+      (s) => s.order === Number(subStepOrder)
+    )
+    if (subStepIndex === -1) {
+      res.status(404)
+      throw new Error('Sub-step not found')
+    }
+    if (!phase.subSteps[subStepIndex].questionAnswers) {
+      phase.subSteps[subStepIndex].questionAnswers = []
+    }
+    const qa = phase.subSteps[subStepIndex].questionAnswers.find(
+      (a) => a.order === questionOrder
+    )
+    if (qa) {
+      qa.answer = answer || ''
+    } else {
+      phase.subSteps[subStepIndex].questionAnswers.push({
+        order: questionOrder,
+        answer: answer || '',
+      })
+    }
+    if (isProgrammer || req.user.role === 'admin') {
+      phase.subSteps[subStepIndex].assignedTo = req.user._id
+    }
+  } else {
+    phase.clientQuestions[questionIndex].answer = answer || ''
+  }
 
   await phase.save()
-  const updated = await ProjectPhase.findById(phase._id).lean()
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .lean()
   res.json(updated)
 })
 
@@ -759,7 +884,7 @@ export const updateProject = asyncHandler(async (req, res) => {
   res.json(populated)
 })
 
-// @desc    Confirm ready (programmer marks themselves ready for dev)
+// @desc    Confirm ready (programmer marks themselves ready) - only after client has marked ready
 // @route   PUT /api/projects/:id/confirm-ready
 // @access  Private (programmer in team)
 export const confirmReady = asyncHandler(async (req, res) => {
@@ -785,6 +910,11 @@ export const confirmReady = asyncHandler(async (req, res) => {
     throw new Error('Project must be open for recruitment to confirm ready')
   }
 
+  if (!project.clientMarkedReady) {
+    res.status(400)
+    throw new Error('Client must mark the project ready first before programmers can confirm ready')
+  }
+
   if (project.teamClosed) {
     res.status(400)
     throw new Error('Project team is already closed')
@@ -795,6 +925,16 @@ export const confirmReady = asyncHandler(async (req, res) => {
   }
   if (!project.readyConfirmedBy.some(id => id.toString() === userIdStr)) {
     project.readyConfirmedBy.push(req.user._id)
+    const teamIds = new Set()
+    if (project.assignedProgrammerId) teamIds.add(project.assignedProgrammerId.toString())
+    ;(project.assignedProgrammerIds || []).forEach((p) => teamIds.add((p._id || p).toString()))
+    const confirmedIds = new Set(project.readyConfirmedBy.map((id) => id.toString()))
+    const allConfirmed = [...teamIds].every((id) => confirmedIds.has(id))
+    if (allConfirmed) {
+      project.teamClosed = true
+      project.status = 'Ready'
+      await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
+    }
     await project.save()
     await logProjectActivity(project._id, req.user._id, 'programmer.confirmed_ready', 'project', project._id, {})
   }
@@ -808,9 +948,9 @@ export const confirmReady = asyncHandler(async (req, res) => {
   res.json(populated)
 })
 
-// @desc    Mark project ready (close team, ready for dev) - client only, when Open + has programmers + all team confirmed
+// @desc    Client marks ready for timeline (first step). Programmers can then create steps and confirm ready; when all confirm, status becomes Ready.
 // @route   PUT /api/projects/:id/mark-ready
-// @access  Private
+// @access  Private (client only)
 export const markProjectReady = asyncHandler(async (req, res) => {
   const project = await Project.findById(req.params.id)
 
@@ -819,7 +959,6 @@ export const markProjectReady = asyncHandler(async (req, res) => {
     throw new Error('Project not found')
   }
 
-  const isClient = req.user.role === 'user' || req.user.role === 'client'
   const isAdmin = req.user.role === 'admin'
   const isClientOwner = project.clientId.toString() === req.user._id.toString()
 
@@ -840,26 +979,24 @@ export const markProjectReady = asyncHandler(async (req, res) => {
     throw new Error('At least one programmer must have joined before marking as ready')
   }
 
-  // Require all team members to have confirmed ready
+  // Client marks "I've reviewed - ready for programmers to create steps". Do not require programmers to have confirmed yet.
+  if (!project.clientMarkedReady) {
+    project.clientMarkedReady = true
+    await project.save()
+    await logProjectActivity(project._id, req.user._id, 'project.client_marked_ready', 'project', project._id, {})
+  }
+  // If client already marked ready and all programmers have confirmed, transition to Ready (e.g. client clicks again or late join)
   const teamIds = new Set()
-  if (project.assignedProgrammerId) {
-    teamIds.add(project.assignedProgrammerId.toString())
-  }
-  ;(project.assignedProgrammerIds || []).forEach((p) => {
-    teamIds.add((p._id || p).toString())
-  })
+  if (project.assignedProgrammerId) teamIds.add(project.assignedProgrammerId.toString())
+  ;(project.assignedProgrammerIds || []).forEach((p) => teamIds.add((p._id || p).toString()))
   const confirmedIds = new Set((project.readyConfirmedBy || []).map((id) => id.toString()))
-  const allConfirmed = [...teamIds].every((id) => confirmedIds.has(id))
-  if (!allConfirmed) {
-    res.status(400)
-    throw new Error('All team members must mark themselves as ready before the project can be marked ready')
+  const allConfirmed = teamIds.size > 0 && [...teamIds].every((id) => confirmedIds.has(id))
+  if (project.clientMarkedReady && allConfirmed && !project.teamClosed) {
+    project.teamClosed = true
+    project.status = 'Ready'
+    await project.save()
+    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
   }
-
-  project.teamClosed = true
-  project.status = 'Ready'
-  await project.save()
-
-  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')

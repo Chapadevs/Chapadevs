@@ -104,8 +104,6 @@ const CommentsTab = ({ project, user }) => {
               const senderName = sender.name || sender.email || 'Unknown'
               const senderId = sender._id || sender
 
-              console.log(sender)
-              
               const handleSenderClick = (e) => {
                 e.preventDefault()
                 if (senderId) navigate(`/users/${senderId}`)

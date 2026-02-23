@@ -36,7 +36,6 @@ export const useUserStatuses = (project) => {
       
       if (userIds.length > 0) {
         const statuses = await userAPI.getUserStatuses(userIds)
-        console.log('Loaded user statuses:', statuses) // Debug log
         setUserStatuses(statuses)
       }
     } catch (error) {

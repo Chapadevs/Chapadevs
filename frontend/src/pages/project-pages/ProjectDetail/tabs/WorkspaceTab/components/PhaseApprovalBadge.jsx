@@ -1,6 +1,6 @@
 /**
  * Shared approval badge for timeline step, card, and phase modal.
- * Renders nothing when the phase does not require approval.
+ * Uses same style as timeline-pending-approvals-link (ghost button).
  */
 const PhaseApprovalBadge = ({
   requiresApproval,
@@ -9,10 +9,12 @@ const PhaseApprovalBadge = ({
 }) => {
   if (!requiresApproval) return null
 
+  const badgeBaseClass = 'approval-badge approval-badge--ghost-style inline-flex items-center justify-center font-button font-extrabold rounded-none uppercase tracking-wider border-2 px-3 py-1.5 text-sm min-h-[28px]'
+
   if (approved) {
     if (variant === 'modal') {
       return (
-        <span className="approval-badge approved">
+        <span className={`${badgeBaseClass} approval-badge--approved bg-primary/10 text-primary border-primary`}>
           ✓ Approved
         </span>
       )
@@ -30,7 +32,7 @@ const PhaseApprovalBadge = ({
 
   if (variant === 'card') {
     return (
-      <span className="project-phase-card-approval-badge" title="Requires client approval">
+      <span className={`project-phase-card-approval-badge ${badgeBaseClass} approval-badge--pending`} title="Requires client approval">
         ⚠ Pending approval
       </span>
     )
@@ -38,7 +40,7 @@ const PhaseApprovalBadge = ({
 
   if (variant === 'modal') {
     return (
-      <span className="approval-badge pending">
+      <span className={`${badgeBaseClass} approval-badge--pending bg-transparent text-primary border-transparent`}>
         ⚠ Pending Approval
       </span>
     )

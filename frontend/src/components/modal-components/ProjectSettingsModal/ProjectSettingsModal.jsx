@@ -88,7 +88,7 @@ function ProjectSettingsModal({ basicInfo = {}, onClose }) {
             )}
             {timeline && (
               <div className="project-settings-modal-info-item">
-                <strong>Timeline:</strong> {timeline}
+                <strong>Workspace:</strong> {timeline}
               </div>
             )}
           </div>

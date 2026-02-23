@@ -16,8 +16,8 @@ import WorkspaceTab from './tabs/WorkspaceTab/Workspace'
 import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
 import { useProjectNotifications } from './hooks/useProjectNotifications'
-import { calculatePermissions } from './utils/projectUtils'
-import { getStatusBadgeClass } from './utils/projectUtils'
+import { calculatePermissions } from './utils/userPermissionsUtils'
+import { getStatusBadgeClass } from './utils/userPermissionsUtils'
 import ProjectSidebar from './components/ProjectSidebar/ProjectSidebar'
 import SettingsTab from './tabs/SettingsTab/SettingsTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
@@ -50,7 +50,7 @@ function ProjectDetail() {
     hasSettingsNotifications,
     hasAIPreviewNotifications,
     hasProgrammersNotifications,
-    hasTimelineNotifications,
+    hasWorkspaceNotifications,
     hasActivityNotifications,
     hasCommentsNotifications,
     markTabAsRead,
@@ -228,7 +228,6 @@ function ProjectDetail() {
   }, [error, project, user, id, hasSettingsFromState, settingsPreview, settingsFetchAttempted, isNotAuthorized])
 
   if (loading) return <div className="flex h-screen items-center justify-center animate-pulse">Loading project...</div>
-  console.log('CURRENT ACTIVE TAB:', activeTab);
 
   if (error && !project) {
     if (showSettingsModal) {
@@ -270,14 +269,14 @@ function ProjectDetail() {
             hasSettingsNotifications={hasSettingsNotifications}
             hasAIPreviewNotifications={hasAIPreviewNotifications}
             hasProgrammersNotifications={hasProgrammersNotifications}
-            hasTimelineNotifications={hasTimelineNotifications}
+            hasWorkspaceNotifications={hasWorkspaceNotifications}
             hasActivityNotifications={hasActivityNotifications}
             hasCommentsNotifications={hasCommentsNotifications}
           />
 
           {/* Increased padding-top, reduced top proximity, fully center main content */}
-          <SidebarInset className="flex-1 overflow-y-auto px-4 py-12 sm:px-8 lg:px-16">
-            <div className="max-w-3xl mx-auto w-full flex flex-col min-h-[calc(100vh-112px)] justify-start">
+          <SidebarInset className="p-8">
+            <div className="mx-auto max-w-7xl w-full justify-start">
               <div className="mb-12 flex items-center gap-4">
                 {/* Mobile/collapsed back trigger button */}
                 <Button 
@@ -328,7 +327,7 @@ function ProjectDetail() {
                     project={project} 
                     previews={previews}
                     onPhaseUpdate={handlePhaseUpdate}
-                    onTimelineConfirmed={loadProject}
+                    onWorkspaceConfirmed={loadProject}
                   />
                 )}
                 {activeTab === 'activity' && (

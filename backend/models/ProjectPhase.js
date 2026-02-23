@@ -53,10 +53,29 @@ const projectPhaseSchema = new mongoose.Schema(
     subSteps: {
       type: [
         {
+          assignedTo: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+          },    
           title: { type: String, required: true },
           completed: { type: Boolean, default: false },
           order: { type: Number, required: true },
           notes: { type: String, default: '' },
+          status: {
+            type: String,
+            enum: ['pending', 'waiting_client', 'in_progress', 'completed'],
+            default: 'pending',
+          },
+          questionAnswers: {
+            type: [
+              {
+                order: { type: Number, required: true },
+                answer: { type: String, default: '' },
+              },
+            ],
+            default: [],
+          },
         },
       ],
       default: [],
@@ -68,6 +87,7 @@ const projectPhaseSchema = new mongoose.Schema(
           answer: { type: String, default: '' },
           required: { type: Boolean, default: false },
           order: { type: Number, required: true },
+          subStepOrder: { type: Number, default: null },
         },
       ],
       default: [],

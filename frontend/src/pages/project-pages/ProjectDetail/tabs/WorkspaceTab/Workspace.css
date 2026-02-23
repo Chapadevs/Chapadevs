@@ -64,9 +64,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.75rem 1rem;
   margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
 }
 
 .timeline-pending-approvals-list {
@@ -86,271 +84,132 @@
   padding: 0.25rem 0.5rem;
 }
 
-.project-phases-linear {
+/* Project Cycle – single horizontal track */
+.workspace-cycle {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-/* Top progress bar (loading-style) */
-.project-phases-progress-bar {
+.workspace-cycle-progress-bar {
   height: 8px;
   overflow: hidden;
+  border-radius: 0;
 }
 
-.project-phases-progress-fill {
+.workspace-cycle-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--primary-green, #059669), #34d399);
   transition: width 0.35s ease;
 }
 
-/* Scrollable steps with arrows */
-.project-phases-scroll-outer {
-  display: flex;
-  align-items: stretch;
-  gap: 32px;
-  width: 100%;
+.workspace-cycle-progress-label {
+  font-size: 0.875rem;
+  color: var(--ink-muted, #6b7280);
   margin-top: 0.25rem;
 }
 
-.project-phases-scroll-btn {
-  flex-shrink: 0;
-  width: 28px;
-  min-width: 28px;
-  height: 100%;
-  min-height: 44px;
-  padding: 0;
+.workspace-cycle-tabs {
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.project-phases-scroll {
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.project-phases-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.project-phases-scroll-inner {
-  --phases-step-width: 90;
-  --phases-count: 5;
-  width: max(100%, calc(var(--phases-count) * var(--phases-step-width) * 1px));
-  min-width: 100%;
-  box-sizing: border-box;
-  padding-left: 56px;
-  padding-right: 56px;
-}
-
-/* Horizontal stepper track – single line with positioned nodes */
-.project-phases-track {
-  position: relative;
-  width: 100%;
-  height: 40px;
-  --steps: 5;
-}
-
-.project-phases-track-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 4px;
-  z-index: 0;
-}
-
-.project-phases-track-fill {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 4px;
-  z-index: 1;
-  transition: width 0.35s ease;
-}
-
-.project-phase-step {
-  position: absolute;
-  --step-i: 0;
-  left: calc(var(--step-i) * 100% / max(var(--steps) - 1, 1));
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-}
-
-.project-phases-track[style*="--steps: 1"] .project-phase-step {
-  left: 50%;
-}
-
-.project-phase-step-node {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.project-phase-step-clickable:hover .project-phase-step-node {
-  transform: scale(1.08);
-}
-
-/* Labels row under the track – aligned with nodes */
-.project-phases-labels {
-  position: relative;
-  width: 100%;
-  min-height: 48px;
-  margin-top: 0.35rem;
-  --steps: 5;
-}
-
-.project-phase-label-wrap {
-  position: absolute;
-  left: calc(var(--step-i) * 100% / max(var(--steps) - 1, 1));
-  top: 0;
-  transform: translateX(-50%);
-  min-width: 0;
-  width: 100px;
-  max-width: 22vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.2rem;
-  padding: 0 4px;
-  text-align: center;
-  --step-i: 0;
-}
-
-.project-phases-labels[style*="--steps: 1"] .project-phase-label-wrap {
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.project-phase-label-title {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.project-phase-label-actions {
-  display: flex;
-  gap: 0.4rem;
   flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 0.2rem;
-  min-width: 0;
-}
-
-.project-phase-label-actions .btn {
-  flex-shrink: 0;
-  min-height: 26px;
-  min-width: 3.5rem;
-  padding: 0.25rem 0.5rem;
-  white-space: nowrap;
-}
-
-/* Phase step progress indicator – hidden */
-.project-phase-step-progress {
-  display: none;
-}
-
-.project-phase-step-approval-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
-
-.project-phase-label-duration {
-  display: block;
-  margin-top: 0.25rem;
-}
-
-/* AI Preview Context Section */
-.timeline-ai-preview-context {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding: 0.5rem 0.75rem;
-}
-
-.preview-count-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.65rem;
-}
-
-.timeline-preview-link {
-  padding: 0.25rem 0;
-}
-
-/* Phase cards grid */
-.project-phases-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-}
-
-.project-phase-card {
-  padding: 1rem;
-  text-align: left;
-}
-
-.project-phase-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
-.project-phase-card-status {
-  padding: 0.2rem 0.4rem;
+.workspace-cycle-tab {
+  font-weight: 600;
+  min-height: 36px;
 }
 
-.project-phase-card-title {
-  margin: 0 0 0.5rem 0;
+.workspace-cycle-tab-active {
 }
 
-.project-phase-card-progress {
-  margin-top: 0.75rem;
+.workspace-cycle-tab-completed {
+  opacity: 0.9;
 }
 
-.project-phase-card-progress-bar {
+.workspace-cycle-tab-in-progress {
+  font-weight: 700;
+}
+
+.workspace-cycle-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.workspace-cycle-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  min-width: 220px;
+  flex: 1;
+  max-width: 320px;
+  border: 1px solid var(--border-border, #e5e7eb);
+  border-radius: 0;
+  background: var(--bg-surface, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.workspace-cycle-step-clickable {
+  cursor: pointer;
+}
+
+.workspace-cycle-step-clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.workspace-cycle-step-node {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border-border, #e5e7eb);
+  border-radius: 0;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.workspace-cycle-step-completed .workspace-cycle-step-node {
+  background: var(--primary-green, #059669);
+  border-color: var(--primary-green, #059669);
+  color: #fff;
+}
+
+.workspace-cycle-step-in-progress .workspace-cycle-step-node {
+  border-color: var(--primary-green, #059669);
+  color: var(--primary-green, #059669);
+}
+
+.workspace-cycle-step-pending .workspace-cycle-step-node {
+  color: var(--ink-muted, #6b7280);
+}
+
+.workspace-cycle-step-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.workspace-cycle-step-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.workspace-cycle-step-tasks {
+  margin-top: 0.25rem;
+}
+
+.workspace-cycle-step-progress-bar {
   height: 4px;
   overflow: hidden;
-  margin-bottom: 0.25rem;
-}
-
-.project-phase-card-progress-fill {
-  height: 100%;
-  transition: width 0.35s ease;
-}
-
-.project-phase-card-duration {
-  height: 22px;
-  margin-top: 34px;
-}
-
-.project-phase-card-approval-badge {
-  display: inline-block;
-  margin-top: 0.5rem;
+  border-radius: 0;
 }

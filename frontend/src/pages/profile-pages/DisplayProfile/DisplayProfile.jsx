@@ -5,9 +5,9 @@ import { userAPI } from '../../../services/api'
 import { isClient, isProgrammer } from '../../../utils/roles'
 import Header from '../../../components/layout-components/Header/Header'
 import { Card, SectionTitle, Tag, Alert, Avatar, AvatarImage, AvatarFallback } from '../../../components/ui-components'
-import './UserProfileView.css'
+import './DisplayProfile.css'
 
-const UserProfileView = () => {
+const DisplayProfileModal = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user: currentUser } = useAuth() // Note: variable is named currentUser
@@ -76,7 +76,7 @@ const UserProfileView = () => {
         <div className="profile-view-container">
           <Card variant="outline" className="profile-card p-8">
             <Alert variant="error">{error || 'User not found'}</Alert>
-            <Link to="/" className="profile-back">← Go back</Link>
+            <Link to={-1} className="profile-back">← Go back</Link>
           </Card>
         </div>
       </>
@@ -91,7 +91,7 @@ const UserProfileView = () => {
       <Header />
       <div className="profile-view-container">
         <Card variant="outline" className="profile-card p-8">
-          <Link to="/" className="profile-back">← Go back</Link>
+          <Link to={-1} className="profile-back">← Go back</Link>
 
           <div className="profile-header-with-avatar">
             <div className="profile-avatar-container">
@@ -191,4 +191,4 @@ const UserProfileView = () => {
   )
 }
 
-export default UserProfileView
+export default DisplayProfileModal

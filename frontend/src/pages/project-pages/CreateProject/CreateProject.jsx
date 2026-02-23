@@ -66,7 +66,7 @@ const CreateProject = () => {
 
   const timelineWeeks = Math.max(1, Math.min(52, parseInt(formData.timeline, 10) || 4))
 
-  const handleTimelineChange = (delta) => {
+  const handleWorkspaceChange = (delta) => {
     const next = Math.max(1, Math.min(52, timelineWeeks + delta))
     setFormData((prev) => ({ ...prev, timeline: String(next) }))
   }
@@ -163,12 +163,12 @@ const CreateProject = () => {
             <Input type="text" id="budget" label="Budget" name="budget" value={formData.budget} onChange={handleChange} placeholder="e.g., $5,000 - $10,000" wrapperClassName="form-group" />
 
             <div className="form-group form-group--timeline">
-              <label htmlFor="timeline">Timeline</label>
+              <label htmlFor="timeline">Workspace</label>
               <div className="timeline-stepper" role="group" aria-label="Project timeline in weeks">
                 <button
                   type="button"
                   className="timeline-stepper-btn"
-                  onClick={() => handleTimelineChange(-1)}
+                  onClick={() => handleWorkspaceChange(-1)}
                   aria-label="Decrease weeks"
                   disabled={timelineWeeks <= 1}
                 >
@@ -180,7 +180,7 @@ const CreateProject = () => {
                 <button
                   type="button"
                   className="timeline-stepper-btn"
-                  onClick={() => handleTimelineChange(1)}
+                  onClick={() => handleWorkspaceChange(1)}
                   aria-label="Increase weeks"
                   disabled={timelineWeeks >= 52}
                 >

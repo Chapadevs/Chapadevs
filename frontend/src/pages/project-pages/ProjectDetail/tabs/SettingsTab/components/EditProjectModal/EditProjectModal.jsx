@@ -207,7 +207,7 @@ export default function EditProjectModal({ project, onSave, onClose }) {
                 placeholder="e.g. $5,000"
               />
               <Input
-                label="Timeline"
+                label="Workspace"
                 id="edit-timeline"
                 value={form.timeline}
                 onChange={(e) => handleChange('timeline', e.target.value)}

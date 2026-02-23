@@ -41,8 +41,6 @@ export const useProjectChat = (projectId) => {
       wsRef.current = ws
 
       ws.onopen = () => {
-        console.log('✅ Chat WebSocket connected')
-        // Join project room
         if (projectId) {
           ws.send(JSON.stringify({
             type: 'join_project',
@@ -65,8 +63,6 @@ export const useProjectChat = (projectId) => {
               if (exists) return prev
               return [...prev, data.data]
             })
-          } else if (data.type === 'connected') {
-            console.log('Chat WebSocket:', data.message)
           } else if (data.type === 'pong') {
             // Keepalive response
           }
@@ -75,12 +71,11 @@ export const useProjectChat = (projectId) => {
         }
       }
 
-      ws.onerror = (error) => {
-        console.error('Chat WebSocket error:', error)
+      ws.onerror = () => {
+        // Connection failed or dropped; reconnect will be attempted in onclose
       }
 
       ws.onclose = () => {
-        console.log('🔌 Chat WebSocket disconnected')
         // Attempt to reconnect after delay
         if (isAuthenticated && projectId) {
           reconnectTimeoutRef.current = setTimeout(() => {
@@ -187,13 +182,15 @@ export const useProjectChat = (projectId) => {
     }
 
     return () => {
-      // Cleanup: leave project room and close WebSocket
+      // Cleanup: leave project room and close WebSocket (only send if socket is open)
       if (wsRef.current && projectId) {
         try {
-          wsRef.current.send(JSON.stringify({
-            type: 'leave_project',
-            projectId: projectId.toString()
-          }))
+          if (wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'leave_project',
+              projectId: projectId.toString()
+            }))
+          }
         } catch (error) {
           console.error('Error leaving project room:', error)
         }

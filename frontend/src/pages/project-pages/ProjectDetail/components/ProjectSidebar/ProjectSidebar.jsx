@@ -20,7 +20,7 @@ import {
 } from "@/components/ui-components";
 import NotificationBadge from "../../../../../components/ui-components/NotificationBadge/NotificationBadge";
 import StatusDropdown from "../../../../../components/ui-components/StatusDropdown/StatusDropdown";
-import { Avatar, AvatarImage, AvatarFallback } from "../../../../../components/ui-components/Avatar/Avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "../../../../../components/shadcn-components/shadcn-avatar/avatar";
 import { useAuth } from "../../../../../context/AuthContext";
 const ProjectSidebar = ({
   activeTab,
@@ -29,14 +29,14 @@ const ProjectSidebar = ({
   hasSettingsNotifications,
   hasAIPreviewNotifications,
   hasProgrammersNotifications,
-  hasTimelineNotifications,
+  hasWorkspaceNotifications,
   hasActivityNotifications,
   hasCommentsNotifications,
 }) => {
   const navItems = [
     { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
     { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
-    { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasTimelineNotifications, show: true },
+    { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasWorkspaceNotifications, show: true },
     { id: "activity", label: "Activity", icon: History, hasNotification: hasActivityNotifications, show: true },
     { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
     { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },

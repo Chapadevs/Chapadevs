@@ -24,9 +24,9 @@ const mapBudgetToForm = (projectBudget) => {
 }
 
 // Helper function to map project timeline to form timeline format
-const mapTimelineToForm = (projectTimeline) => {
-  if (!projectTimeline) return ''
-  const weeks = parseInt(projectTimeline, 10)
+const mapWorkspaceToForm = (projectWorkspace) => {
+  if (!projectWorkspace) return ''
+  const weeks = parseInt(projectWorkspace, 10)
   if (isNaN(weeks)) return ''
   if (weeks <= 2) return '1-2 weeks'
   if (weeks <= 4) return '2-4 weeks'
@@ -50,7 +50,7 @@ const AIPreviewTab = ({
   const initialFormData = useMemo(() => ({
     prompt: project?.description || '',
     budget: project?.budget ? mapBudgetToForm(project.budget) : '',
-    timeline: project?.timeline ? mapTimelineToForm(project.timeline) : '',
+    timeline: project?.timeline ? mapWorkspaceToForm(project.timeline) : '',
     projectType: project?.projectType || '',
     techStack: Array.isArray(project?.technologies) ? project.technologies : [],
     modelId: 'gemini-2.0-flash',

@@ -114,10 +114,10 @@ export const projectAPI = {
     return response.data
   },
 
-  answerQuestion: async (projectId, phaseId, questionId, answer) => {
+  answerQuestion: async (projectId, phaseId, questionId, answer, subStepOrder = null) => {
     const response = await api.post(
       `/projects/${projectId}/phases/${phaseId}/questions/${questionId}/answer`,
-      { answer }
+      { answer, subStepOrder }
     )
     return response.data
   },

@@ -39,14 +39,13 @@ export const useProjectNotifications = (project) => {
     relevantTabs.forEach((tab) => tabsWithNotifications.add(tab))
   })
 
-  const hasDescriptionNotifications = tabsWithNotifications.has('description')
+  const hasSettingsNotifications = tabsWithNotifications.has('settings')
   const hasAIPreviewNotifications = tabsWithNotifications.has('ai-preview')
   const hasProgrammersNotifications = tabsWithNotifications.has('programmers')
-  const hasTimelineNotifications = tabsWithNotifications.has('timeline')
+  const hasWorkspaceNotifications = tabsWithNotifications.has('timeline')
   const hasActivityNotifications = tabsWithNotifications.has('activity')
   const hasCommentsNotifications = tabsWithNotifications.has('comments')
 
-  // Mark all unread notifications for this project that are relevant to the given tab as read
   const markTabAsRead = useCallback((tabId) => {
     if (!projectIdStr) return
     const ids = projectNotifications
@@ -55,7 +54,6 @@ export const useProjectNotifications = (project) => {
     if (ids.length > 0) markNotificationsAsRead(ids)
   }, [projectIdStr, projectNotifications, markNotificationsAsRead])
 
-  // Mark all unread notifications for this project as read
   const markProjectAsRead = useCallback(() => {
     if (!projectIdStr) return
     const ids = projectNotifications.map((n) => n._id || n.id)
@@ -63,12 +61,10 @@ export const useProjectNotifications = (project) => {
   }, [projectIdStr, projectNotifications, markNotificationsAsRead])
 
   return {
-    projectNotifications,
-    tabsWithNotifications,
-    hasDescriptionNotifications,
+    hasSettingsNotifications,
     hasAIPreviewNotifications,
     hasProgrammersNotifications,
-    hasTimelineNotifications,
+    hasWorkspaceNotifications,
     hasActivityNotifications,
     hasCommentsNotifications,
     markTabAsRead,

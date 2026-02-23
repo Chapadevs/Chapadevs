@@ -1,55 +1,28 @@
-/* SubStep — layout and spacing only */
-.substep-item {
-  padding: 0.75rem;
+.substep-status-badge {
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 0;
 }
 
-.substep-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+.substep-status-badge--pending {
+  background: var(--border-border, #e5e7eb);
+  color: var(--ink-muted, #6b7280);
 }
 
-.substep-checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
+.substep-status-badge--waiting-client {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
 }
 
-.substep-checkbox {
-  width: 18px;
-  height: 18px;
+.substep-status-badge--in-progress {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
 }
 
-.substep-title {
-  flex: 1;
-}
-
-.substep-edit-btn {
-  padding: 0.25rem 0.5rem;
-}
-
-.substep-notes {
-  margin-top: 0.5rem;
-  padding-left: 2rem;
-}
-
-.substep-title-input {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.substep-notes-input {
-  width: 100%;
-  padding: 0.5rem;
-  resize: vertical;
-  margin-bottom: 0.75rem;
-}
-
-.substep-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
+.substep-status-badge--completed {
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--primary, #059669);
 }

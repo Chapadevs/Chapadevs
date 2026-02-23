@@ -14,7 +14,7 @@ const OurServices = () => {
     },
     {
       icon: 'fas fa-chart-line',
-      title: 'Timeline & Budget',
+      title: 'Workspace & Budget',
       text: 'AI-powered estimates for timeline phases and budget breakdown.',
     },
     {

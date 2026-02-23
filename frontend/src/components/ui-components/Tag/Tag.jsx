@@ -9,8 +9,7 @@ export default function Tag({ variant = 'default', children, className = '', ...
   return (
     <span
       className={[
-        'inline-flex items-center px-2.5 py-1 text-xs font-button font-bold',
-        'rounded-none uppercase tracking-wider',
+        '',
         variants[variant] || variants.default,
         className,
       ].join(' ')}

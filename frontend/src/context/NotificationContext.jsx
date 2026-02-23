@@ -12,154 +12,37 @@ export const useNotifications = () => {
   return context
 }
 
+function getWsUrl() {
+  const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
+  let url = API_URL.replace('/api', '')
+  if (url.startsWith('http://')) url = url.replace('http://', 'ws://')
+  else if (url.startsWith('https://')) url = url.replace('https://', 'wss://')
+  else if (!url.startsWith('ws')) url = `ws://${url}`
+  return url
+}
+
 export const NotificationProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  
+
   const wsRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
   const pollingIntervalRef = useRef(null)
   const isPollingRef = useRef(false)
 
-  // WebSocket connection
-  const connectWebSocket = useCallback(() => {
-    if (!isAuthenticated || !user) return
-
-    const token = localStorage.getItem('token')
-    if (!token) return
-
-    // Close existing connection if any
-    if (wsRef.current) {
-      wsRef.current.close()
-    }
-
-    // Determine WebSocket URL
-    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-    let wsUrl = API_URL.replace('/api', '')
-    if (wsUrl.startsWith('http://')) {
-      wsUrl = wsUrl.replace('http://', 'ws://')
-    } else if (wsUrl.startsWith('https://')) {
-      wsUrl = wsUrl.replace('https://', 'wss://')
-    } else if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
-      wsUrl = `ws://${wsUrl}`
-    }
-    const wsPath = `${wsUrl}/ws?token=${token}`
-
-    try {
-      const ws = new WebSocket(wsPath)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        console.log('✅ WebSocket connected')
-        isPollingRef.current = false
-        // Clear polling if WebSocket is connected
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current)
-          pollingIntervalRef.current = null
-        }
-        // Fetch initial data
-        loadNotifications()
-        loadUnreadCount()
-      }
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          
-          if (data.type === 'notification') {
-            // New notification received
-            setNotifications((prev) => [data.data, ...prev])
-            setUnreadCount((prev) => prev + 1)
-          } else if (data.type === 'unread_count') {
-            // Unread count update
-            setUnreadCount(data.count)
-          } else if (data.type === 'pong') {
-            // Keepalive response
-          } else if (data.type === 'connected') {
-            console.log('WebSocket:', data.message)
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error)
-        }
-      }
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-        // Fallback to polling
-        if (!isPollingRef.current) {
-          startPolling()
-        }
-      }
-
-      ws.onclose = () => {
-        console.log('🔌 WebSocket disconnected')
-        // Attempt to reconnect after delay
-        if (isAuthenticated) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connectWebSocket()
-          }, 3000)
-        }
-        // Fallback to polling
-        if (!isPollingRef.current) {
-          startPolling()
-        }
-      }
-    } catch (error) {
-      console.error('Error creating WebSocket connection:', error)
-      // Fallback to polling
-      if (!isPollingRef.current) {
-        startPolling()
-      }
-    }
-  }, [isAuthenticated, user])
-
-  // Polling fallback
-  const startPolling = useCallback(() => {
-    if (isPollingRef.current) return
-    
-    isPollingRef.current = true
-    console.log('📡 Starting polling fallback')
-    
-    // Poll immediately
-    loadNotifications()
-    loadUnreadCount()
-    
-    // Then poll every 30 seconds
-    pollingIntervalRef.current = setInterval(() => {
-      if (isAuthenticated) {
-        loadUnreadCount()
-        // Only reload notifications if tab is active
-        if (!document.hidden) {
-          loadNotifications()
-        }
-      }
-    }, 30000)
-  }, [isAuthenticated])
-
-  // Load notifications
   const loadNotifications = useCallback(async () => {
     if (!isAuthenticated) return
-
     try {
-      setLoading(true)
-      setError(null)
       const data = await notificationAPI.getAll()
       setNotifications(data)
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to load notifications')
       console.error('Error loading notifications:', err)
-    } finally {
-      setLoading(false)
     }
   }, [isAuthenticated])
 
-  // Load unread count
   const loadUnreadCount = useCallback(async () => {
     if (!isAuthenticated) return
-
     try {
       const data = await notificationAPI.getUnreadCount()
       setUnreadCount(data.unreadCount || 0)
@@ -168,7 +51,70 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [isAuthenticated])
 
-  // Mark notification as read
+  const startPolling = useCallback(() => {
+    if (isPollingRef.current) return
+    isPollingRef.current = true
+    loadNotifications()
+    loadUnreadCount()
+    pollingIntervalRef.current = setInterval(() => {
+      if (isAuthenticated) {
+        loadUnreadCount()
+        if (!document.hidden) loadNotifications()
+      }
+    }, 30000)
+  }, [isAuthenticated, loadNotifications, loadUnreadCount])
+
+  const connectWebSocket = useCallback(() => {
+    if (!isAuthenticated || !user) return
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    if (wsRef.current) wsRef.current.close()
+
+    try {
+      const ws = new WebSocket(`${getWsUrl()}/ws?token=${token}`)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        isPollingRef.current = false
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current)
+          pollingIntervalRef.current = null
+        }
+        loadNotifications()
+        loadUnreadCount()
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (data.type === 'notification') {
+            setNotifications((prev) => [data.data, ...prev])
+            setUnreadCount((prev) => prev + 1)
+          } else if (data.type === 'unread_count') {
+            setUnreadCount(data.count)
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err)
+        }
+      }
+
+      ws.onerror = () => {
+        if (!isPollingRef.current) startPolling()
+      }
+
+      ws.onclose = () => {
+        if (isAuthenticated) {
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000)
+        }
+        if (!isPollingRef.current) startPolling()
+      }
+    } catch (err) {
+      console.error('Error creating WebSocket connection:', err)
+      if (!isPollingRef.current) startPolling()
+    }
+  }, [isAuthenticated, user, loadNotifications, loadUnreadCount, startPolling])
+
   const markAsRead = useCallback(async (id) => {
     try {
       await notificationAPI.markAsRead(id);
@@ -296,10 +242,7 @@ export const NotificationProvider = ({ children }) => {
   const value = {
     notifications,
     unreadCount,
-    loading,
-    error,
     loadNotifications,
-    loadUnreadCount,
     markAsRead,
     markAllAsRead,
     markNotificationsAsRead,

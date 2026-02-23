@@ -35,7 +35,6 @@ export const calculatePermissions = (user, project) => {
   const isOpen = project.status === 'Open'
   const isReadyForDev = project.status === 'Ready'
 
-  // All team members must have confirmed ready before client can mark project ready
   const teamIds = new Set()
   if (project.assignedProgrammerId) {
     teamIds.add((project.assignedProgrammerId?._id || project.assignedProgrammerId)?.toString())
@@ -55,20 +54,22 @@ export const calculatePermissions = (user, project) => {
   const canToggleTeamClosed = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     (project.status === 'Holding' || project.status === 'Open')
-  // Mark Ready: client, when Open + has programmers (disabled until all team confirmed)
+  // Client marks ready first (I've reviewed); then programmers can create steps and confirm ready
+  const clientMarkedReady = project.clientMarkedReady === true
   const canMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     isOpen &&
-    hasProgrammers
-  // Show Mark Ready button when Holding or Open (before development) so flow is visible; disabled when Holding
+    hasProgrammers &&
+    !clientMarkedReady
   const showMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     (project.status === 'Holding' || project.status === 'Open')
-  // Confirm ready: programmer in team, project Open, not yet confirmed
-  const canConfirmReady = isProgrammerInProject && isOpen && !project.teamClosed && !hasUserConfirmedReady
-  // Show I'm Ready button when Holding or Open so flow is visible; disabled when Holding or team closed
+  // Programmer can confirm ready only after client has marked ready
+  const canConfirmReady = isProgrammerInProject && isOpen && !project.teamClosed && !hasUserConfirmedReady && clientMarkedReady
   const showConfirmReady = isProgrammerInProject &&
     (project.status === 'Holding' || project.status === 'Open')
+  // Programmer can create steps (Workspace) only after client has marked ready
+  const canCreateSteps = (isAssignedProgrammer || isInTeam || admin) && isOpen && clientMarkedReady
 
   // Start Development: programmer, when Ready + team closed (clickable only when Ready)
   const canStartDevelopment = (user?.role === 'programmer' || user?.role === 'admin') &&
@@ -95,7 +96,7 @@ export const calculatePermissions = (user, project) => {
     project.status !== 'Cancelled'
 
   // Phase/timeline permissions: any programmer in project (single assignee or team) or admin
-  const canConfirmTimeline = isAssignedProgrammer || isInTeam || admin
+  const canConfirmWorkspace = isAssignedProgrammer || isInTeam || admin
   const canChangePhaseStatus = isAssignedProgrammer || isInTeam || admin
   const canUpdateSubSteps = isAssignedProgrammer || isInTeam || admin
   const canSaveNotes = isAssignedProgrammer || isInTeam || admin
@@ -121,7 +122,8 @@ export const calculatePermissions = (user, project) => {
     canSetToHolding,
     canMarkCompleted,
     canCancel,
-    canConfirmTimeline,
+    canConfirmWorkspace,
+    canCreateSteps,
     canChangePhaseStatus,
     canUpdateSubSteps,
     canSaveNotes,
