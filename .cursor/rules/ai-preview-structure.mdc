@@ -1,0 +1,12 @@
+---
+description: AI preview build structure — components, components/ui, pages; multi-file preferred; Sandpack entry index.js → App.js
+globs: backend/services/vertexAI/**/*.js, frontend/**/AIPreviewTab/**/*.jsx, frontend/**/AIPreviewCard/**/*.jsx
+alwaysApply: false
+---
+
+# AI Preview Build Structure
+
+- **Generated previews** must follow the build structure: `./components`, `./components/ui`, `./pages`.
+- **Output format**: Prefer multi-file output (a `files` object with paths like `/App.js`, `/components/Header.js`, `/pages/HomePage.js`, etc.) for new generation. Single `code` string (one `/App.js`) remains supported for backward compatibility.
+- **Sandpack**: When `websitePreviewFiles` is present, build Sandpack from the `files` object; otherwise use `websitePreviewCode` for a single `/App.js`. Entry point is always `index.js` → `App.js`.
+- **App.js**: In multi-file mode, App.js is the shell only (imports from `./pages/*` and `./components/Header`, `./components/Footer`; holds `currentPage` state; nav via `button` + `onClick`).

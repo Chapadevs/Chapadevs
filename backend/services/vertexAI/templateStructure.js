@@ -80,6 +80,7 @@ export const UI_RULES = [
   'Alternate section backgrounds: white, gray-50, gradient, colored — no two adjacent sections should look the same',
   'Use varied layouts per section: card grids, two-column text+image, full-width banners, centered content blocks',
   'Visual polish: box-shadow (shadow-lg), rounded corners (rounded-xl), hover transitions (transition-all duration-300 hover:shadow-xl hover:-translate-y-1)',
+  'Hero: text-4xl or text-5xl font-bold; section titles: text-3xl font-semibold; use shadow-lg and hover:shadow-xl',
   'Generous vertical spacing between sections (py-16 or py-20)',
   'Responsive: sm:, md:, lg: breakpoints on all grids and text sizes',
   'Real specific content everywhere — NO "Lorem ipsum", NO placeholder text, NO "..." truncation',

@@ -123,6 +123,13 @@ class VertexAIService {
           if (onChunk) onChunk(text);
         }
       }
+
+      if (fullText.trim().length < 200) {
+        if (onChunk) onChunk("\n[Stream too short, fetching full response…]\n");
+        const fallback = await this.generateCombinedPreview(prompt, userInputs, modelId);
+        return fallback;
+      }
+
       let usage = null;
       try {
         if (result.response) usage = extractUsage(result.response);

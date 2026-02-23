@@ -171,31 +171,77 @@ function findCodeStringEnd(text, valueStart) {
 }
 
 /**
+ * Try to extract a string value for key "key" (e.g. "/App.js" or "code") in text.
+ * Looks for "key": " and then finds the closing quote (escape-aware).
+ */
+function extractStringValue(text, key) {
+  const quoted = `"${key}":`;
+  const idx = text.indexOf(quoted);
+  if (idx === -1) return null;
+  const valueStart = text.indexOf('"', idx + quoted.length);
+  if (valueStart === -1) return null;
+  const start = valueStart + 1;
+  const end = findCodeStringEnd(text, start);
+  if (end === -1) return null;
+  return text.substring(start, end);
+}
+
+/**
+ * Try to extract React component code from raw text (e.g. when response is not valid JSON).
+ */
+function extractReactCodeFromRaw(text) {
+  if (!text || text.length < 50) return "";
+  const hasApp = text.includes("function App") || text.includes("const App ");
+  const hasExport = text.includes("export default App");
+  if (!hasApp && !hasExport) return "";
+  const idxImport = text.indexOf("import ");
+  const idxFunctionApp = text.indexOf("function App");
+  const idxConstApp = text.indexOf("const App ");
+  const candidates = [idxImport, idxFunctionApp, idxConstApp].filter((i) => i !== -1);
+  if (candidates.length === 0) return "";
+  const start = Math.min(...candidates);
+  const exportIdx = text.indexOf("export default App");
+  const end = exportIdx !== -1 ? text.indexOf(";", exportIdx) + 1 : text.length;
+  if (end <= start) return "";
+  return text.substring(start, end).trim();
+}
+
+/**
  * Manual recovery if JSON.parse fails.
- * Uses escape-aware scanning so we don't truncate the code at a " inside the content.
+ * Tries: extract "code", then "files" -> "/App.js", then raw React-like block.
  */
 function repairAndParseManual(text) {
+  let code = null;
+
   const codeStart = text.indexOf('"code"');
-  if (codeStart === -1) {
+  if (codeStart !== -1) {
+    const firstQuote = text.indexOf('"', codeStart + 6);
+    if (firstQuote !== -1) {
+      const start = firstQuote + 1;
+      const end = findCodeStringEnd(text, start);
+      const lastBrace = text.lastIndexOf("}");
+      code = end !== -1
+        ? text.substring(start, end)
+        : text.substring(start, Math.max(start, lastBrace));
+    }
+  }
+
+  if (!code && text.indexOf('"files"') !== -1) {
+    code = extractStringValue(text, "/App.js") || extractStringValue(text, "App.js");
+  }
+
+  if (!code || code.length < 20) {
+    const rawCode = extractReactCodeFromRaw(text);
+    if (rawCode.length > 100) code = rawCode;
+  }
+
+  if (!code) {
+    const looksLikeJson = text.trim().startsWith("{") && (text.includes('"analysis"') || text.includes('"files"'));
     return {
       analysis: "No JSON detected. Using raw response.",
-      code: text,
+      code: looksLikeJson ? "" : text,
     };
   }
-
-  const firstQuote = text.indexOf('"', codeStart + 6);
-  if (firstQuote === -1) {
-    return { analysis: "Recovered manually", code: text };
-  }
-
-  const start = firstQuote + 1;
-  const end = findCodeStringEnd(text, start);
-  const lastBrace = text.lastIndexOf("}");
-
-  const code =
-    end !== -1
-      ? text.substring(start, end)
-      : text.substring(start, Math.max(start, lastBrace));
 
   return {
     analysis: "Recovered manually",
@@ -231,9 +277,40 @@ export function parseCombinedResponse(text) {
     parsed = repairAndParseManual(clean);
   }
 
+  // Multi-file: prefer "files" object; normalize each file and keep "code" as App.js for display/legacy
+  if (parsed.files && typeof parsed.files === "object") {
+    const normalized = {};
+    for (const [path, content] of Object.entries(parsed.files)) {
+      if (typeof content !== "string") continue;
+      const normPath = path.startsWith("/") ? path : `/${path}`;
+      let c = unescapeCode(content);
+      c = fixBrokenImageSrc(c);
+      if (normPath === "/App.js") {
+        c = normalizeComponentCode(c);
+      } else {
+        c = c.replace(/^```[a-z]*\n?/gi, "").replace(/\n?```$/i, "").trim();
+      }
+      normalized[normPath] = c;
+    }
+    parsed.files = normalized;
+    const appCode = normalized["/App.js"] || "";
+    parsed.code = appCode || parsed.code || "";
+  }
+
   if (parsed.code) {
-    parsed.code = normalizeComponentCode(parsed.code);
-    parsed.code = fixBrokenImageSrc(parsed.code);
+    if (!parsed.files) {
+      parsed.code = normalizeComponentCode(parsed.code);
+      parsed.code = fixBrokenImageSrc(parsed.code);
+    }
+  }
+
+  // Never use full JSON as code (e.g. model put whole response in "code" or App.js)
+  const codeTrim = (parsed.code || "").trim();
+  if (
+    codeTrim.startsWith("{") &&
+    (codeTrim.includes('"analysis"') || codeTrim.includes('"files"'))
+  ) {
+    parsed.code = parsed.files?.["/App.js"] || "";
   }
 
   return parsed;

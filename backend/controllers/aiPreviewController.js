@@ -77,9 +77,10 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       costMonitor.trackAPICall()
     }
 
-    // Extract analysis and code from combined result
+    // Extract analysis, code (always set for display/legacy), and optional files from combined result
     const analysis = result.analysis || {}
     const code = result.code || ''
+    const files = result.files && typeof result.files === 'object' ? result.files : null
 
     // Convert analysis to JSON string for storage
     const analysisJson = JSON.stringify(analysis)
@@ -95,6 +96,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     preview.metadata = {
       ...preview.metadata,
       websitePreviewCode: code,
+      ...(files && { websitePreviewFiles: files }),
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,
@@ -120,6 +122,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       status: 'completed',
       result: analysis,
       websitePreview: code ? { htmlCode: code, isMock: isMock === true } : null,
+      ...(files && { websitePreviewFiles: files }),
       fromCache: fromCache === true,
       websiteIsMock: isMock === true,
       tokenUsage: estimatedTokens,
@@ -220,6 +223,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
 
     const analysis = result.analysis || {}
     const code = result.code || ''
+    const files = result.files && typeof result.files === 'object' ? result.files : null
     const analysisJson = JSON.stringify(analysis)
     const estimatedTokens = usage?.totalTokenCount ?? Math.ceil(analysisJson.length / 4) + Math.ceil(code.length / 4)
 
@@ -229,6 +233,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     preview.metadata = {
       ...preview.metadata,
       websitePreviewCode: code,
+      ...(files && { websitePreviewFiles: files }),
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,

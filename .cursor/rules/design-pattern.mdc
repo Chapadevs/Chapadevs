@@ -1,7 +1,7 @@
 ---
 description: Unified Design System for Chapadevs - Modern IT Consultancy (Green/White/Black)
 globs: frontend/**/*.jsx, frontend/**/*.tsx, frontend/**/*.css
-alwaysApply: false
+alwaysApply: true
 ---
 
 # Chapadevs Unified Design System & Workflow
@@ -48,3 +48,9 @@ alwaysApply: false
 - [ ] All `rounded` classes removed?
 - [ ] Exported via `@/components/ui-components`?
 - [ ] Content wrapped in `max-w-[1200px] mx-auto` or `<Container>`?
+
+## Rules
+  *Dont Children component styles and applying them on Parent components
+  *New props should be asked before added
+  *Priority to Shadcn components styles
+  *No more new CSS files for individual components 

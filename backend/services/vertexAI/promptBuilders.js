@@ -299,6 +299,7 @@ REQUIREMENTS:
 - Budget: ${userInputs.budget || 'Not specified'}
 - Timeline: ${userInputs.timeline || 'Not specified'}
 - Tech: ${techPref} (JS ecosystem only: React, Node.js, MongoDB/PostgreSQL)
+- Adapt components to project type: ecommerce → product cards, cart-related UI in components/ui; business → service cards, CTA; portfolio → project cards. Keep the same page list (home, about, services/products, contact) and section list from the template; only vary which reusable components you add under components/ui.
 
 ${pageStructure}
 
@@ -311,6 +312,8 @@ STYLING:
 - Style: ${style}
 - Gradients: bg-gradient-to-r from-{primaryColor} to-{secondaryColor}
 
+FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. Paths: /App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js, /pages/ContactPage.js. Optional: /components/ui/Button.js, /components/ui/Card.js. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.
+
 OUTPUT FORMAT (JSON only, no markdown):
 CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
 - Use \\n for newlines in strings
@@ -318,6 +321,7 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
 - Use \\\\ for backslashes
 - NO unescaped control characters
 - NO markdown code blocks around JSON
+- Prefer "files" object (see above); if you cannot output multiple files, use single "code" string with full App component.
 
 {
   "analysis": {
@@ -349,21 +353,28 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
     "risks": ["Risk 1 with mitigation", "..."],
     "recommendations": ["Recommendation 1", "..."]
   },
-  "code": "import { useState } from 'react';\\nfunction App() { ... }\\nexport default App;"
+  "files": {
+    "/App.js": "import { useState } from 'react';\\nimport Header from './components/Header';\\nimport Footer from './components/Footer';\\nimport HomePage from './pages/HomePage';\\n...\\nexport default App;",
+    "/components/Header.js": "...",
+    "/components/Footer.js": "...",
+    "/pages/HomePage.js": "...",
+    "/pages/AboutPage.js": "...",
+    "/pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js": "...",
+    "/pages/ContactPage.js": "..."
+  }
 }
 
+Alternatively you may return a single "code" string with the full App (all pages as inner components) if multi-file is not possible.
+
 CRITICAL CODE REQUIREMENTS:
-- Component MUST be named: App
-- Use function App() { ... } OR const App = () => { ... }
-- Export: export default App;
-- MULTI-PAGE: useState('home') for currentPage. Define HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage as inner components. Render {currentPage === 'home' && <HomePage />} etc.
-- NAV LINKS: Use <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPage('home'); }}> - NEVER <a href="#..."> or anchor links
-- ALL inner page components and helpers MUST be defined inside the App function body (before return)
+- App.js: shell only when using files — import Header, Footer, and page components from ./components and ./pages; useState('home') for currentPage; render {currentPage === 'home' && <HomePage />} etc.; nav via <button onClick={...}> only, NEVER <a href="#...">.
+- When using single "code": same behavior but HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage defined inside App.
+- Each page component: export default; use data arrays and .map() for cards/items.
 - Tailwind CSS classes only (CDN loaded separately)
 - Responsive: sm:, md:, lg: breakpoints on grids and text
 - Images: ONLY https://picsum.photos/WIDTH/HEIGHT?random=SEED or https://placehold.co/WIDTHxHEIGHT?text=TEXT
 - NO placeholder text, NO Lorem Ipsum, NO "..." — write real specific content
-- NO markdown code blocks in code field
+- NO markdown code blocks in code/files content
 
 ${codeRules}
 

@@ -16,6 +16,7 @@ const AIPreviewCard = ({
 }) => {
   const previewId = preview._id || preview.id
   const code = preview.metadata?.websitePreviewCode || ''
+  const files = preview.metadata?.websitePreviewFiles || null
   const [analysisOpen, setAnalysisOpen] = useState(false)
 
   const renderPreviewAnalysis = (preview) => {
@@ -60,60 +61,93 @@ const AIPreviewCard = ({
     }
   };
 
-  const cleanCode = unescapeCode(code);
+  const cleanCode = unescapeCode(code)
 
-  // Sandpack setup for React template + Tailwind
-  const sandpackFiles = {
-    "/App.js": {
-      code: cleanCode
-    },
-    "/index.js": {
-      code: `
-    import React from "react";
-    import { createRoot } from "react-dom/client";
-    import App from "./App";
-    import "./index.css";
+  const isJsonLike = (str) => {
+    const s = (str || '').trim()
+    return s.length > 20 && s.startsWith('{') && (s.includes('"analysis"') || s.includes('"files"'))
+  }
 
-    const root = createRoot(document.getElementById("root"));
-    root.render(<App />);
-          `.trim()
-        },
-        "/index.css": {
-          code: `
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
-      `.trim()
-    },
-    // Empty tailwind.config.js for Sandpack to recognize Tailwind imports (no actual config needed for CDN base)
-    "/tailwind.config.js": {
-      code: `
-    module.exports = {
-      content: ["./src/**/*.{js,jsx,ts,tsx}"],
-      theme: { extend: {} },
-      plugins: [],
-    };
-          `.trim()
-        },
-        "/public/index.html": {
-          code: `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <link rel="icon" href="favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>React + Tailwind Preview</title>
-      </head>
-      <body>
-        <div id="root"></div>
-        <!-- Tailwind via CDN for fast preview -->
-        <script src="https://cdn.tailwindcss.com"></script>
-      </body>
-    </html>
-      `.trim()
+  const extractAppCodeFromJson = (raw) => {
+    if (!raw || typeof raw !== 'string') return ''
+    const s = raw.trim()
+    if (!s.startsWith('{') || (!s.includes('"analysis"') && !s.includes('"files"'))) return ''
+    try {
+      const parsed = JSON.parse(s)
+      const files = parsed?.files && typeof parsed.files === 'object' ? parsed.files : {}
+      return files['/App.js'] || files['App.js'] || (typeof parsed.code === 'string' && !isJsonLike(parsed.code) ? parsed.code : '') || ''
+    } catch {
+      return ''
     }
+  }
+
+  const fixedSandpackFiles = {
+    '/index.js': {
+      code: `import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+const root = createRoot(document.getElementById("root"));
+root.render(<App />);`.trim(),
+    },
+    '/index.css': {
+      code: `@tailwind base;
+@tailwind components;
+@tailwind utilities;`.trim(),
+    },
+    '/tailwind.config.js': {
+      code: `module.exports = {
+  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  theme: { extend: {} },
+  plugins: [],
+};`.trim(),
+    },
+    '/public/index.html': {
+      code: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React + Tailwind Preview</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </body>
+</html>`.trim(),
+    },
   };
+
+  const sandpackFiles = (() => {
+    let appCode = ''
+    if (files && typeof files === 'object' && Object.keys(files).length > 0) {
+      const entries = Object.entries(files)
+        .filter(([, content]) => typeof content === 'string')
+        .map(([path, content]) => {
+          const normPath = path.startsWith('/') ? path : `/${path}`
+          let fileCode = unescapeCode(content)
+          if (isJsonLike(fileCode)) fileCode = ''
+          return [normPath, { code: fileCode }]
+        })
+        .filter(([, { code }]) => code !== '')
+      const byPath = Object.fromEntries(entries)
+      appCode = byPath['/App.js']?.code || ''
+      if (!appCode && cleanCode) {
+        appCode = isJsonLike(cleanCode) ? extractAppCodeFromJson(cleanCode) : cleanCode
+        if (appCode) byPath['/App.js'] = { code: appCode }
+      }
+      return { ...byPath, ...fixedSandpackFiles }
+    }
+    appCode = isJsonLike(cleanCode) ? extractAppCodeFromJson(cleanCode) : cleanCode
+    return {
+      '/App.js': { code: appCode || '' },
+      ...fixedSandpackFiles,
+    }
+  })()
+
+  const effectiveAppCode = sandpackFiles['/App.js']?.code || ''
 
   return (
     <div className="project-preview-card">
@@ -158,7 +192,7 @@ const AIPreviewCard = ({
               </div>
             )}
           </div>
-          {code && (
+          {effectiveAppCode && (
             <>
               <div className="project-preview-iframe-block">
                 <h4>Website Preview</h4>
@@ -178,7 +212,7 @@ const AIPreviewCard = ({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={() => onCopyCode(previewId, code)}
+                    onClick={() => onCopyCode(previewId, effectiveAppCode)}
                   >
                     {copySuccessId === previewId ? 'Copied!' : 'Copy code'}
                   </Button>
@@ -186,7 +220,7 @@ const AIPreviewCard = ({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={() => onDownloadCode(code)}
+                    onClick={() => onDownloadCode(effectiveAppCode)}
                   >
                     Download ZIP
                   </Button>
