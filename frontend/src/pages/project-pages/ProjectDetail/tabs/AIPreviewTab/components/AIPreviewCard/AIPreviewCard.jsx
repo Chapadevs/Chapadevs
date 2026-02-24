@@ -1,15 +1,12 @@
-import { useState } from 'react'
-import { Button } from '../../../../../../../components/ui-components'
-import { parsePreviewResult } from '../../../../utils/previewUtils'
+import { useState, useEffect, useCallback } from 'react'
+import { Button, Card, CardHeader, CardContent } from '../../../../../../../components/ui-components'
+import { getCodesandboxEmbed } from '../../../../../../../services/aiPreviewApi'
 import './AIPreviewCard.css'
-import { Sandpack } from "@codesandbox/sandpack-react"
 
 const AIPreviewCard = ({
   preview,
-  isExpanded,
   copySuccessId,
   isClientOwner,
-  onToggleExpand,
   onCopyCode,
   onDownloadCode,
   onDeletePreview,
@@ -17,34 +14,11 @@ const AIPreviewCard = ({
   const previewId = preview._id || preview.id
   const code = preview.metadata?.websitePreviewCode || ''
   const files = preview.metadata?.websitePreviewFiles || null
-  const [analysisOpen, setAnalysisOpen] = useState(false)
-
-  const renderPreviewAnalysis = (preview) => {
-    const result = parsePreviewResult(preview.previewResult)
-    if (!result) return <p className="project-preview-empty">No analysis content.</p>
-    if (result.raw) return <p className="project-preview-analysis">{result.raw}</p>
-    const tech = result.techStack
-    const frontend = Array.isArray(tech?.frontend) ? tech.frontend : []
-    const backend = Array.isArray(tech?.backend) ? tech.backend : []
-    return (
-      <div className="project-preview-analysis">
-        {result.overview && <p><strong>Overview:</strong> {result.overview}</p>}
-        {result.features?.length > 0 && (
-          <div>
-            <strong>Features:</strong>
-            <ul>{result.features.map((f, i) => <li key={i}>{f}</li>)}</ul>
-          </div>
-        )}
-        {(frontend.length > 0 || backend.length > 0) && (
-          <div>
-            <strong>Tech stack:</strong>
-            {frontend.length > 0 && <p><strong>Frontend:</strong> {frontend.join(', ')}</p>}
-            {backend.length > 0 && <p><strong>Backend:</strong> {backend.join(', ')}</p>}
-          </div>
-        )}
-      </div>
-    )
-  }
+  const thumbnailUrl = preview.metadata?.previewThumbnailUrl || null
+  const cachedEditorUrl = preview.metadata?.codesandboxEditorUrl ||
+    (preview.metadata?.codesandboxSandboxId ? `https://codesandbox.io/s/${preview.metadata.codesandboxSandboxId}` : null)
+  const [fetchedEditorUrl, setFetchedEditorUrl] = useState(null)
+  const editorUrl = cachedEditorUrl || fetchedEditorUrl
 
   // Helper to unescape string-encoded code (fixes literal \n and \")
   const unescapeCode = (str) => {
@@ -149,69 +123,70 @@ root.render(<App />);`.trim(),
 
   const effectiveAppCode = sandpackFiles['/App.js']?.code || ''
 
+  // Use cached CodeSandbox URL from metadata when present; otherwise fetch once per preview.
+  useEffect(() => {
+    if (!effectiveAppCode) return
+    if (cachedEditorUrl || fetchedEditorUrl) return
+    let cancelled = false
+    getCodesandboxEmbed(previewId)
+      .then((data) => {
+        if (!cancelled && data?.editorUrl) setFetchedEditorUrl(data.editorUrl)
+      })
+      .catch((err) => {
+        if (!cancelled) console.warn('CodeSandbox embed fetch failed:', previewId, err?.message || err)
+      })
+    return () => { cancelled = true }
+  }, [effectiveAppCode, previewId, fetchedEditorUrl, cachedEditorUrl])
+
+  const handleCardClick = useCallback(() => {
+    if (editorUrl) window.open(editorUrl, '_blank')
+  }, [editorUrl])
+
   return (
-    <div className="project-preview-card">
-      <div
-        className="project-preview-card-header"
-        onClick={onToggleExpand}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && onToggleExpand()}
-      >
-        <span className="project-preview-date">
+    <Card
+      className={`rounded-none border-border overflow-hidden project-preview-card max-w-md transition-colors ${editorUrl ? 'cursor-pointer hover:border-primary/50' : 'cursor-default'}`}
+      onClick={handleCardClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick() } }}
+      role="button"
+      tabIndex={editorUrl ? 0 : -1}
+      aria-label={editorUrl ? `Open preview in Sandbox: ${preview.prompt?.substring(0, 40) ?? 'Preview'}` : 'Preview'}
+    >
+      <CardHeader className="p-2 flex flex-row items-center gap-2 flex-wrap">
+        <span className="text-[10px] text-ink-muted font-body shrink-0">
           {new Date(preview.createdAt).toLocaleString()}
         </span>
-        <span className="project-preview-prompt">
-          {preview.prompt?.substring(0, 80)}{preview.prompt?.length > 80 ? '...' : ''}
+        <span className="font-body text-xs text-ink min-w-0 flex-1 truncate" title={preview.prompt}>
+          {preview.prompt?.substring(0, 40)}{preview.prompt?.length > 40 ? '…' : ''}
         </span>
-        <span className={`project-preview-status project-preview-status--${preview.status}`}>
+        <span className={`project-preview-status project-preview-status--${preview.status} shrink-0 text-[10px]`}>
           {preview.status}
         </span>
-        <span className="project-preview-expand">{isExpanded ? '▼' : '▶'}</span>
-      </div>
-      {isExpanded && (
-        <div className="project-preview-card-body">
-          <div className="project-preview-tab">
-            <Button
-              type="button"
-              variant="ghost"
-              className="project-preview-analysis-toggle"
-              onClick={() => setAnalysisOpen((prev) => !prev)}
-              aria-expanded={analysisOpen}
+      </CardHeader>
+      <CardContent className="p-2 pt-0 project-preview-card-body">
+        {effectiveAppCode ? (
+          <>
+            <div
+              className="h-20 w-full border border-border bg-muted/50 rounded-none flex items-center justify-center overflow-hidden"
+              aria-hidden
             >
-              <span className="project-preview-analysis-toggle-label">
-                {analysisOpen ? 'Hide' : 'View'} overview
-              </span>
-              <span className="project-preview-analysis-toggle-icon" aria-hidden>
-                {analysisOpen ? '▼' : '▶'}
-              </span>
-            </Button>
-            {analysisOpen && (
-              <div className="project-preview-analysis-wrap">
-                {renderPreviewAnalysis(preview)}
-              </div>
-            )}
-          </div>
-          {effectiveAppCode && (
-            <>
-              <div className="project-preview-iframe-block">
-                <h4>Website Preview</h4>
-                <div className="project-preview-iframe-wrap" style={{ minHeight: 320 }}>
-                  {/* Use Sandpack with react template and Tailwind included */}
-                  <Sandpack
-                    template="react"
-                    files={sandpackFiles}
-                    options={{
-                      showNavigator: true,
-                      showPreview: false, // Hide the right-side preview
-                    }}
-                  />
-                </div>
-                <div className="project-preview-code-actions">
+              {thumbnailUrl ? (
+                <img
+                  src={thumbnailUrl}
+                  alt=""
+                  className="h-full w-full object-cover object-center"
+                />
+              ) : (
+                <span className="font-body text-xs text-ink-muted">Preview screenshot</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+              {!isClientOwner && (
+                <>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
+                    className="text-xs h-7 px-2"
                     onClick={() => onCopyCode(previewId, effectiveAppCode)}
                   >
                     {copySuccessId === previewId ? 'Copied!' : 'Copy code'}
@@ -220,27 +195,31 @@ root.render(<App />);`.trim(),
                     type="button"
                     variant="secondary"
                     size="sm"
+                    className="text-xs h-7 px-2"
                     onClick={() => onDownloadCode(effectiveAppCode)}
                   >
                     Download ZIP
                   </Button>
-                  {isClientOwner && (
-                    <Button
-                      type="button"
-                      variant="danger"
-                      size="sm"
-                      onClick={() => onDeletePreview(previewId)}
-                    >
-                      Delete preview
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+                </>
+              )}
+              {isClientOwner && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => onDeletePreview(previewId)}
+                >
+                  Delete preview
+                </Button>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="font-body text-xs text-ink-muted py-2">No preview code available.</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

@@ -153,7 +153,7 @@ export function buildWebsitePrompt(prompt, userInputs) {
 
   // Create main content suggestions based on business type
   const mainContentSuggestions = businessType === 'e-commerce'
-    ? 'Product showcase grid (6-12 items with image, name, price) - use https://picsum.photos or https://placehold.co for images'
+    ? 'Product showcase grid (6-12 items with image, name, price) - use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only (repeat as needed) for img src'
     : 'Services offered (4-6 cards with icon, title, description)';
   
   return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED, PRODUCTION-READY React component.
@@ -179,10 +179,8 @@ CRITICAL REQUIREMENTS:
 8. Make it visually stunning with proper spacing, shadows, hover effects
 
 IMAGES (CRITICAL):
-- For product/category cards or any <img>, use ONLY these URLs. No other domains or fake paths.
-- Option A: https://picsum.photos/400/300?random=SEED — use a numeric SEED per item (e.g. 1, 2, 3 or hash of category name).
-- Option B: https://placehold.co/400x300?text=TEXT — URL-encode the category/card title (e.g. "Gothic+Dresses").
-- Never use placeholder filenames, /placeholder, or other image URLs. Invalid src will be replaced automatically.
+- Use ONLY these placeholders as img src: __IMAGE_1__ (hero + preview thumbnail), __IMAGE_2__, __IMAGE_3__. Maximum 3 images per preview; repeat __IMAGE_2__ and __IMAGE_3__ for all other image slots (products, team, gallery, etc.). Hero section MUST use __IMAGE_1__.
+- Do NOT use picsum.photos, placehold.co, or any other image URLs. Only __IMAGE_1__, __IMAGE_2__, __IMAGE_3__.
 
 TECHNICAL REQUIREMENTS:
 - React 18 functional component with useState hooks
@@ -371,8 +369,10 @@ CRITICAL CODE REQUIREMENTS:
 - When using single "code": same behavior but HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage defined inside App.
 - Each page component: export default; use data arrays and .map() for cards/items.
 - Tailwind CSS classes only (CDN loaded separately)
+- NO icon libraries: do NOT import Heroicons, Lucide, Font Awesome, or any icon package. Use only inline <svg> or emoji (e.g. ☰ for menu). The preview runs with React + Tailwind only — no extra npm packages.
 - Responsive: sm:, md:, lg: breakpoints on grids and text
-- Images: ONLY https://picsum.photos/WIDTH/HEIGHT?random=SEED or https://placehold.co/WIDTHxHEIGHT?text=TEXT
+- Images: Use ONLY __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ for img src. Hero MUST use __IMAGE_1__ (same image for preview card thumbnail and Hero component). All other image placeholders use __IMAGE_2__ or __IMAGE_3__ (repeat as needed). No picsum or placehold.
+- Hero section (first section on Home): MUST use __IMAGE_1__ as the main banner — either as background image (e.g. style={{ backgroundImage: 'url(__IMAGE_1__)' }}) or as full-width <img src="__IMAGE_1__" /> with object-cover. Add a dark overlay so text is readable. This same __IMAGE_1__ is used for the project preview thumbnail.
 - NO placeholder text, NO Lorem Ipsum, NO "..." — write real specific content
 - NO markdown code blocks in code/files content
 
@@ -395,7 +395,7 @@ function App() {
       { value: '98%', label: 'Satisfaction' },
     ];
     const testimonials = [
-      { name: 'John', role: 'CEO', quote: '...', avatar: 'https://picsum.photos/50/50?random=10' },
+      { name: 'John', role: 'CEO', quote: '...', avatar: '__IMAGE_2__' },
     ];
     return (
       <>

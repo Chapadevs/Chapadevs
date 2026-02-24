@@ -25,7 +25,7 @@ import ProgrammersTab from './tabs/ProgrammersTab/ProgrammersTab'
 import CommentsTab from './tabs/CommentsTab/CommentsTab'
 import ActivityTab from './tabs/ActivityTab/ActivityTab'
 
-const MAX_PREVIEWS_PER_PROJECT = 10
+const MAX_PREVIEWS_PER_PROJECT = 3
 
 function ProjectDetail() {
   const { id } = useParams()

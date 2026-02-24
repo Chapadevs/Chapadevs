@@ -39,7 +39,7 @@ class VertexAIService {
   /**
    * GENERATES THE COMBINED PREVIEW: analysis + code in one call
    */
-  async generateCombinedPreview(prompt, userInputs, modelId = 'gemini-2.0-flash') {
+  async generateCombinedPreview(prompt, userInputs, modelId = 'gemini-2.5-pro') {
     if (!this.initialized || !this.vertex) {
       console.warn('⚠️ Vertex AI not initialized, using mock data');
       return generateMockCombined(prompt, userInputs, this.cache);
@@ -88,7 +88,7 @@ class VertexAIService {
    * STREAMING: combined preview with real-time chunks via onChunk(text).
    * Returns { result, usage } when stream ends. Does not use cache (streaming is always live).
    */
-  async generateCombinedPreviewStream(prompt, userInputs, modelId = 'gemini-2.0-flash', onChunk) {
+  async generateCombinedPreviewStream(prompt, userInputs, modelId = 'gemini-2.5-pro', onChunk) {
     if (!this.initialized || !this.vertex) {
       console.warn('⚠️ Vertex AI not initialized');
       const mock = await generateMockCombined(prompt, userInputs, this.cache);
@@ -180,7 +180,7 @@ class VertexAIService {
   /**
    * REGENERATE: For styling updates on existing code
    */
-  async regenerateWithContext(cachedCode, modifications, modelId = 'gemini-2.0-flash') {
+  async regenerateWithContext(cachedCode, modifications, modelId = 'gemini-2.5-pro') {
     if (!this.initialized || !this.vertex) return { htmlCode: cachedCode, fromCache: false, usage: null };
 
     const model = await this.getModel(modelId);
@@ -230,7 +230,7 @@ class VertexAIService {
 
   // --- HELPERS & STATUS ---
 
-  async getModel(modelId = 'gemini-2.0-flash') {
+  async getModel(modelId = 'gemini-2.5-pro') {
     return getModel(this.vertex, this.modelInstances, modelId);
   }
 

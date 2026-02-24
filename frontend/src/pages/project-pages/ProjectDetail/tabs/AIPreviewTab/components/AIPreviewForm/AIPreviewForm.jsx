@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react'
-import { SecondaryButton, Button, Alert, Select, Textarea } from '../../../../../../../components/ui-components'
+import { SecondaryButton, Button, Alert, Textarea } from '../../../../../../../components/ui-components'
 import './AIPreviewForm.css'
 
 /** Make streamed JSON/code readable: literal \n → newline, \t → tab, \" → ", \\ → \ */
@@ -82,43 +82,25 @@ const AIPreviewForm = ({
               <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block whitespace-nowrap">
                 {generateFormData.prompt?.length || 0} characters
               </span>
-              
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Select
-                  id="preview-modelId"
-                  value={generateFormData.modelId}
-                  onChange={(e) => handleChange('modelId', e.target.value)}
-                  className="text-xs px-1 min-h-0 w-32" // Reduced sizing of select box
-                  wrapperClassName=""
-                  aria-label="AI Model"
+
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <SecondaryButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-ink-muted hover:text-ink font-normal lowercase px-2"
+                  onClick={onCancel}
                 >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                </Select>
-
-                <div className="flex items-center gap-1 ml-2">
-
-                  <SecondaryButton
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-ink-muted hover:text-ink font-normal lowercase px-2"
-                    onClick={onCancel}
-                  >
-                    cancel
-                  </SecondaryButton>
-
-                  <Button
-                    type="submit"
-                    disabled={!generateFormData.prompt}
-                    size="sm"
-                    className="h-7 px-3 text-xs font-medium rounded-lg shadow-sm"
-                  >
-                    Generate
-                  </Button>
-                  
-                </div>
-
+                  cancel
+                </SecondaryButton>
+                <Button
+                  type="submit"
+                  disabled={!generateFormData.prompt}
+                  size="sm"
+                  className="h-7 px-3 text-xs font-medium rounded-lg shadow-sm"
+                >
+                  Generate
+                </Button>
               </div>
 
             </div>

@@ -5,6 +5,7 @@ import AIPreview from '../models/AIPreview.js'
 import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
 import { logProjectActivity } from '../utils/activityLogger.js'
 import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
+import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
@@ -813,6 +814,18 @@ export const getProjectPreviews = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
+  previews.forEach((p) => {
+    normalizePreviewMetadata(p.metadata)
+    if (p.metadata?.generatedImageUrls?.length) {
+      const inj = injectGeneratedImages(
+        p.metadata.websitePreviewCode,
+        p.metadata.websitePreviewFiles,
+        p.metadata.generatedImageUrls
+      )
+      p.metadata.websitePreviewCode = inj.code
+      if (inj.files) p.metadata.websitePreviewFiles = inj.files
+    }
+  })
   res.json(previews)
 })
 

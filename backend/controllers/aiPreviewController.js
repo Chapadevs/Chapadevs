@@ -4,6 +4,10 @@ import User from '../models/User.js'
 import { logProjectActivity } from '../utils/activityLogger.js'
 import asyncHandler from 'express-async-handler'
 import vertexAIService from '../services/vertexAI/index.js'
+import { generateImagesForPreview } from '../services/vertexAI/imageGeneration.js'
+import { injectGeneratedImages, normalizePreviewMetadata } from '../services/vertexAI/responseParser.js'
+import { buildDefineFiles } from '../utils/codesandboxDefine.js'
+import { resizeImagesForCodesandbox } from '../utils/resizeImagesForCodesandbox.js'
 import costMonitor from '../middleware/costMonitoring.js'
 
 const ESTIMATED_TOKENS_PER_REQUEST = 20000
@@ -40,15 +44,13 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       projectId,
       status: 'completed'
     })
-    if (projectPreviewCount >= 10) {
+    if (projectPreviewCount >= 3) {
       res.status(400)
-      throw new Error('This project already has 10 AI previews. Delete one to generate another.')
+      throw new Error('This project already has 3 AI previews. Delete one to generate another.')
     }
   }
 
-  // Use provided modelId or default to gemini-2.0-flash
-  const selectedModelId = modelId || 'gemini-2.0-flash'
-
+  const selectedModelId = modelId || 'gemini-2.5-pro'
 
   // CREATES THE PREVIEW RECORD: userId, projectId, prompt, previewType, previewResult, status, metadata
   const preview = await AIPreview.create({
@@ -78,9 +80,22 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     }
 
     // Extract analysis, code (always set for display/legacy), and optional files from combined result
-    const analysis = result.analysis || {}
-    const code = result.code || ''
-    const files = result.files && typeof result.files === 'object' ? result.files : null
+    let analysis = result.analysis || {}
+    let code = result.code || ''
+    let files = result.files && typeof result.files === 'object' ? result.files : null
+
+    // Generate 3 images: 1 hero (preview thumbnail + Hero), 2 others for all image placeholders
+    let dataUrls = []
+    if (process.env.GCP_PROJECT_ID && process.env.ENABLE_GEMINI_IMAGE_GEN !== 'false' && (code || files)) {
+      try {
+        dataUrls = await generateImagesForPreview(analysis, prompt, 3)
+      } catch (imgErr) {
+        console.warn('Preview image generation skipped:', imgErr.message)
+      }
+    }
+    const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
+    // Store code/files with __IMAGE_1__ etc. placeholders; store generatedImageUrls so we can inject when serving
+    const injected = injectGeneratedImages(code, files, dataUrls)
 
     // Convert analysis to JSON string for storage
     const analysisJson = JSON.stringify(analysis)
@@ -88,7 +103,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     const totalTokenCount = usage?.totalTokenCount ?? 0
     const estimatedTokens = totalTokenCount > 0
       ? totalTokenCount
-      : Math.ceil(analysisJson.length / 4) + Math.ceil(code.length / 4)
+      : Math.ceil(analysisJson.length / 4) + Math.ceil((code || '').length / 4)
 
     preview.previewResult = analysisJson
     preview.status = 'completed'
@@ -97,6 +112,8 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       ...preview.metadata,
       websitePreviewCode: code,
       ...(files && { websitePreviewFiles: files }),
+      ...(dataUrls.length > 0 && { generatedImageUrls: dataUrls }),
+      ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,
@@ -108,6 +125,11 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     await preview.save()
     if (preview.projectId) {
       await logProjectActivity(preview.projectId, req.user._id, 'preview.generated', 'preview', preview._id, {})
+    }
+    try {
+      await createAndCacheCodesandbox(preview)
+    } catch (_) {
+      // Helper logs internally; generation success not blocked
     }
 
     const usagePayload = {
@@ -121,8 +143,8 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       previewType: preview.previewType,
       status: 'completed',
       result: analysis,
-      websitePreview: code ? { htmlCode: code, isMock: isMock === true } : null,
-      ...(files && { websitePreviewFiles: files }),
+      websitePreview: injected.code ? { htmlCode: injected.code, isMock: isMock === true } : null,
+      ...(injected.files && { websitePreviewFiles: injected.files }),
       fromCache: fromCache === true,
       websiteIsMock: isMock === true,
       tokenUsage: estimatedTokens,
@@ -146,6 +168,66 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
 /** Send SSE event (newline-delimited JSON). */
 function sendSSE(res, data) {
   res.write(`data: ${JSON.stringify(data)}\n\n`)
+}
+
+/**
+ * Create CodeSandbox sandbox for a preview and cache URLs in metadata.
+ * Does not throw; logs errors so generation success is not blocked.
+ * Resizes images to stay under CodeSandbox 20MB limit; falls back to placeholders if resize fails.
+ * @param {import('../models/AIPreview.js').default} preview - Saved preview document with metadata
+ */
+async function createAndCacheCodesandbox(preview) {
+  if (preview.metadata?.codesandboxEmbedUrl) return
+  normalizePreviewMetadata(preview.metadata)
+  let meta = preview.metadata
+  let urlsForPayload = []
+  if (meta?.generatedImageUrls?.length) {
+    try {
+      urlsForPayload = await resizeImagesForCodesandbox(meta.generatedImageUrls)
+    } catch (_) {}
+  }
+  const injected = injectGeneratedImages(
+    meta.websitePreviewCode,
+    meta.websitePreviewFiles,
+    urlsForPayload
+  )
+  meta = { ...meta, websitePreviewCode: injected.code, websitePreviewFiles: injected.files }
+  const files = buildDefineFiles(meta)
+  if (!files['/App.js']?.content) {
+    console.warn('CodeSandbox skip: preview has no App code', preview._id)
+    return
+  }
+  try {
+    const filesForApi = Object.fromEntries(
+      Object.entries(files).map(([path, value]) => [path.replace(/^\//, ''), value])
+    )
+    const response = await fetch('https://codesandbox.io/api/v1/sandboxes/define?json=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: filesForApi }),
+      redirect: 'follow',
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      console.warn('CodeSandbox define failed:', response.status, text?.slice(0, 300))
+      return
+    }
+    const data = await response.json()
+    const sandboxId = data.sandbox_id || data.sandboxId
+    if (!sandboxId) {
+      console.warn('CodeSandbox define: no sandbox id in response', preview._id)
+      return
+    }
+    preview.metadata = {
+      ...preview.metadata,
+      codesandboxSandboxId: sandboxId,
+      codesandboxEmbedUrl: `https://codesandbox.io/embed/${sandboxId}?view=preview&hidenavigation=1`,
+      codesandboxEditorUrl: `https://codesandbox.io/s/${sandboxId}`,
+    }
+    await preview.save()
+  } catch (err) {
+    console.warn('CodeSandbox createAndCache error:', err.message, 'previewId:', preview._id)
+  }
 }
 
 // @desc    Generate AI preview with streaming (real-time thinking in form area)
@@ -177,13 +259,13 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
       projectId,
       status: 'completed'
     })
-    if (projectPreviewCount >= 10) {
-      res.status(400).json({ error: 'This project already has 10 AI previews. Delete one to generate another.' })
+    if (projectPreviewCount >= 3) {
+      res.status(400).json({ error: 'This project already has 3 AI previews. Delete one to generate another.' })
       return
     }
   }
 
-  const selectedModelId = modelId || 'gemini-2.0-flash'
+  const selectedModelId = modelId || 'gemini-2.5-pro'
 
   const preview = await AIPreview.create({
     userId: req.user._id,
@@ -221,11 +303,22 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
       return
     }
 
-    const analysis = result.analysis || {}
-    const code = result.code || ''
-    const files = result.files && typeof result.files === 'object' ? result.files : null
+    let analysis = result.analysis || {}
+    let code = result.code || ''
+    let files = result.files && typeof result.files === 'object' ? result.files : null
+
+    let dataUrls = []
+    if (process.env.GCP_PROJECT_ID && process.env.ENABLE_GEMINI_IMAGE_GEN !== 'false' && (code || files)) {
+      try {
+        dataUrls = await generateImagesForPreview(analysis, prompt, 3)
+      } catch (imgErr) {
+        console.warn('Preview image generation skipped:', imgErr.message)
+      }
+    }
+    const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
+    // Store code/files with placeholders; store generatedImageUrls so we inject when serving
     const analysisJson = JSON.stringify(analysis)
-    const estimatedTokens = usage?.totalTokenCount ?? Math.ceil(analysisJson.length / 4) + Math.ceil(code.length / 4)
+    const estimatedTokens = usage?.totalTokenCount ?? Math.ceil(analysisJson.length / 4) + Math.ceil((code || '').length / 4)
 
     preview.previewResult = analysisJson
     preview.status = 'completed'
@@ -234,6 +327,8 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
       ...preview.metadata,
       websitePreviewCode: code,
       ...(files && { websitePreviewFiles: files }),
+      ...(dataUrls.length > 0 && { generatedImageUrls: dataUrls }),
+      ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,
@@ -246,6 +341,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     if (preview.projectId) {
       await logProjectActivity(preview.projectId, req.user._id, 'preview.generated', 'preview', preview._id, {})
     }
+    createAndCacheCodesandbox(preview).catch(() => {})
 
     if (!usage) costMonitor.trackCacheHit()
     else costMonitor.trackAPICall()
@@ -259,10 +355,13 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     })
   } catch (error) {
     costMonitor.trackError()
+    // Send SSE error first so client gets the message; do not rethrow so error middleware is not invoked
+    try {
+      sendSSE(res, { type: 'error', message: error.message || 'AI generation failed' })
+    } catch (_) { /* client may have disconnected */ }
     preview.status = 'failed'
     preview.previewResult = error.message
-    await preview.save()
-    sendSSE(res, { type: 'error', message: error.message || 'AI generation failed' })
+    preview.save().catch((saveErr) => console.error('AI preview save failed:', saveErr.message))
   }
 
   res.end()
@@ -326,6 +425,18 @@ export const getAIPreviews = asyncHandler(async (req, res) => {
     .populate('projectId', 'title status')
     .sort({ createdAt: -1 })
 
+  previews.forEach((p) => {
+    normalizePreviewMetadata(p.metadata)
+    if (p.metadata?.generatedImageUrls?.length) {
+      const inj = injectGeneratedImages(
+        p.metadata.websitePreviewCode,
+        p.metadata.websitePreviewFiles,
+        p.metadata.generatedImageUrls
+      )
+      p.metadata.websitePreviewCode = inj.code
+      if (inj.files) p.metadata.websitePreviewFiles = inj.files
+    }
+  })
   res.json(previews)
 })
 
@@ -351,7 +462,110 @@ export const getAIPreviewById = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to view this preview')
   }
 
+  normalizePreviewMetadata(preview.metadata)
+  if (preview.metadata?.generatedImageUrls?.length) {
+    const inj = injectGeneratedImages(
+      preview.metadata.websitePreviewCode,
+      preview.metadata.websitePreviewFiles,
+      preview.metadata.generatedImageUrls
+    )
+    preview.metadata.websitePreviewCode = inj.code
+    if (inj.files) preview.metadata.websitePreviewFiles = inj.files
+  }
   res.json(preview)
+})
+
+// @desc    Get CodeSandbox embed URL for preview (create sandbox via define API if not cached)
+// @route   GET /api/ai-previews/:id/codesandbox-embed
+// @access  Private
+export const getCodesandboxEmbed = asyncHandler(async (req, res) => {
+  const preview = await AIPreview.findById(req.params.id)
+
+  if (!preview) {
+    res.status(404)
+    throw new Error('AI preview not found')
+  }
+
+  if (
+    preview.userId.toString() !== req.user._id.toString() &&
+    req.user.role !== 'admin'
+  ) {
+    res.status(403)
+    throw new Error('Not authorized to view this preview')
+  }
+
+  const cached = preview.metadata?.codesandboxEmbedUrl
+  if (cached) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    return res.json({
+      embedUrl: preview.metadata.codesandboxEmbedUrl,
+      editorUrl: preview.metadata.codesandboxEditorUrl || `https://codesandbox.io/s/${preview.metadata.codesandboxSandboxId}`,
+      sandboxId: preview.metadata.codesandboxSandboxId,
+    })
+  }
+
+  // Normalize App.js (e.g. fix "App() {" → "function App() {") so CodeSandbox receives valid code
+  normalizePreviewMetadata(preview.metadata)
+
+  let meta = preview.metadata
+  let urlsForPayload = []
+  if (meta?.generatedImageUrls?.length) {
+    try {
+      urlsForPayload = await resizeImagesForCodesandbox(meta.generatedImageUrls)
+    } catch (_) {}
+  }
+  const injected = injectGeneratedImages(
+    meta.websitePreviewCode,
+    meta.websitePreviewFiles,
+    urlsForPayload
+  )
+  meta = { ...meta, websitePreviewCode: injected.code, websitePreviewFiles: injected.files }
+  const files = buildDefineFiles(meta)
+  if (!files['/App.js']?.content) {
+    res.status(400)
+    throw new Error('Preview has no App code to embed')
+  }
+
+  try {
+    const filesForApi = Object.fromEntries(
+      Object.entries(files).map(([path, value]) => [path.replace(/^\//, ''), value])
+    )
+    const response = await fetch('https://codesandbox.io/api/v1/sandboxes/define?json=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: filesForApi }),
+      redirect: 'follow',
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      console.error('CodeSandbox define API failed:', response.status, text?.slice(0, 500))
+      throw new Error(`CodeSandbox define failed: ${response.status} ${text}`)
+    }
+
+    const data = await response.json()
+    const sandboxId = data.sandbox_id || data.sandboxId
+    if (!sandboxId) {
+      throw new Error('CodeSandbox did not return a sandbox id')
+    }
+
+    const embedUrl = `https://codesandbox.io/embed/${sandboxId}?view=preview&hidenavigation=1`
+    const editorUrl = `https://codesandbox.io/s/${sandboxId}`
+
+    preview.metadata = {
+      ...preview.metadata,
+      codesandboxSandboxId: sandboxId,
+      codesandboxEmbedUrl: embedUrl,
+      codesandboxEditorUrl: editorUrl,
+    }
+    await preview.save()
+
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    res.json({ embedUrl, editorUrl, sandboxId })
+  } catch (err) {
+    console.error('CodeSandbox embed error:', err.message, 'previewId:', req.params.id)
+    res.status(502)
+    throw new Error(err.message || 'Failed to create CodeSandbox preview')
+  }
 })
 
 // @desc    Delete AI preview
@@ -411,8 +625,7 @@ export const regenerateAIPreview = asyncHandler(async (req, res) => {
     throw new Error('No cached code found for regeneration')
   }
 
-  // Use provided modelId or default to gemini-2.0-flash
-  const selectedModelId = modelId || 'gemini-2.0-flash'
+  const selectedModelId = modelId || 'gemini-2.5-pro'
 
   try {
     const { htmlCode, usage } = await vertexAIService.regenerateWithContext(
@@ -427,9 +640,13 @@ export const regenerateAIPreview = asyncHandler(async (req, res) => {
       costMonitor.trackAPICall()
     }
 
-    // Update preview with new code
+    // Update preview with new code; clear CodeSandbox cache so next embed creates new sandbox
+    const meta = { ...(preview.metadata || {}) }
+    delete meta.codesandboxSandboxId
+    delete meta.codesandboxEmbedUrl
+    delete meta.codesandboxEditorUrl
     preview.metadata = {
-      ...preview.metadata,
+      ...meta,
       websitePreviewCode: htmlCode,
       modelId: selectedModelId,
       lastRegenerated: new Date(),

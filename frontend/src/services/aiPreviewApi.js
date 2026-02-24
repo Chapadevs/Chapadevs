@@ -98,6 +98,15 @@ export const getAIPreviewById = async (id) => {
   return response.data
 }
 
+/** Get CodeSandbox embed URL for a preview (creates sandbox via define API if not cached). */
+export const getCodesandboxEmbed = async (id) => {
+  const response = await api.get(`/ai-previews/${id}/codesandbox-embed`, {
+    params: { _: Date.now() },
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+  })
+  return response.data
+}
+
 export const deleteAIPreview = async (id) => {
   const response = await api.delete(`/ai-previews/${id}`)
   return response.data

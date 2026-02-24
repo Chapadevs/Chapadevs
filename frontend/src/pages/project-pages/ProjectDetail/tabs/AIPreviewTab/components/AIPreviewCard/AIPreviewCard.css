@@ -65,6 +65,15 @@
   scroll-margin-top: 80px;
 }
 
+.project-preview-incomplete {
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  background: #fef3c7;
+  border-left: 4px solid #d97706;
+  font-size: 0.9rem;
+  color: #92400e;
+}
+
 .project-preview-iframe-wrap {
   position: relative;
   z-index: 150;

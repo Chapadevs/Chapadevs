@@ -5,6 +5,7 @@ import {
   getAIPreviewUsage,
   getAIPreviews,
   getAIPreviewById,
+  getCodesandboxEmbed,
   deleteAIPreview,
   regenerateAIPreview
 } from '../controllers/aiPreviewController.js'
@@ -22,6 +23,8 @@ router.post('/stream', generateAIPreviewStream)
 router.route('/')
   .post(generateAIPreview)
   .get(getAIPreviews)
+
+router.get('/:id/codesandbox-embed', getCodesandboxEmbed)
 
 router.route('/:id')
   .get(getAIPreviewById)

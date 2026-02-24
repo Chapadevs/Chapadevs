@@ -10,7 +10,7 @@ export async function initializeVertexAI() {
       return { vertex: null, model: null, initialized: false };
     }
     
-    const modelId = process.env.VERTEX_AI_MODEL || 'gemini-2.0-flash';
+    const modelId = process.env.VERTEX_AI_MODEL || 'gemini-2.5-pro';
     console.log(`🔧 Initializing Vertex AI for project: ${process.env.GCP_PROJECT_ID}`);
     console.log(`   Location: us-central1`);
     console.log(`   Model: ${modelId}`);
@@ -34,7 +34,7 @@ export async function initializeVertexAI() {
 
     console.log('   ✅ VertexAI instance created');
 
-    // Use Gemini 2.0 Flash (gemini-1.5-flash discontinued; 2.0 is current default)
+    // Use Gemini 2.5 Pro as default
     const model = vertex.getGenerativeModel({
       model: modelId,
       generationConfig: {
@@ -98,7 +98,7 @@ export async function initializeVertexAI() {
       console.error('   3. Check available models in your region:');
       console.error('      Visit: https://console.cloud.google.com/vertex-ai/model-garden?project=chapadevs-468722');
       console.error('   4. Try these model IDs:');
-      console.error('      - gemini-2.0-flash-exp (experimental, usually available)');
+      console.error('      - gemini-2.5-pro (default)');
       console.error('      - gemini-1.5-pro-002 (stable version)');
       console.error('      - gemini-1.5-flash-002 (faster alternative)');
       console.error('   5. Note: Some models may not be available in all regions');

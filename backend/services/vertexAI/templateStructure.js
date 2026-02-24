@@ -67,7 +67,7 @@ export const DEFAULT_STYLE = 'modern';
 // ---------------------------------------------------------------------------
 export const SHARED_COMPONENTS = {
   header:
-    'Header/Navbar (sticky top-0 z-50 bg-white shadow): Logo button (navigates to home on click), nav buttons for each page, optional CTA button. Hamburger menu on mobile with useState toggle. All nav uses onClick with setCurrentPage, NEVER href.',
+    'Header/Navbar (sticky top-0 z-50 bg-white shadow): Logo button (navigates to home on click), nav buttons for each page, optional CTA button. Hamburger menu on mobile with useState toggle — use inline SVG or emoji (☰) for menu/close icons, NEVER Heroicons or other icon libraries. All nav uses onClick with setCurrentPage, NEVER href.',
   footer:
     'Footer (bg-gray-900 text-white py-12): Business name, copyright year, quick nav links (onClick, not href), social media icon links, brief contact info.',
 };
@@ -77,6 +77,7 @@ export const SHARED_COMPONENTS = {
 // ---------------------------------------------------------------------------
 export const UI_RULES = [
   'Each page MUST have ALL the numbered sections listed above - do NOT skip any',
+  'Hero section MUST use __IMAGE_1__ as the main banner (background image or full-width img). Add dark overlay for text contrast. Do NOT use gradient-only hero — __IMAGE_1__ is the same image used for the project preview thumbnail and the Hero component.',
   'Alternate section backgrounds: white, gray-50, gradient, colored — no two adjacent sections should look the same',
   'Use varied layouts per section: card grids, two-column text+image, full-width banners, centered content blocks',
   'Visual polish: box-shadow (shadow-lg), rounded corners (rounded-xl), hover transitions (transition-all duration-300 hover:shadow-xl hover:-translate-y-1)',
@@ -84,6 +85,7 @@ export const UI_RULES = [
   'Generous vertical spacing between sections (py-16 or py-20)',
   'Responsive: sm:, md:, lg: breakpoints on all grids and text sizes',
   'Real specific content everywhere — NO "Lorem ipsum", NO placeholder text, NO "..." truncation',
+  'NO icon libraries: do NOT import or use Heroicons, Lucide, Font Awesome, or any external icon package. Use only inline SVG (e.g. <svg>...</svg>) or emoji (e.g. ☰ for menu) for icons. Hamburger/menu toggle must be inline SVG or text, never from @heroicons/react or similar.',
 ];
 
 // ---------------------------------------------------------------------------
@@ -95,6 +97,7 @@ export const CODE_RULES = [
   'Same for services, products, testimonials, team members, FAQ items, stats, etc.',
   'This avoids repeating similar JSX blocks and dramatically reduces code size',
   'Reuse a single card layout via .map() instead of writing each card separately',
+  'Icons: use ONLY inline <svg> or emoji. NEVER import from @heroicons/react, lucide-react, react-icons, or any icon library — the preview environment has no extra dependencies.',
 ];
 
 // ---------------------------------------------------------------------------
@@ -107,7 +110,7 @@ export const BUSINESS_PAGES = {
       {
         id: 'hero',
         instruction:
-          'Full-width gradient banner with business name "{businessName}", tagline about the business, and primary CTA button ("Get Started" or "Learn More"). Min height py-24.',
+          'Full-width hero section with __IMAGE_1__ as the main banner: use it as background image (e.g. style with backgroundImage url(__IMAGE_1__)) or as full-width img src __IMAGE_1__ with object-cover. Add dark overlay (bg-black/50 or similar) for text contrast. Center business name "{businessName}", tagline, and primary CTA button ("Get Started" or "Learn More"). Min height py-24.',
       },
       {
         id: 'features',
@@ -122,7 +125,7 @@ export const BUSINESS_PAGES = {
       {
         id: 'testimonials',
         instruction:
-          'Section title "What Our Clients Say". 3 testimonial cards with avatar (picsum.photos/50/50), client name, role/company, star rating (unicode stars), and quote text. Grid layout.',
+          'Section title "What Our Clients Say". 3 testimonial cards with avatar (use __IMAGE_2__ or __IMAGE_3__, images can repeat), client name, role/company, star rating (unicode stars), and quote text. Grid layout.',
       },
       {
         id: 'cta',
@@ -142,12 +145,12 @@ export const BUSINESS_PAGES = {
       {
         id: 'companyStory',
         instruction:
-          'Two-column layout (md:grid-cols-2) with text on left (real paragraphs about history, mission, values) and image on right (picsum.photos).',
+          'Two-column layout (md:grid-cols-2) with text on left (real paragraphs about history, mission, values) and image on right (use __IMAGE_2__).',
       },
       {
         id: 'team',
         instruction:
-          '3-4 team member cards in a grid. Each has avatar image (picsum.photos/200/200), name, role. Rounded-full avatar, hover shadow.',
+          '3-4 team member cards in a grid. Each has avatar image (use __IMAGE_2__ or __IMAGE_3__, can repeat), name, role. Rounded-full avatar, hover shadow.',
       },
       {
         id: 'statsMilestones',
@@ -157,7 +160,7 @@ export const BUSINESS_PAGES = {
       {
         id: 'gallery',
         instruction:
-          '4-6 images in a grid (picsum.photos) showing work/office/projects. Hover overlay with subtle text or zoom effect.',
+          '4-6 images in a grid (use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only; repeat as needed) showing work/office/projects. Hover overlay with subtle text or zoom effect.',
       },
     ],
   },
@@ -223,7 +226,7 @@ export const ECOMMERCE_PAGES = {
       {
         id: 'hero',
         instruction:
-          'Full-width gradient banner with store name "{businessName}", tagline about the store, and "Shop Now" CTA button. Min height py-24.',
+          'Full-width hero section with __IMAGE_1__ as the main banner: background image or full-width img src __IMAGE_1__ with object-cover. Add dark overlay (bg-black/50) for text contrast. Center store name "{businessName}", tagline, and "Shop Now" CTA button. Min height py-24.',
       },
       {
         id: 'promoBar',
@@ -233,17 +236,17 @@ export const ECOMMERCE_PAGES = {
       {
         id: 'featuredProducts',
         instruction:
-          'Section title "Trending Now" or "Best Sellers". 3-4 product cards in a grid with badge ("Best Seller"/"New"), image (picsum.photos), product name, price, and "Add to Cart" button. Hover shadow/scale.',
+          'Section title "Trending Now" or "Best Sellers". 3-4 product cards in a grid with badge ("Best Seller"/"New"), image (use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only; repeat as needed), product name, price, and "Add to Cart" button. Hover shadow/scale.',
       },
       {
         id: 'categories',
         instruction:
-          'Section with 4-6 category cards. Each has a background image (picsum.photos) with dark overlay and category name in white. Rounded corners, hover zoom effect.',
+          'Section with 4-6 category cards. Each has a background image (use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only; repeat as needed) with dark overlay and category name in white. Rounded corners, hover zoom effect.',
       },
       {
         id: 'testimonials',
         instruction:
-          '3 customer review cards with avatar (picsum.photos/50/50), name, star rating (unicode stars), and quote text. Grid or flex layout on bg-gray-50.',
+          '3 customer review cards with avatar (__IMAGE_2__ or __IMAGE_3__, can repeat), name, star rating (unicode stars), and quote text. Grid or flex layout on bg-gray-50.',
       },
       {
         id: 'newsletter',
@@ -263,7 +266,7 @@ export const ECOMMERCE_PAGES = {
       {
         id: 'companyStory',
         instruction:
-          'Two-column layout (md:grid-cols-2) with text on left (history, mission, values in real paragraphs) and image on right (picsum.photos).',
+          'Two-column layout (md:grid-cols-2) with text on left (history, mission, values in real paragraphs) and image on right (__IMAGE_2__).',
       },
       {
         id: 'stats',
@@ -273,7 +276,7 @@ export const ECOMMERCE_PAGES = {
       {
         id: 'team',
         instruction:
-          '3-4 team member cards in a grid. Each has avatar image (picsum.photos/200/200), name, role. Rounded-full avatar, hover shadow.',
+          '3-4 team member cards in a grid. Each has avatar image (__IMAGE_2__ or __IMAGE_3__, can repeat), name, role. Rounded-full avatar, hover shadow.',
       },
       {
         id: 'cta',
@@ -298,7 +301,7 @@ export const ECOMMERCE_PAGES = {
       {
         id: 'productGrid',
         instruction:
-          '6-12 product cards in responsive grid (grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4). Each card: image (picsum.photos), product name, short description, price, "Add to Cart" button. Hover shadow and scale transition.',
+          '6-12 product cards in responsive grid (grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4). Each card: image (use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only; repeat as needed), product name, short description, price, "Add to Cart" button. Hover shadow and scale transition.',
       },
       {
         id: 'cta',
