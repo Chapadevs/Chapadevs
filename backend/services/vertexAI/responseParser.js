@@ -17,7 +17,7 @@ export function hashString(str) {
  * Replace unsafe images. Allows data:image/ (Gemini-generated) and picsum/placehold.
  */
 export function fixBrokenImageSrc(html) {
-  const allowlist = ["picsum.photos", "placehold.co", "placeholder.com", "data:image/"];
+  const allowlist = ["picsum.photos", "placehold.co", "placeholder.com", "data:image/", "storage.googleapis.com"];
 
   const isAllowed = (src) =>
     (src || "").startsWith("data:image/") ||
@@ -51,7 +51,10 @@ export function fixBrokenImageSrc(html) {
 export function injectGeneratedImages(code, files, dataUrls) {
   const fallback = "https://placehold.co/400x300?text=Image";
   const urls = Array.isArray(dataUrls) ? dataUrls : [];
-  const valid = (u) => typeof u === "string" && u.trim().length > 0 && u.startsWith("data:image/");
+  const valid = (u) =>
+    typeof u === "string" &&
+    u.trim().length > 0 &&
+    (u.startsWith("data:image/") || u.startsWith("https://"));
   const getUrl = (slotIndex0Based) => {
     let idx = slotIndex0Based;
     if (slotIndex0Based >= 3) {

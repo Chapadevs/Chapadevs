@@ -6,6 +6,7 @@ import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
 import { logProjectActivity } from '../utils/activityLogger.js'
 import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
 import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
+import { getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
@@ -814,18 +815,27 @@ export const getProjectPreviews = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
-  previews.forEach((p) => {
+  for (const p of previews) {
     normalizePreviewMetadata(p.metadata)
-    if (p.metadata?.generatedImageUrls?.length) {
+    let urlsForInject = []
+    if (p.metadata?.generatedImageGcsPaths?.length) {
+      urlsForInject = await getSignedUrlsForPaths(p.metadata.generatedImageGcsPaths, 3600000)
+      if (urlsForInject.length > 0) {
+        p.metadata.previewThumbnailUrl = urlsForInject[0]
+      }
+    } else if (p.metadata?.generatedImageUrls?.length) {
+      urlsForInject = p.metadata.generatedImageUrls
+    }
+    if (urlsForInject.length > 0) {
       const inj = injectGeneratedImages(
         p.metadata.websitePreviewCode,
         p.metadata.websitePreviewFiles,
-        p.metadata.generatedImageUrls
+        urlsForInject
       )
       p.metadata.websitePreviewCode = inj.code
       if (inj.files) p.metadata.websitePreviewFiles = inj.files
     }
-  })
+  }
   res.json(previews)
 })
 

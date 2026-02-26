@@ -92,6 +92,7 @@ const ProjectSidebar = ({
               })}
             </SidebarMenu>
           </SidebarGroupContent>
+            <div className="flex w-full justify-center pt-2 group-data-[collapsible=icon]:pt-4">
             <StatusDropdown 
               trigger={
                 <div className="relative cursor-pointer">
@@ -111,6 +112,7 @@ const ProjectSidebar = ({
                 </div>
               } 
             />
+            </div>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>

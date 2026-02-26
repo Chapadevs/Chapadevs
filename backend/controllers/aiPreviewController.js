@@ -8,6 +8,7 @@ import { generateImagesForPreview } from '../services/vertexAI/imageGeneration.j
 import { injectGeneratedImages, normalizePreviewMetadata } from '../services/vertexAI/responseParser.js'
 import { buildDefineFiles } from '../utils/codesandboxDefine.js'
 import { resizeImagesForCodesandbox } from '../utils/resizeImagesForCodesandbox.js'
+import { uploadBase64ImagesToGCS, getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
 import costMonitor from '../middleware/costMonitoring.js'
 
 const ESTIMATED_TOKENS_PER_REQUEST = 20000
@@ -93,9 +94,25 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
         console.warn('Preview image generation skipped:', imgErr.message)
       }
     }
-    const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
-    // Store code/files with __IMAGE_1__ etc. placeholders; store generatedImageUrls so we can inject when serving
-    const injected = injectGeneratedImages(code, files, dataUrls)
+    let urlsForResponse = dataUrls
+    let metadataImageFields = {}
+    if (dataUrls.length > 0) {
+      const gcsPaths = await uploadBase64ImagesToGCS(dataUrls, preview._id.toString())
+      if (gcsPaths.length > 0) {
+        metadataImageFields = {
+          generatedImageGcsPaths: gcsPaths,
+          previewThumbnailGcsPath: gcsPaths[0],
+        }
+        urlsForResponse = await getSignedUrlsForPaths(gcsPaths, 3600000)
+      } else {
+        const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
+        metadataImageFields = {
+          generatedImageUrls: dataUrls,
+          ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
+        }
+      }
+    }
+    const injected = injectGeneratedImages(code, files, urlsForResponse)
 
     // Convert analysis to JSON string for storage
     const analysisJson = JSON.stringify(analysis)
@@ -112,8 +129,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       ...preview.metadata,
       websitePreviewCode: code,
       ...(files && { websitePreviewFiles: files }),
-      ...(dataUrls.length > 0 && { generatedImageUrls: dataUrls }),
-      ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
+      ...metadataImageFields,
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,
@@ -181,7 +197,9 @@ async function createAndCacheCodesandbox(preview) {
   normalizePreviewMetadata(preview.metadata)
   let meta = preview.metadata
   let urlsForPayload = []
-  if (meta?.generatedImageUrls?.length) {
+  if (meta?.generatedImageGcsPaths?.length) {
+    urlsForPayload = await getSignedUrlsForPaths(meta.generatedImageGcsPaths, 604800000)
+  } else if (meta?.generatedImageUrls?.length) {
     try {
       urlsForPayload = await resizeImagesForCodesandbox(meta.generatedImageUrls)
     } catch (_) {}
@@ -315,8 +333,22 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
         console.warn('Preview image generation skipped:', imgErr.message)
       }
     }
-    const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
-    // Store code/files with placeholders; store generatedImageUrls so we inject when serving
+    let metadataImageFields = {}
+    if (dataUrls.length > 0) {
+      const gcsPaths = await uploadBase64ImagesToGCS(dataUrls, preview._id.toString())
+      if (gcsPaths.length > 0) {
+        metadataImageFields = {
+          generatedImageGcsPaths: gcsPaths,
+          previewThumbnailGcsPath: gcsPaths[0],
+        }
+      } else {
+        const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
+        metadataImageFields = {
+          generatedImageUrls: dataUrls,
+          ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
+        }
+      }
+    }
     const analysisJson = JSON.stringify(analysis)
     const estimatedTokens = usage?.totalTokenCount ?? Math.ceil(analysisJson.length / 4) + Math.ceil((code || '').length / 4)
 
@@ -327,8 +359,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
       ...preview.metadata,
       websitePreviewCode: code,
       ...(files && { websitePreviewFiles: files }),
-      ...(dataUrls.length > 0 && { generatedImageUrls: dataUrls }),
-      ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
+      ...metadataImageFields,
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,
@@ -425,18 +456,27 @@ export const getAIPreviews = asyncHandler(async (req, res) => {
     .populate('projectId', 'title status')
     .sort({ createdAt: -1 })
 
-  previews.forEach((p) => {
+  for (const p of previews) {
     normalizePreviewMetadata(p.metadata)
-    if (p.metadata?.generatedImageUrls?.length) {
+    let urlsForInject = []
+    if (p.metadata?.generatedImageGcsPaths?.length) {
+      urlsForInject = await getSignedUrlsForPaths(p.metadata.generatedImageGcsPaths, 3600000)
+      if (urlsForInject.length > 0) {
+        p.metadata.previewThumbnailUrl = urlsForInject[0]
+      }
+    } else if (p.metadata?.generatedImageUrls?.length) {
+      urlsForInject = p.metadata.generatedImageUrls
+    }
+    if (urlsForInject.length > 0) {
       const inj = injectGeneratedImages(
         p.metadata.websitePreviewCode,
         p.metadata.websitePreviewFiles,
-        p.metadata.generatedImageUrls
+        urlsForInject
       )
       p.metadata.websitePreviewCode = inj.code
       if (inj.files) p.metadata.websitePreviewFiles = inj.files
     }
-  })
+  }
   res.json(previews)
 })
 
@@ -463,11 +503,20 @@ export const getAIPreviewById = asyncHandler(async (req, res) => {
   }
 
   normalizePreviewMetadata(preview.metadata)
-  if (preview.metadata?.generatedImageUrls?.length) {
+  let urlsForInject = []
+  if (preview.metadata?.generatedImageGcsPaths?.length) {
+    urlsForInject = await getSignedUrlsForPaths(preview.metadata.generatedImageGcsPaths, 3600000)
+    if (urlsForInject.length > 0) {
+      preview.metadata.previewThumbnailUrl = urlsForInject[0]
+    }
+  } else if (preview.metadata?.generatedImageUrls?.length) {
+    urlsForInject = preview.metadata.generatedImageUrls
+  }
+  if (urlsForInject.length > 0) {
     const inj = injectGeneratedImages(
       preview.metadata.websitePreviewCode,
       preview.metadata.websitePreviewFiles,
-      preview.metadata.generatedImageUrls
+      urlsForInject
     )
     preview.metadata.websitePreviewCode = inj.code
     if (inj.files) preview.metadata.websitePreviewFiles = inj.files
@@ -504,12 +553,13 @@ export const getCodesandboxEmbed = asyncHandler(async (req, res) => {
     })
   }
 
-  // Normalize App.js (e.g. fix "App() {" → "function App() {") so CodeSandbox receives valid code
   normalizePreviewMetadata(preview.metadata)
 
   let meta = preview.metadata
   let urlsForPayload = []
-  if (meta?.generatedImageUrls?.length) {
+  if (meta?.generatedImageGcsPaths?.length) {
+    urlsForPayload = await getSignedUrlsForPaths(meta.generatedImageGcsPaths, 604800000)
+  } else if (meta?.generatedImageUrls?.length) {
     try {
       urlsForPayload = await resizeImagesForCodesandbox(meta.generatedImageUrls)
     } catch (_) {}

@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { generateAIPreviewStream, deleteAIPreview } from '../../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
-import { Card, CardContent, Skeleton } from '../../../../../components/ui-components'
 import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
+import AIPreviewCardSkeleton from './components/AIPreviewCardSkeleton/AIPreviewCardSkeleton'
 import './AIPreviewTab.css'
 
 const MAX_PREVIEWS_PER_PROJECT = 3
@@ -93,7 +93,7 @@ const AIPreviewTab = ({
     })
   }
 
-  const handleDeletePreview = async (previewId) => {
+  const handleDeletePreview = useCallback(async (previewId) => {
     if (!window.confirm('Delete this AI preview?')) return
     try {
       await deleteAIPreview(previewId)
@@ -101,9 +101,9 @@ const AIPreviewTab = ({
     } catch (err) {
       setError(err.message || 'Failed to delete preview')
     }
-  }
+  }, [loadPreviews, setError])
 
-  const handleCopyPreviewCode = async (previewId, code) => {
+  const handleCopyPreviewCode = useCallback(async (previewId, code) => {
     if (!code) return
     try {
       await navigator.clipboard.writeText(code)
@@ -112,11 +112,11 @@ const AIPreviewTab = ({
     } catch (err) {
       console.error('Failed to copy', err)
     }
-  }
+  }, [])
 
-  const handleDownloadPreviewCode = async (code) => {
+  const handleDownloadPreviewCode = useCallback(async (code) => {
     await downloadPreviewCode(code)
-  }
+  }, [])
 
   return (
     <section className="project-section project-section-previews">
@@ -134,18 +134,20 @@ const AIPreviewTab = ({
           }}
         />
 
-    <h3 className="project-tab-panel-title">AI Preview</h3>
-      <p className="project-previews-intro font-body text-sm text-ink-secondary">
-        {isClientOwner && (previews.length ? 'Your generated previews. Programmers can view and use the code once assigned.' : 'Generate up to 3 AI previews above.')}
-        {isAssignedProgrammer && !isClientOwner && (previews.length ? "View and download the client's generated preview code to start development." : 'No preview yet.')}
-      </p>
+    <div className="text-center mb-4">
+        <h3 className="project-tab-panel-title font-heading text-sm uppercase tracking-wider border-0">AI PREVIEW</h3>
+        <p className="project-previews-intro font-body text-sm text-ink-secondary">
+          {isClientOwner && (previews.length ? 'Your generated previews. Programmers can view and use the code once assigned.' : 'Generate up to 3 AI previews above.')}
+          {isAssignedProgrammer && !isClientOwner && (previews.length ? "View and download the client's generated preview code to start development." : 'No preview yet.')}
+        </p>
+      </div>
 
       {previewsLoading ? (
         <p className="project-previews-loading font-body text-sm text-ink-secondary">Loading previews...</p>
       ) : previews.length === 0 && !isClientOwner ? (
         <p className="project-previews-empty font-body text-sm text-ink-secondary">No AI preview yet.</p>
       ) : (
-        <div className="flex flex-wrap gap-4 max-w-5xl">
+        <div className="flex flex-nowrap gap-4 max-w-5xl items-start justify-center">
           {Array.from({ length: MAX_PREVIEWS_PER_PROJECT }, (_, i) => {
             const preview = previews[i]
             if (preview) {
@@ -162,20 +164,7 @@ const AIPreviewTab = ({
               )
             }
             if (isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT) {
-              return (
-                <Card
-                  key={`skeleton-${i}`}
-                  className="rounded-none border-border overflow-hidden project-preview-card max-w-md flex-1 min-w-[280px] border-dashed flex flex-col justify-center items-center"
-                >
-                  <CardContent className="p-6 flex flex-col items-center justify-center gap-3">
-                    <Skeleton className="h-20 w-full rounded-none bg-primary/10" />
-                    <Skeleton className="h-4 w-3/4 rounded-none bg-primary/10" />
-                    <p className="font-body text-sm text-ink-muted text-center">
-                      Generate another preview
-                    </p>
-                  </CardContent>
-                </Card>
-              )
+              return <AIPreviewCardSkeleton key={`skeleton-${i}`} />
             }
             return null
           })}
