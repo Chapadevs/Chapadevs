@@ -67,7 +67,7 @@ export const DEFAULT_STYLE = 'modern';
 // ---------------------------------------------------------------------------
 export const SHARED_COMPONENTS = {
   header:
-    'Header/Navbar (sticky top-0 z-50 bg-white shadow): Logo button (navigates to home on click), nav buttons for each page, optional CTA button. Hamburger menu on mobile with useState toggle — use inline SVG or emoji (☰) for menu/close icons, NEVER Heroicons or other icon libraries. All nav uses onClick with setCurrentPage, NEVER href.',
+    'Header/Navbar (sticky top-0 z-50 bg-white shadow): Logo = <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" /> — MUST use __LOGO__ (NOT __IMAGE_1__) for the header logo. __LOGO__ is a separate image from hero. Logo left of brand name. Nav buttons for each page, optional CTA. Hamburger menu on mobile with useState toggle — use inline SVG or emoji (☰). All nav uses onClick with setCurrentPage, NEVER href.',
   footer:
     'Footer (bg-gray-900 text-white py-12): Business name, copyright year, quick nav links (onClick, not href), social media icon links, brief contact info.',
 };
@@ -77,7 +77,7 @@ export const SHARED_COMPONENTS = {
 // ---------------------------------------------------------------------------
 export const UI_RULES = [
   'Each page MUST have ALL the numbered sections listed above - do NOT skip any',
-  'Hero section MUST use __IMAGE_1__ as the main banner (background image or full-width img). Add dark overlay for text contrast. Do NOT use gradient-only hero — __IMAGE_1__ is the same image used for the project preview thumbnail and the Hero component.',
+  'Hero section MUST use __IMAGE_1__ as the main banner (background image or full-width img). Add dark overlay for text contrast. Header logo MUST use __LOGO__ (image-3, last generated) — never __IMAGE_1__. Content/avatars use __IMAGE_2__ and __IMAGE_3__ (both resolve to display image). Exactly 3 images: hero, display, logo.',
   'Alternate section backgrounds: white, gray-50, gradient, colored — no two adjacent sections should look the same',
   'Use varied layouts per section: card grids, two-column text+image, full-width banners, centered content blocks',
   'Visual polish: box-shadow (shadow-lg), rounded corners (rounded-xl), hover transitions (transition-all duration-300 hover:shadow-xl hover:-translate-y-1)',
@@ -92,6 +92,8 @@ export const UI_RULES = [
 // COMPACT CODE RULES — keeps AI output within token limit
 // ---------------------------------------------------------------------------
 export const CODE_RULES = [
+  'Component declarations: ALWAYS use function Name() { } OR const Name = () => { }. NEVER output bare Name() { without function or const.',
+  'String quoting: Use double quotes for any string that may contain apostrophes (e.g. titles like "Artisans Quarterly", possessives, quoted text). Example: event: "Featured in Modern Artisans Quarterly" — never nest single quotes inside single-quoted strings.',
   'Define data arrays at the top of each page component and use .map() to render cards/items',
   "Example: const features = [{icon:'...', title:'...', desc:'...'}, ...]; then features.map((f,i) => <div key={i}>...</div>)",
   'Same for services, products, testimonials, team members, FAQ items, stats, etc.',

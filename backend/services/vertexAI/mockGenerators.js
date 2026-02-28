@@ -214,7 +214,7 @@ function App() {
     <div className="min-h-screen ${sectionBg}">
       <header className={"sticky top-0 z-50 " + "${headerBg}" + " shadow-md"}>
         <nav className="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <button onClick={(e) => handleNav(e, 'home')} className={"text-xl font-bold text-left bg-transparent border-none cursor-pointer " + "${headerLogoClass}"}>${displayName.replace(/'/g, "\\'")}</button>
+          <button onClick={(e) => handleNav(e, 'home')} className={"flex items-center gap-2 text-xl font-bold text-left bg-transparent border-none cursor-pointer " + "${headerLogoClass}"}><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" />${displayName.replace(/'/g, "\\'")}</button>
           <div className="flex items-center gap-6">
             <button onClick={(e) => handleNav(e, 'home')} className={"bg-transparent border-none cursor-pointer " + "${navLinkClass}"}>Home</button>
             <button onClick={(e) => handleNav(e, 'about')} className={"bg-transparent border-none cursor-pointer " + "${navLinkClass}"}>About</button>
@@ -272,8 +272,13 @@ export default App;`;
 export function generateMockAnalysis(prompt, userInputs, cache) {
   console.log('🎭 Generating MOCK AI response');
 
+  const words = prompt.replace(/\b(website|web|app|for|the|an?)\b/gi, '').trim().split(/\s+/).filter((w) => w.length > 1).slice(0, 3);
+  const mockBusinessName = words.length ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') + ' Co.' : 'Your Business';
+
   const mockResponse = {
     title: `${userInputs.projectType || 'Web'} Project Analysis`,
+    businessName: mockBusinessName,
+    logoIconConcept: 'abstract geometric mark',
     overview: `This comprehensive ${userInputs.projectType || 'web'} project addresses your requirements: "${prompt.substring(0, 100)}..." Our analysis suggests a modern, scalable solution with focus on user experience and business goals.`,
     features: [
       'Responsive design optimized for all devices and screen sizes',

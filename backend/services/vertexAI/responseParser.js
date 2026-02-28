@@ -40,28 +40,73 @@ export function fixBrokenImageSrc(html) {
 
 /**
  * Inject generated image data URLs into code and/or files.
- * Replaces __IMAGE_1__ (hero), __IMAGE_2__, __IMAGE_3__ with dataUrls[0], [1], [2].
- * __IMAGE_4__, __IMAGE_5__, __IMAGE_6__ map to the 2 extra images so every placeholder gets one of the 3 (images can repeat).
- * Missing or invalid URLs use fallback. Does not modify code structure or syntax.
+ * urls[0]=logo (image-1), urls[1]=hero (image-2), urls[2]=display (image-3).
+ * Replaces __LOGO__ with urls[0], __IMAGE_1__ with urls[1] (hero), __IMAGE_2__/3 with urls[2] (display).
+ * __IMAGE_4__–6 cycle hero and display.
  * @param {string} code - Single App.js code string
  * @param {object|null} files - Optional files object (path -> content)
- * @param {string[]} dataUrls - Array of up to 3 data URLs (hero, other1, other2)
+ * @param {string[]} dataUrls - Array of 3 URLs: [logo, hero, display]
  * @returns {{ code: string, files: object|null }}
  */
 export function injectGeneratedImages(code, files, dataUrls) {
-  const fallback = "https://placehold.co/400x300?text=Image";
-  const urls = Array.isArray(dataUrls) ? dataUrls : [];
+  const displayFallback = "https://placehold.co/400x300?text=Image";
+  const heroFallback = "https://placehold.co/1200x600?text=Hero";
+  const logoFallback = "https://placehold.co/96x96?text=Logo";
+  let urls = Array.isArray(dataUrls) ? dataUrls : [];
+  const defaults = [logoFallback, heroFallback, displayFallback];
+  while (urls.length < 3) urls.push(defaults[urls.length]);
+  urls = urls.slice(0, 3);
   const valid = (u) =>
     typeof u === "string" &&
     u.trim().length > 0 &&
     (u.startsWith("data:image/") || u.startsWith("https://"));
   const getUrl = (slotIndex0Based) => {
-    let idx = slotIndex0Based;
-    if (slotIndex0Based >= 3) {
-      idx = 1 + (slotIndex0Based % 2);
+    // urls[0]=logo, urls[1]=hero, urls[2]=display. __IMAGE_1__→hero, __IMAGE_2__/3→display, __IMAGE_4__+→cycle hero/display.
+    let idx = slotIndex0Based === 0 ? 1 : 2; // __IMAGE_1__→hero, __IMAGE_2__/3→display
+    if (slotIndex0Based >= 3) idx = 1 + ((slotIndex0Based - 3) % 2); // __IMAGE_4__+ cycle hero, display
+    const u = valid(urls[idx]) ? urls[idx] : displayFallback;
+    return u && u.trim() ? u.trim() : displayFallback;
+  };
+  const getLogoUrl = () => (valid(urls[0]) ? urls[0].trim() : logoFallback);
+
+  /**
+   * Fix AI misuse: when it outputs __IMAGE_1__ for the header logo, replace with __LOGO__
+   * so the logo gets urls[0] (image-1) instead of urls[1] (hero).
+   * Uses flexible src regex to handle attribute order and optional whitespace.
+   */
+  const fixLogoMisuse = (text, filePath) => {
+    if (!text || typeof text !== "string") return text;
+    let out = text;
+    // Flexible: src before/after other attrs, optional whitespace
+    const image1SrcRegex = () => /src\s*=\s*["']\s*__IMAGE_1__\s*["']/g;
+    const replaceLogo = (s) => s.replace(image1SrcRegex(), 'src="__LOGO__"');
+    const hasImage1InLogoContext = (s) => image1SrcRegex().test(s);
+    // 1. Inside <header> or <nav>: all __IMAGE_1__ there = logo
+    out = out.replace(/<(?:header|nav)[^>]*>[\s\S]*?<\/(?:header|nav)>/gi, replaceLogo);
+    // 2. In Header.js(x): the only img is the logo
+    if (filePath && /\bHeader\.(js|jsx)$/i.test(String(filePath))) {
+      out = out.replace(image1SrcRegex(), 'src="__LOGO__"');
     }
-    const u = valid(urls[idx]) ? urls[idx] : fallback;
-    return u && u.trim() ? u.trim() : fallback;
+    // 3. Inside <button> wrapping logo-style img (e.g. nav home button with logo)
+    out = out.replace(/<button[^>]*>[\s\S]*?<\/button>/gi, (block) => {
+      if (
+        /<img[\s\S]*?>/.test(block) &&
+        (/object-contain|w-12|h-12|alt=["'][^"']*logo[^"']*["']/i.test(block)) &&
+        hasImage1InLogoContext(block)
+      ) {
+        return replaceLogo(block);
+      }
+      return block;
+    });
+    // 4. Any img with object-contain (logo style) and src=__IMAGE_1__ -> logo. Hero uses object-cover.
+    out = out.replace(/<img[\s\S]*?>/gi, (tag) => {
+      if (!hasImage1InLogoContext(tag)) return tag;
+      if (/object-contain/.test(tag) && !/object-cover/.test(tag)) return replaceLogo(tag);
+      if (/\b(?:w-12|h-12)\b/.test(tag) && !/object-cover|w-full/.test(tag)) return replaceLogo(tag);
+      if (/alt=["'][^"']*logo[^"']*["']/i.test(tag)) return replaceLogo(tag);
+      return tag;
+    });
+    return out;
   };
 
   // Replace AI-emitted placehold.co URLs with __IMAGE_N__ so they get real images when dataUrls exist
@@ -70,19 +115,22 @@ export function injectGeneratedImages(code, files, dataUrls) {
     const placeholdPattern = /https:\/\/placehold\.co\/[^'"]*['"]/g;
     let slot = 0;
     return text.replace(placeholdPattern, (match) => {
-      const n = (slot % 3) + 1;
+      const n = (slot % 3) + 1; // 3 slots: 1=hero, 2=display, 3=display (logo is __LOGO__)
       slot += 1;
       const quote = match.slice(-1);
       return `__IMAGE_${n}__${quote}`;
     });
   };
 
-  const replaceInText = (text) => {
+  const replaceInText = (text, filePath) => {
     if (!text || typeof text !== "string") return text;
+    // Run placehold.co conversion BEFORE fixLogoMisuse so converted __IMAGE_1__ can be fixed
     let out = text;
     if (urls.length > 0) {
       out = replacePlaceholderUrlsWithImageSlots(out);
     }
+    out = fixLogoMisuse(out, filePath);
+    out = out.split("__LOGO__").join(getLogoUrl());
     for (let i = 1; i <= 6; i++) {
       const placeholder = `__IMAGE_${i}__`;
       out = out.split(placeholder).join(getUrl(i - 1));
@@ -90,34 +138,81 @@ export function injectGeneratedImages(code, files, dataUrls) {
     return out;
   };
 
-  const newCode = replaceInText(code || "");
+  const newCode = replaceInText(code || "", "/App.js");
   let newFiles = null;
   if (files && typeof files === "object") {
     newFiles = {};
     for (const [path, content] of Object.entries(files)) {
-      newFiles[path] = replaceInText(content);
+      const normPath = path.startsWith("/") ? path : `/${path}`;
+      newFiles[path] = replaceInText(content, normPath);
     }
   }
   return { code: newCode, files: newFiles };
 }
 
+/** Minimal ContactPage fallback when AI omits it but App.js imports it. */
+const FALLBACK_CONTACT_PAGE = `import React, { useState } from 'react';
+
+export default function ContactPage() {
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleSubmit = (e) => { e.preventDefault(); };
+  return (
+    <div className="py-16">
+      <div className="max-w-2xl mx-auto px-4">
+        <h2 className="text-3xl font-bold mb-6">Contact Us</h2>
+        <div className="grid gap-4 mb-8 md:grid-cols-3">
+          <div className="bg-gray-50 p-4 rounded-lg"><p className="font-semibold">Email</p><p>contact@example.com</p></div>
+          <div className="bg-gray-50 p-4 rounded-lg"><p className="font-semibold">Phone</p><p>+1 234 567 8900</p></div>
+          <div className="bg-gray-50 p-4 rounded-lg"><p className="font-semibold">Location</p><p>123 Main St</p></div>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" name="name" placeholder="Name" value={formData.name} onChange={handleChange} className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-purple-500" />
+          <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-purple-500" />
+          <input type="text" name="subject" placeholder="Subject" value={formData.subject} onChange={handleChange} className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-purple-500" />
+          <textarea name="message" placeholder="Message" rows={4} value={formData.message} onChange={handleChange} className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="px-6 py-3 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">Send</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+`;
+
+/**
+ * If App.js imports ContactPage but ContactPage.js is missing from files, add a fallback.
+ * Prevents runtime errors when the AI omits the contact page.
+ * @param {object} files - websitePreviewFiles object (mutated in place)
+ */
+export function ensureRequiredFiles(files) {
+  if (!files || typeof files !== "object") return;
+  const appCode = files["/App.js"] || files["App.js"] || "";
+  const needsContactPage =
+    /ContactPage|contactPage/.test(appCode) && !files["/pages/ContactPage.js"] && !files["pages/ContactPage.js"];
+  if (needsContactPage) {
+    files["/pages/ContactPage.js"] = FALLBACK_CONTACT_PAGE;
+  }
+}
+
 /**
  * Normalize preview metadata so App.js always has valid "function App()" (fixes legacy or AI-dropped "function").
+ * Ensures ContactPage.js exists when App imports it but AI omitted it.
  * Call before sending preview to client so Sandpack receives valid code.
  * @param {object} [metadata] - preview.metadata (may have websitePreviewCode and/or websitePreviewFiles)
  */
 export function normalizePreviewMetadata(metadata) {
   if (!metadata || typeof metadata !== "object") return;
-  if (metadata.websitePreviewCode && typeof metadata.websitePreviewCode === "string") {
-    metadata.websitePreviewCode = normalizeComponentCode(metadata.websitePreviewCode);
-  }
   const files = metadata.websitePreviewFiles;
   if (files && typeof files === "object") {
+    ensureRequiredFiles(files);
     for (const [path, content] of Object.entries(files)) {
       if (typeof content === "string" && content.length > 10) {
         files[path] = normalizeComponentCode(content, path);
       }
     }
+  }
+  if (metadata.websitePreviewCode && typeof metadata.websitePreviewCode === "string") {
+    metadata.websitePreviewCode = normalizeComponentCode(metadata.websitePreviewCode);
   }
 }
 
@@ -216,7 +311,7 @@ export function normalizeComponentCode(code, filePath) {
   c = c.replace(/function App\s*\(\s*\)\s*=>\s*\{/g, "function App() {");
 
   // Fix missing "export default function" before page/component names and bare "App(" / "ProductCard(" in non-root files (^|\n) so start-of-file is fixed too
-  const componentNames = "Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|App";
+  const componentNames = "Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|Card|Button|App";
   c = c.replace(new RegExp(`(^|\\n)(\\s*)(${componentNames})(\\s*)(\\()`, "g"), (m, start, sp, name, sp2, paren, offset, fullString) => {
     const lineStart = offset > 0 ? fullString.lastIndexOf("\n", offset - 1) + 1 : 0;
     const line = fullString.slice(lineStart, offset);
@@ -226,7 +321,7 @@ export function normalizeComponentCode(code, filePath) {
   c = c.replace(/export default function export default function /g, "export default function ");
 
   // Fix wrong "export default App" when this file's main component is Header, Footer, ProductCard, etc. (replace all occurrences)
-  const mainExportMatch = c.match(/export default function (Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard)\s*\(/);
+  const mainExportMatch = c.match(/export default function (Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|Card|Button)\s*\(/);
   if (mainExportMatch) {
     const correctName = mainExportMatch[1];
     c = c.replace(/\bexport default App\s*;?/g, `export default ${correctName};`);
@@ -244,7 +339,7 @@ export function normalizeComponentCode(code, filePath) {
   }
 
   // Ensure component name = App only in root App.js (when no other export default function X is present)
-  const hasOtherExportDefaultFunction = /export default function (?:Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard)\s*\(/.test(c);
+  const hasOtherExportDefaultFunction = /export default function (?:Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|Card|Button)\s*\(/.test(c);
   if (!hasOtherExportDefaultFunction && !c.includes("function App") && !c.includes("const App")) {
     c = c.replace(
       /(function|const|class)\s+([A-Z][a-zA-Z0-9_]*)/,

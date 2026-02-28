@@ -5,10 +5,10 @@ import { logProjectActivity } from '../utils/activityLogger.js'
 import asyncHandler from 'express-async-handler'
 import vertexAIService from '../services/vertexAI/index.js'
 import { generateImagesForPreview } from '../services/vertexAI/imageGeneration.js'
-import { injectGeneratedImages, normalizePreviewMetadata } from '../services/vertexAI/responseParser.js'
+import { injectGeneratedImages, normalizePreviewMetadata, ensureRequiredFiles } from '../services/vertexAI/responseParser.js'
 import { buildDefineFiles } from '../utils/codesandboxDefine.js'
 import { resizeImagesForCodesandbox } from '../utils/resizeImagesForCodesandbox.js'
-import { uploadBase64ImagesToGCS, getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
+import { uploadBase64ImagesToGCS, getSignedUrlsForPaths, buildImageUrlsForInjection } from '../utils/gcsImageStorage.js'
 import costMonitor from '../middleware/costMonitoring.js'
 
 const ESTIMATED_TOKENS_PER_REQUEST = 20000
@@ -84,8 +84,9 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     let analysis = result.analysis || {}
     let code = result.code || ''
     let files = result.files && typeof result.files === 'object' ? result.files : null
+    if (files) ensureRequiredFiles(files) // Add ContactPage.js if AI omitted it but App imports it
 
-    // Generate 3 images: 1 hero (preview thumbnail + Hero), 2 others for all image placeholders
+    // Generate exactly 3 images: logo, hero, display. Preview card thumbnail = display.
     let dataUrls = []
     if (process.env.GCP_PROJECT_ID && process.env.ENABLE_GEMINI_IMAGE_GEN !== 'false' && (code || files)) {
       try {
@@ -97,15 +98,18 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     let urlsForResponse = dataUrls
     let metadataImageFields = {}
     if (dataUrls.length > 0) {
-      const gcsPaths = await uploadBase64ImagesToGCS(dataUrls, preview._id.toString())
-      if (gcsPaths.length > 0) {
+      const slotPaths = await uploadBase64ImagesToGCS(dataUrls, preview._id.toString())
+      const uploadedPaths = slotPaths.filter(Boolean)
+      if (uploadedPaths.length > 0) {
+        const thumbnailPath = slotPaths[2] || slotPaths[1] || slotPaths[0] || uploadedPaths[0]
         metadataImageFields = {
-          generatedImageGcsPaths: gcsPaths,
-          previewThumbnailGcsPath: gcsPaths[0],
+          generatedImageGcsPaths: slotPaths,
+          previewThumbnailGcsPath: thumbnailPath,
         }
-        urlsForResponse = await getSignedUrlsForPaths(gcsPaths, 3600000)
+        urlsForResponse = await buildImageUrlsForInjection(dataUrls, slotPaths, 3600000)
       } else {
-        const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
+        const thumbnailIdx = dataUrls.length >= 3 ? 2 : (dataUrls.length > 1 ? 1 : 0) // Prefer display (2), then hero (1), then logo (0)
+        const thumbnailUrl = (dataUrls[thumbnailIdx] && dataUrls[thumbnailIdx].startsWith('data:image/')) ? dataUrls[thumbnailIdx] : dataUrls.find((u) => u && u.startsWith('data:image/')) || null
         metadataImageFields = {
           generatedImageUrls: dataUrls,
           ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
@@ -197,8 +201,11 @@ async function createAndCacheCodesandbox(preview) {
   normalizePreviewMetadata(preview.metadata)
   let meta = preview.metadata
   let urlsForPayload = []
-  if (meta?.generatedImageGcsPaths?.length) {
-    urlsForPayload = await getSignedUrlsForPaths(meta.generatedImageGcsPaths, 604800000)
+  const gcsPaths = meta?.generatedImageGcsPaths
+  if (gcsPaths?.length === 3) {
+    urlsForPayload = await buildImageUrlsForInjection([], gcsPaths, 604800000)
+  } else if (gcsPaths?.length) {
+    urlsForPayload = await getSignedUrlsForPaths(gcsPaths.filter(Boolean), 604800000)
   } else if (meta?.generatedImageUrls?.length) {
     try {
       urlsForPayload = await resizeImagesForCodesandbox(meta.generatedImageUrls)
@@ -324,6 +331,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     let analysis = result.analysis || {}
     let code = result.code || ''
     let files = result.files && typeof result.files === 'object' ? result.files : null
+    if (files) ensureRequiredFiles(files)
 
     let dataUrls = []
     if (process.env.GCP_PROJECT_ID && process.env.ENABLE_GEMINI_IMAGE_GEN !== 'false' && (code || files)) {
@@ -335,14 +343,17 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     }
     let metadataImageFields = {}
     if (dataUrls.length > 0) {
-      const gcsPaths = await uploadBase64ImagesToGCS(dataUrls, preview._id.toString())
-      if (gcsPaths.length > 0) {
+      const slotPaths = await uploadBase64ImagesToGCS(dataUrls, preview._id.toString())
+      const uploadedPaths = slotPaths.filter(Boolean)
+      if (uploadedPaths.length > 0) {
+        const thumbnailPath = slotPaths[2] || slotPaths[1] || slotPaths[0] || uploadedPaths[0]
         metadataImageFields = {
-          generatedImageGcsPaths: gcsPaths,
-          previewThumbnailGcsPath: gcsPaths[0],
+          generatedImageGcsPaths: slotPaths,
+          previewThumbnailGcsPath: thumbnailPath,
         }
       } else {
-        const thumbnailUrl = dataUrls.find((u) => u && u.startsWith('data:image/')) || null
+        const thumbnailIdx = dataUrls.length >= 3 ? 2 : (dataUrls.length > 1 ? 1 : 0) // Prefer display (2), then hero (1), then logo (0)
+        const thumbnailUrl = (dataUrls[thumbnailIdx] && dataUrls[thumbnailIdx].startsWith('data:image/')) ? dataUrls[thumbnailIdx] : dataUrls.find((u) => u && u.startsWith('data:image/')) || null
         metadataImageFields = {
           generatedImageUrls: dataUrls,
           ...(thumbnailUrl && { previewThumbnailUrl: thumbnailUrl }),
@@ -459,11 +470,14 @@ export const getAIPreviews = asyncHandler(async (req, res) => {
   for (const p of previews) {
     normalizePreviewMetadata(p.metadata)
     let urlsForInject = []
-    if (p.metadata?.generatedImageGcsPaths?.length) {
-      urlsForInject = await getSignedUrlsForPaths(p.metadata.generatedImageGcsPaths, 3600000)
-      if (urlsForInject.length > 0) {
-        p.metadata.previewThumbnailUrl = urlsForInject[0]
-      }
+    const gcsPaths = p.metadata?.generatedImageGcsPaths
+    if (gcsPaths?.length === 3) {
+      urlsForInject = await buildImageUrlsForInjection([], gcsPaths, 3600000)
+      const valid = urlsForInject.filter((u) => u && u.includes('storage.googleapis.com'))
+      if (valid.length > 0) p.metadata.previewThumbnailUrl = valid[2] || valid[1] || valid[0]
+    } else if (gcsPaths?.length) {
+      urlsForInject = await getSignedUrlsForPaths(gcsPaths.filter(Boolean), 3600000)
+      if (urlsForInject.length > 0) p.metadata.previewThumbnailUrl = urlsForInject[2] || urlsForInject[1] || urlsForInject[0]
     } else if (p.metadata?.generatedImageUrls?.length) {
       urlsForInject = p.metadata.generatedImageUrls
     }
@@ -507,7 +521,7 @@ export const getAIPreviewById = asyncHandler(async (req, res) => {
   if (preview.metadata?.generatedImageGcsPaths?.length) {
     urlsForInject = await getSignedUrlsForPaths(preview.metadata.generatedImageGcsPaths, 3600000)
     if (urlsForInject.length > 0) {
-      preview.metadata.previewThumbnailUrl = urlsForInject[0]
+      preview.metadata.previewThumbnailUrl = urlsForInject[2] || urlsForInject[1] || urlsForInject[0]
     }
   } else if (preview.metadata?.generatedImageUrls?.length) {
     urlsForInject = preview.metadata.generatedImageUrls
@@ -557,8 +571,11 @@ export const getCodesandboxEmbed = asyncHandler(async (req, res) => {
 
   let meta = preview.metadata
   let urlsForPayload = []
-  if (meta?.generatedImageGcsPaths?.length) {
-    urlsForPayload = await getSignedUrlsForPaths(meta.generatedImageGcsPaths, 604800000)
+  const gcsPaths = meta?.generatedImageGcsPaths
+  if (gcsPaths?.length === 3) {
+    urlsForPayload = await buildImageUrlsForInjection([], gcsPaths, 604800000)
+  } else if (gcsPaths?.length) {
+    urlsForPayload = await getSignedUrlsForPaths(gcsPaths.filter(Boolean), 604800000)
   } else if (meta?.generatedImageUrls?.length) {
     try {
       urlsForPayload = await resizeImagesForCodesandbox(meta.generatedImageUrls)

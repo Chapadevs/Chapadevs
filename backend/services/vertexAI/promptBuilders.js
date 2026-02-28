@@ -130,22 +130,6 @@ export function buildWebsitePrompt(prompt, userInputs) {
     }
   }
   
-  // Extract business name/product (better extraction)
-  let businessName = prompt;
-  // Remove common phrases
-  businessName = businessName.replace(/i need (an|a) /gi, '');
-  businessName = businessName.replace(/for (selling|creating|building|making) /gi, '');
-  businessName = businessName.replace(/website|web app|application|store|ecommerce|e-commerce/gi, '');
-  // Take first meaningful phrase (up to 5 words)
-  const words = businessName.trim().split(/\s+/).slice(0, 5);
-  businessName = words.join(' ').trim();
-  if (businessName.length > 50) {
-    businessName = businessName.substring(0, 50);
-  }
-  if (!businessName || businessName.length < 3) {
-    businessName = 'Your Business';
-  }
-  
   // Determine business type (only business and ecommerce)
   const businessType = lowerPrompt.includes('ecommerce') || lowerPrompt.includes('store') || lowerPrompt.includes('selling') || lowerPrompt.includes('shop')
     ? 'e-commerce'
@@ -159,17 +143,19 @@ export function buildWebsitePrompt(prompt, userInputs) {
   return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED, PRODUCTION-READY React component.
 
 MANDATORY: Generate ONLY React/JavaScript code. No Angular templates, no Vue, no other frameworks. Use React 18 functional components.
+
+BRAND NAME: Invent a professional, memorable business/brand name based on the project. Do NOT use literal prompt fragments (e.g. "blue for pie bakery"). Use real-sounding names like "Sweet Crust Bakery", "Blue Pie Co.". Use that name in hero, header, footer.
+
 PROJECT DETAILS:
 - Type: ${projectType}
 - Full Description: "${prompt}"
-- Business Name/Product: "${businessName}"
 - Business Type: ${businessType}
 - Color Scheme: ${colorScheme} (use Tailwind classes like bg-${colorScheme.split(',')[0].trim()}, text-${colorScheme.split(',')[0].trim()})
 - Style: ${style}
 - Budget: ${userInputs.budget || 'Not specified'}
 
 CRITICAL REQUIREMENTS:
-1. USE THE EXACT BUSINESS NAME "${businessName}" in the hero title, not truncated or generic text
+1. Use the professional brand name you invent in the hero title, header, footer (not prompt fragments)
 2. Create a MULTI-PAGE website with: HomePage, AboutPage, ServicesPage/ProductsPage, ContactPage
 3. Use useState for currentPage ('home', 'about', 'services', 'contact') and switch pages via onClick - do NOT use href with # or anchor links
 4. Use the color scheme: ${colorScheme} - apply these colors throughout (gradients, buttons, accents)
@@ -179,10 +165,11 @@ CRITICAL REQUIREMENTS:
 8. Make it visually stunning with proper spacing, shadows, hover effects
 
 IMAGES (CRITICAL):
-- Use ONLY these placeholders as img src: __IMAGE_1__ (hero + preview thumbnail), __IMAGE_2__, __IMAGE_3__. Maximum 3 images per preview; repeat __IMAGE_2__ and __IMAGE_3__ for all other image slots (products, team, gallery, etc.). Hero section MUST use __IMAGE_1__.
-- Do NOT use picsum.photos, placehold.co, or any other image URLs. Only __IMAGE_1__, __IMAGE_2__, __IMAGE_3__.
+- Use __IMAGE_1__ (hero), __IMAGE_2__, __IMAGE_3__ for content. Header logo MUST use <img src="__LOGO__" alt="Logo" /> — __LOGO__ is a separate image slot, never use __IMAGE_1__ for the logo.
+- Do NOT use picsum.photos, placehold.co, or any other image URLs.
 
 TECHNICAL REQUIREMENTS:
+- String quoting: Use double quotes for text that may contain apostrophes (e.g. "Artisans Quarterly", "We're open") — never nest single quotes in single-quoted strings.
 - React 18 functional component with useState hooks
 - Use Tailwind CSS classes ONLY (Tailwind CDN will be loaded separately)
 - All Tailwind classes must be valid (use bg-gradient-to-r, from-COLOR, to-COLOR for gradients)
@@ -192,7 +179,7 @@ TECHNICAL REQUIREMENTS:
 - Clean, well-formatted code
 
 MULTI-PAGE STRUCTURE:
-- Header (shared): Logo, nav buttons for Home, About, Services/Products, Contact - use onClick with setCurrentPage, NOT href
+- Header (shared): Logo = <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" /> left of brand name. Nav buttons - use onClick with setCurrentPage, NOT href
 - HomePage: Hero + featured content (testimonials or highlights)
 - AboutPage: Company story, stats, mission
 - ServicesPage/ProductsPage: ${mainContentSuggestions}
@@ -202,13 +189,13 @@ MULTI-PAGE STRUCTURE:
 NAV LINKS CRITICAL: Use button elements with onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPage('home'); }} - NEVER use <a href="#..."> or anchor links. This prevents navigation escaping to the parent app.
 
 0. Header/Navbar (fixed or sticky):
-   - Logo: button with onClick to setCurrentPage('home')
+   - Logo: <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" /> + brand name, button with onClick to setCurrentPage('home')
    - Nav: buttons for Home, About, Services/Products, Contact - each calls setCurrentPage
    - Optional CTA button for Contact
    - Responsive: hamburger menu on mobile (sm/md breakpoints)
 
 1. HomePage (currentPage === 'home'):
-   - Hero: Title "${businessName}", subtitle, CTA button
+   - Hero: Title with the brand name you invent, subtitle, CTA button
    - Use gradient background: ${colorScheme}
    - Featured content (testimonials or highlights)
 
@@ -224,7 +211,7 @@ NAV LINKS CRITICAL: Use button elements with onClick={(e) => { e.preventDefault(
    - Contact form or contact info
 
 5. Footer (shared):
-   - Copyright: "${businessName}"
+   - Copyright: use the brand name you invent
    - Quick links: buttons with onClick setCurrentPage (NOT href)
 
 COLOR IMPLEMENTATION:
@@ -237,6 +224,7 @@ CODE FORMAT:
 - Start with: import { useState } from 'react'; (or import React, { useState } from 'react';)
 - Component MUST be: function App() { ... } OR const App = () => { ... }
 - DO NOT mix function keyword with arrow syntax (WRONG: function App() =>, CORRECT: function App() {)
+- NEVER output bare App() { or ComponentName() { — always use function or const
 - End with: export default App;
 - NO markdown code blocks (no \`\`\`jsx or \`\`\`)
 - NO comments explaining the code
@@ -267,32 +255,27 @@ export function buildCombinedPrompt(prompt, userInputs) {
   const techPref = userInputs.techStack?.trim() || 'React, Node.js, MongoDB — JavaScript/TypeScript only';
   const isEcommerce = template.type === 'ecommerce';
 
-  // Extract business name from prompt
-  let businessName = prompt
-    .replace(/i need (an?|the) /gi, '')
-    .replace(/i want (an?|the) /gi, '')
-    .replace(/^(build|create|make|design) (me )?(an?|a|the) /gi, '')
-    .replace(/\b(website|web app|application|store|ecommerce|portfolio|blog)\b/gi, '')
-    .trim();
-  const words = businessName.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
-  businessName = words.join(' ').trim() || 'Your Business';
-  if (businessName.length > 50) businessName = businessName.substring(0, 47) + '...';
+  // Instruct AI to generate a professional brand name (do NOT extract from prompt)
+  const businessNamePlaceholder = 'the professional brand name you generate in analysis.businessName';
 
   // Extract color and style from prompt using template structure data
   const colorScheme = extractColorScheme(prompt);
   const style = extractStyle(prompt);
 
-  // Build prompt sections from template structure
-  const pageStructure = buildPageStructurePrompt(template, businessName, colorScheme);
-  const sharedComponents = buildSharedComponentsPrompt(template, businessName);
+  // Build prompt sections from template structure (use placeholder so AI generates name)
+  const pageStructure = buildPageStructurePrompt(template, businessNamePlaceholder, colorScheme);
+  const sharedComponents = buildSharedComponentsPrompt(template, businessNamePlaceholder);
   const uiRules = buildUIRulesPrompt();
   const codeRules = buildCodeRulesPrompt();
 
   return `Generate a complete project analysis and React component in JSON format.
 
+BRAND NAME (CRITICAL): Generate a professional, memorable business/brand name in analysis.businessName. Do NOT copy or extract from the prompt. Invent a real-sounding name (e.g. for a pie bakery → "Sweet Crust Bakery", "Blue Pie Co."; for plumbing → "QuickFlow Plumbing"). Use that exact name in Hero, Header, Footer, About — everywhere the business is referenced. Never use awkward fragments like "blue for pie bakery".
+
+LOGO ICON: Generate analysis.logoIconConcept — short phrase for the AI-generated header logo image (e.g. "abstract pie slice", "simple gear", "abstract prism shape"). Must be ABSTRACT — never literal. Used to generate a professional logo image for the header.
+
 REQUIREMENTS:
 - Project: "${prompt}"
-- Business: "${businessName}"
 - Type: ${template.type}
 - Budget: ${userInputs.budget || 'Not specified'}
 - Timeline: ${userInputs.timeline || 'Not specified'}
@@ -310,7 +293,7 @@ STYLING:
 - Style: ${style}
 - Gradients: bg-gradient-to-r from-{primaryColor} to-{secondaryColor}
 
-FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. Paths: /App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js, /pages/ContactPage.js. Optional: /components/ui/Button.js, /components/ui/Card.js. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.
+FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. MANDATORY paths (you MUST include ALL of these): /App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js, /pages/ContactPage.js. ContactPage.js is REQUIRED — never omit it. Optional: /components/ui/Button.js, /components/ui/Card.js. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.
 
 OUTPUT FORMAT (JSON only, no markdown):
 CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
@@ -324,6 +307,8 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
 {
   "analysis": {
     "title": "Project title",
+    "businessName": "Professional brand name you invent (e.g. Sweet Crust Bakery)",
+    "logoIconConcept": "Abstract logo concept (e.g. abstract pie slice, simple gear, abstract prism shape)",
     "overview": "2-3 sentence summary",
     "features": ["Feature 1", "Feature 2", "...at least 5-8"],
     "techStack": {
@@ -365,20 +350,22 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
 Alternatively you may return a single "code" string with the full App (all pages as inner components) if multi-file is not possible.
 
 CRITICAL CODE REQUIREMENTS:
-- App.js: shell only when using files — import Header, Footer, and page components from ./components and ./pages; useState('home') for currentPage; render {currentPage === 'home' && <HomePage />} etc.; nav via <button onClick={...}> only, NEVER <a href="#...">.
-- When using single "code": same behavior but HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage defined inside App.
-- Each page component: export default; use data arrays and .map() for cards/items.
-- Tailwind CSS classes only (CDN loaded separately)
-- NO icon libraries: do NOT import Heroicons, Lucide, Font Awesome, or any icon package. Use only inline <svg> or emoji (e.g. ☰ for menu). The preview runs with React + Tailwind only — no extra npm packages.
-- Responsive: sm:, md:, lg: breakpoints on grids and text
-- Images: Use ONLY __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ for img src. Hero MUST use __IMAGE_1__ (same image for preview card thumbnail and Hero component). All other image placeholders use __IMAGE_2__ or __IMAGE_3__ (repeat as needed). No picsum or placehold.
-- Hero section (first section on Home): MUST use __IMAGE_1__ as the main banner — either as background image (e.g. style={{ backgroundImage: 'url(__IMAGE_1__)' }}) or as full-width <img src="__IMAGE_1__" /> with object-cover. Add a dark overlay so text is readable. This same __IMAGE_1__ is used for the project preview thumbnail.
-- NO placeholder text, NO Lorem Ipsum, NO "..." — write real specific content
-- NO markdown code blocks in code/files content
+- App.js: shell only when using files — import Header, Footer, page components from ./components and ./pages; useState('home'); render {currentPage === 'home' && <HomePage />} etc.; nav via <button onClick={...}> only, NEVER <a href="#...">.
+- Single "code": same — HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage inside App.
+- Each page: export default; data arrays + .map() for cards/items.
+- Tailwind only (CDN loaded). NO icon libs — inline <svg> or emoji only. Responsive: sm:, md:, lg:.
+- Images: Exactly 3 images. __IMAGE_1__ (hero), __IMAGE_2__ and __IMAGE_3__ (display, repeat as needed) for content. Header logo MUST use __LOGO__ (<img src="__LOGO__" alt="Logo" />) — __LOGO__ is image-3, the logo. NEVER use __IMAGE_1__ for the logo. No picsum/placehold.
+- Real content only — NO Lorem Ipsum, NO "..." truncation. NO markdown in code/files.
+- String quoting: Use double quotes for text with apostrophes (e.g. "Artisans Quarterly", "We're open"). Never nest single quotes inside single-quoted strings — it causes parse errors.
 
 ${codeRules}
 
-CODE STRUCTURE EXAMPLE:
+COMPONENT SYNTAX (CRITICAL):
+- Root/App: function App() { } or const App = () => { }
+- Pages/components: function HomePage() { } or const HomePage = () => { }
+- NEVER: HomePage() { or Header() { — always prefix with function or const
+
+CODE STRUCTURE EXAMPLE (all components use function Name() { or const Name = () => — never bare Name() {):
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -420,7 +407,7 @@ function App() {
     <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-50 bg-white shadow">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button onClick={(e) => handleNav(e, 'home')} className="text-xl font-bold">Logo</button>
+          <button onClick={(e) => handleNav(e, 'home')} className="flex items-center gap-2 text-xl font-bold"><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" />Brand Name</button>
           <nav className="hidden md:flex gap-6">
             <button onClick={(e) => handleNav(e, 'home')}>Home</button>
             <button onClick={(e) => handleNav(e, 'about')}>About</button>

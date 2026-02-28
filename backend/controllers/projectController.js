@@ -821,7 +821,7 @@ export const getProjectPreviews = asyncHandler(async (req, res) => {
     if (p.metadata?.generatedImageGcsPaths?.length) {
       urlsForInject = await getSignedUrlsForPaths(p.metadata.generatedImageGcsPaths, 3600000)
       if (urlsForInject.length > 0) {
-        p.metadata.previewThumbnailUrl = urlsForInject[0]
+        p.metadata.previewThumbnailUrl = urlsForInject[2] || urlsForInject[1] || urlsForInject[0]
       }
     } else if (p.metadata?.generatedImageUrls?.length) {
       urlsForInject = p.metadata.generatedImageUrls

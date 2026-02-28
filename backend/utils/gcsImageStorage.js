@@ -39,42 +39,73 @@ function decodeDataUrl(dataUrl) {
 }
 
 /**
- * Upload base64 image data URLs to GCS.
- * @param {string[]} dataUrls - Array of data:image/... base64 URLs
+ * Upload base64 image data URLs to GCS. Preserves slot indices: slot 0→image-1, 1→image-2, 2→image-3.
+ * Skips slots with placeholder URLs (non–data:image/).
+ * @param {string[]} dataUrls - Array of 3 items: [logo, hero, display]
  * @param {string} previewId - Preview document ID
- * @returns {Promise<string[]>} Array of object paths (e.g. preview-images/xxx/image-1.png), or [] on failure
+ * @returns {Promise<string[]>} Object paths for uploaded slots (index-aligned; empty string for skipped)
  */
 export async function uploadBase64ImagesToGCS(dataUrls, previewId) {
   const urls = Array.isArray(dataUrls) ? dataUrls : []
-  const valid = urls.filter((u) => typeof u === 'string' && u.startsWith('data:image/'))
-  if (valid.length === 0 || !previewId) return []
+  if (urls.length === 0 || !previewId) return []
 
   try {
     const client = getStorage()
     const bucket = client.bucket(BUCKET_NAME)
-    const paths = []
+    const slotPaths = []
 
-    for (let i = 0; i < valid.length; i++) {
-      const decoded = decodeDataUrl(valid[i])
-      if (!decoded) continue
-
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i]
+      if (!u || typeof u !== 'string' || !u.startsWith('data:image/')) {
+        slotPaths.push('')
+        continue
+      }
+      const decoded = decodeDataUrl(u)
+      if (!decoded) {
+        slotPaths.push('')
+        continue
+      }
       const objectPath = `${PREFIX}/${previewId}/image-${i + 1}.png`
       const file = bucket.file(objectPath)
-
       await file.save(decoded.buffer, {
         metadata: {
           contentType: decoded.contentType,
           cacheControl: 'public, max-age=31536000',
         },
       })
-      paths.push(objectPath)
+      slotPaths.push(objectPath)
     }
-
-    return paths
+    return slotPaths
   } catch (err) {
     console.warn('GCS upload failed:', err.message)
     return []
   }
+}
+
+const HERO_PLACEHOLDER = 'https://placehold.co/1200x600?text=Hero'
+const DISPLAY_PLACEHOLDER = 'https://placehold.co/400x300?text=Image'
+const LOGO_PLACEHOLDER = 'https://placehold.co/96x96?text=Logo'
+
+/**
+ * Build [logoUrl, heroUrl, displayUrl] for injection.
+ * Slot i: signed URL if path exists, else placeholderFromDataUrls[i] or default.
+ */
+export async function buildImageUrlsForInjection(dataUrls, slotPaths, expiresMs = 3600000) {
+  const urls = Array.isArray(dataUrls) ? dataUrls.slice(0, 3) : []
+  const paths = Array.isArray(slotPaths) ? slotPaths : []
+  const defaults = [LOGO_PLACEHOLDER, HERO_PLACEHOLDER, DISPLAY_PLACEHOLDER]
+  const result = []
+  for (let i = 0; i < 3; i++) {
+    const path = paths[i]
+    const fallback = (typeof urls[i] === 'string' && urls[i].startsWith('https://')) ? urls[i] : defaults[i]
+    if (path) {
+      const signed = await getSignedUrlsForPaths([path], expiresMs)
+      result.push(signed[0] || fallback)
+    } else {
+      result.push(fallback)
+    }
+  }
+  return result
 }
 
 /**
