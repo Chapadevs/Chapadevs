@@ -6,6 +6,7 @@ import {
   buildSharedComponentsPrompt,
   buildUIRulesPrompt,
   buildCodeRulesPrompt,
+  buildFontRulesPrompt,
 } from './templateStructureHelper.js';
 
 /**
@@ -80,46 +81,14 @@ Generate the response now:`;
 
 export function buildWebsitePrompt(prompt, userInputs) {
   const projectType = userInputs.projectType || 'Website';
-  
-  // Better extraction of color preferences
-  const colorKeywords = ['colorful', 'color', 'blue', 'red', 'green', 'purple', 'pink', 'yellow', 'orange', 'cyan', 'teal', 'indigo', 'violet', 'rose', 'amber', 'emerald', 'sky', 'fuchsia'];
-  const foundColors = [];
   const lowerPrompt = prompt.toLowerCase();
-  
-  for (const color of colorKeywords) {
-    if (lowerPrompt.includes(color)) {
-      foundColors.push(color);
-    }
-  }
-  
-  // Determine color scheme
-  let colorScheme = 'purple-600, indigo-600';
-  if (foundColors.includes('colorful')) {
+
+  // Color scheme: literal keywords first, then contextual (e.g. grapes→purple)
+  let colorScheme = extractColorScheme(prompt);
+  if (lowerPrompt.includes('colorful')) {
     colorScheme = 'pink-500, orange-500, yellow-400, cyan-400';
-  } else if (foundColors.length > 0) {
-    const primaryColor = foundColors[0];
-    const colorMap = {
-      'blue': 'blue-600',
-      'red': 'red-600',
-      'green': 'green-600',
-      'purple': 'purple-600',
-      'pink': 'pink-500',
-      'yellow': 'yellow-500',
-      'orange': 'orange-500',
-      'cyan': 'cyan-500',
-      'teal': 'teal-600',
-      'indigo': 'indigo-600',
-      'violet': 'violet-600',
-      'rose': 'rose-500',
-      'amber': 'amber-500',
-      'emerald': 'emerald-600',
-      'sky': 'sky-500',
-      'fuchsia': 'fuchsia-500'
-    };
-    const tailwindColor = colorMap[primaryColor] || 'purple-600';
-    colorScheme = `${tailwindColor}, ${tailwindColor.replace('-600', '-500').replace('-500', '-400')}`;
   }
-  
+
   // Extract style
   const styleKeywords = ['modern', 'minimal', 'clean', 'bold', 'elegant', 'fun', 'professional', 'creative', 'playful', 'vibrant'];
   let style = 'modern';
@@ -144,7 +113,7 @@ export function buildWebsitePrompt(prompt, userInputs) {
 
 MANDATORY: Generate ONLY React/JavaScript code. No Angular templates, no Vue, no other frameworks. Use React 18 functional components.
 
-BRAND NAME: Invent a professional, memorable business/brand name based on the project. Do NOT use literal prompt fragments (e.g. "blue for pie bakery"). Use real-sounding names like "Sweet Crust Bakery", "Blue Pie Co.". Use that name in hero, header, footer.
+BRAND NAME: Invent a SHORT, professional business name (2–3 words max). Use ONLY the core name — NO adjectives, suffixes, or additions like "Artisans", "lovers", "community", "Co.", "Inc.", etc. Good: "Terra Stone", "Sweet Crust", "Blue Pie". Bad: "TerraStone Artisans", "Sweet Crust Bakery". Use that name in hero, header, footer.
 
 PROJECT DETAILS:
 - Type: ${projectType}
@@ -163,9 +132,10 @@ CRITICAL REQUIREMENTS:
 6. Generate REAL, SPECIFIC content - NO placeholders, NO "Lorem Ipsum", NO truncated text
 7. NAV LINKS: Use button or onClick with e.preventDefault() and e.stopPropagation() - NEVER use href="#..." for navigation (prevents parent app navigation in iframe)
 8. Make it visually stunning with proper spacing, shadows, hover effects
+9. TYPOGRAPHY: ${buildFontRulesPrompt(style)}
 
 IMAGES (CRITICAL):
-- Use __IMAGE_1__ (hero), __IMAGE_2__, __IMAGE_3__ for content. Header logo MUST use <img src="__LOGO__" alt="Logo" /> — __LOGO__ is a separate image slot, never use __IMAGE_1__ for the logo.
+- Use __IMAGE_1__ (hero), __IMAGE_2__, __IMAGE_3__ for content. Header logo MUST use <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" /> — __LOGO__ is a separate image slot, never use __IMAGE_1__ for the logo. Logo must have hover:scale-110 for interactive feedback.
 - Do NOT use picsum.photos, placehold.co, or any other image URLs.
 
 TECHNICAL REQUIREMENTS:
@@ -179,7 +149,7 @@ TECHNICAL REQUIREMENTS:
 - Clean, well-formatted code
 
 MULTI-PAGE STRUCTURE:
-- Header (shared): Logo = <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" /> left of brand name. Nav buttons - use onClick with setCurrentPage, NOT href
+- Header (shared): Logo = <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" /> left of brand name. Nav buttons - use onClick with setCurrentPage, NOT href
 - HomePage: Hero + featured content (testimonials or highlights)
 - AboutPage: Company story, stats, mission
 - ServicesPage/ProductsPage: ${mainContentSuggestions}
@@ -189,7 +159,7 @@ MULTI-PAGE STRUCTURE:
 NAV LINKS CRITICAL: Use button elements with onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentPage('home'); }} - NEVER use <a href="#..."> or anchor links. This prevents navigation escaping to the parent app.
 
 0. Header/Navbar (fixed or sticky):
-   - Logo: <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" /> + brand name, button with onClick to setCurrentPage('home')
+   - Logo: <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" /> + brand name, button with onClick to setCurrentPage('home')
    - Nav: buttons for Home, About, Services/Products, Contact - each calls setCurrentPage
    - Optional CTA button for Contact
    - Responsive: hamburger menu on mobile (sm/md breakpoints)
@@ -250,13 +220,25 @@ SYNTAX EXAMPLES:
 Generate the complete component NOW:`;
 }
 
+function getFileStructureForTemplate(template) {
+  const isEcommerce = template.type === 'ecommerce';
+  const isManagement = template.type === 'management';
+  if (isManagement) {
+    return `FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. MANDATORY paths (you MUST include ALL of these): /App.js (shell: imports from ./pages and ./components, useState currentPage, Sidebar, page switch), /components/Sidebar.js, /components/Header.js, /pages/LoginPage.js, /pages/RegisterPage.js, /pages/DashboardPage.js, /pages/ProductsPage.js, /pages/UsersPage.js. Optional: /components/Footer.js. Management panel: extremely simple, beautiful UI; table/card layouts; good spacing; frontend-only, 0 backend. Include Login and Register pages. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.`;
+  }
+  const basePaths = `/App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js, /pages/ContactPage.js`;
+  const authPaths = isEcommerce ? ', /pages/LoginPage.js, /pages/RegisterPage.js' : '';
+  return `FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. MANDATORY paths (you MUST include ALL of these): ${basePaths}${authPaths}. ContactPage.js is REQUIRED — never omit it. Optional: /components/ui/Button.js, /components/ui/Card.js. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.`;
+}
+
 export function buildCombinedPrompt(prompt, userInputs) {
-  const template = getTemplate(userInputs.projectType || prompt);
+  const template = getTemplate(userInputs.projectType, prompt, userInputs.previewTemplate);
   const techPref = userInputs.techStack?.trim() || 'React, Node.js, MongoDB — JavaScript/TypeScript only';
   const isEcommerce = template.type === 'ecommerce';
+  const isManagement = template.type === 'management';
 
-  // Instruct AI to generate a professional brand name (do NOT extract from prompt)
-  const businessNamePlaceholder = 'the professional brand name you generate in analysis.businessName';
+  // Instruct AI to generate a short brand name (2–3 words, no additions like Artisans/lovers/Co.)
+  const businessNamePlaceholder = 'the short core brand name you generate in analysis.businessName (2–3 words only, no suffixes)';
 
   // Extract color and style from prompt using template structure data
   const colorScheme = extractColorScheme(prompt);
@@ -265,22 +247,34 @@ export function buildCombinedPrompt(prompt, userInputs) {
   // Build prompt sections from template structure (use placeholder so AI generates name)
   const pageStructure = buildPageStructurePrompt(template, businessNamePlaceholder, colorScheme);
   const sharedComponents = buildSharedComponentsPrompt(template, businessNamePlaceholder);
-  const uiRules = buildUIRulesPrompt();
+  const uiRules = buildUIRulesPrompt(template);
   const codeRules = buildCodeRulesPrompt();
+
+  const adaptLine = isManagement
+    ? 'Adapt: management → simple ERP/CRM panel with Login, Register, Dashboard, Products, Users; extremely simple and beautiful; frontend-only.'
+    : `Adapt: ecommerce → product cards; business → service cards.`;
+
+  const managementGuidance = isManagement
+    ? `\n\nMANAGEMENT PANEL — MINIMAL STRUCTURE (MANDATORY):
+- App.js layout: <div className="flex min-h-screen bg-gray-100">{auth?<auth form/>:(<><Sidebar /><div className="flex-1 flex flex-col"><Header /><main className="flex-1 p-6 overflow-auto">{page}</main></div></>)}</div>
+- DashboardPage: return <div className="space-y-6"><h2>Dashboard</h2><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{stats.map(...)}</div></div>. Exactly 4 stat cards. No extra sections.
+- ProductsPage: return <div className="space-y-4"><h2>Title</h2><div className="bg-white overflow-x-auto"><table>...</table></div></div>
+- UsersPage: same pattern as ProductsPage
+- Sidebar: fixed left w-64 bg-gray-900. Header: flex. main: flex-1 overflow-auto. NEVER omit these wrappers.
+
+CONTEXTUAL MOCK DATA: Stats, table rows must reflect project domain. No "Product A" or "User 1".`
+    : '';
 
   return `Generate a complete project analysis and React component in JSON format.
 
-BRAND NAME (CRITICAL): Generate a professional, memorable business/brand name in analysis.businessName. Do NOT copy or extract from the prompt. Invent a real-sounding name (e.g. for a pie bakery → "Sweet Crust Bakery", "Blue Pie Co."; for plumbing → "QuickFlow Plumbing"). Use that exact name in Hero, Header, Footer, About — everywhere the business is referenced. Never use awkward fragments like "blue for pie bakery".
+CORE RULES:
+- Images: __IMAGE_1__ (hero), __IMAGE_2__/__IMAGE_3__ (content), __LOGO__ (header only). Never __IMAGE_1__ for logo.
+- Syntax: function Name() { } or const Name = () => { }. Never bare Name() {.
+- Icons: inline SVG or emoji only. No Heroicons, Lucide, etc.
 
-LOGO ICON: Generate analysis.logoIconConcept — short phrase for the AI-generated header logo image (e.g. "abstract pie slice", "simple gear", "abstract prism shape"). Must be ABSTRACT — never literal. Used to generate a professional logo image for the header.
+ANALYSIS (required for code + images): businessName (SHORT core name only — 2–3 words, NO additions like "Artisans", "lovers", "community", "Co." e.g. "Terra Stone", "Sweet Crust"), logoIconConcept (abstract phrase for header logo, e.g. "abstract pie slice"). Use businessName in Hero, Header, Footer, About. Header logo: <img src="__LOGO__" /> only.
 
-REQUIREMENTS:
-- Project: "${prompt}"
-- Type: ${template.type}
-- Budget: ${userInputs.budget || 'Not specified'}
-- Timeline: ${userInputs.timeline || 'Not specified'}
-- Tech: ${techPref} (JS ecosystem only: React, Node.js, MongoDB/PostgreSQL)
-- Adapt components to project type: ecommerce → product cards, cart-related UI in components/ui; business → service cards, CTA; portfolio → project cards. Keep the same page list (home, about, services/products, contact) and section list from the template; only vary which reusable components you add under components/ui.
+REQUIREMENTS: Project: "${prompt}" | Type: ${template.type} | Budget: ${userInputs.budget || 'Not specified'} | Timeline: ${userInputs.timeline || 'Not specified'} | Tech: ${techPref}. ${adaptLine} Keep page list and section list from template.${managementGuidance}
 
 ${pageStructure}
 
@@ -292,30 +286,20 @@ STYLING:
 - Colors: ${colorScheme} (use Tailwind classes: bg-{color}, text-{color}, from-{color}, to-{color})
 - Style: ${style}
 - Gradients: bg-gradient-to-r from-{primaryColor} to-{secondaryColor}
+- ${buildFontRulesPrompt(style)}
 
-FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. MANDATORY paths (you MUST include ALL of these): /App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js, /pages/ContactPage.js. ContactPage.js is REQUIRED — never omit it. Optional: /components/ui/Button.js, /components/ui/Card.js. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.
+${getFileStructureForTemplate(template)}
 
-OUTPUT FORMAT (JSON only, no markdown):
-CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
-- Use \\n for newlines in strings
-- Use \\" for quotes in strings  
-- Use \\\\ for backslashes
-- NO unescaped control characters
-- NO markdown code blocks around JSON
-- Prefer "files" object (see above); if you cannot output multiple files, use single "code" string with full App component.
+OUTPUT FORMAT: JSON only, no markdown. Use \\n, \\", \\\\ in strings. Prefer "files" object; fallback: single "code" string.
 
 {
   "analysis": {
     "title": "Project title",
-    "businessName": "Professional brand name you invent (e.g. Sweet Crust Bakery)",
-    "logoIconConcept": "Abstract logo concept (e.g. abstract pie slice, simple gear, abstract prism shape)",
+    "businessName": "Short core name (2–3 words, no Artisans/lovers/community/Co.)",
+    "logoIconConcept": "Abstract logo concept (e.g. abstract pie slice, simple gear)",
     "overview": "2-3 sentence summary",
-    "features": ["Feature 1", "Feature 2", "...at least 5-8"],
-    "techStack": {
-      "frontend": ["React", "TypeScript", "Tailwind CSS"],
-      "backend": ["Node.js", "Express"],
-      "database": ["MongoDB"]
-    },
+    "features": ["Feature 1", "Feature 2", "Feature 3"],
+    "techStack": {"frontend": ["React", "Tailwind CSS"], "backend": ["Node.js"], "database": ["MongoDB"]},
     "timeline": {
       "totalWeeks": 8,
       "phases": [
@@ -324,108 +308,50 @@ CRITICAL: Return ONLY valid JSON. Escape all special characters in strings:
         {"phase": "Testing & Launch", "weeks": 2, "deliverables": ["..."]}
       ]
     },
-    "budgetBreakdown": {
-      "total": "Estimated total",
-      "breakdown": [
-        {"category": "Design", "percentage": 25, "description": "..."},
-        {"category": "Development", "percentage": 50, "description": "..."},
-        {"category": "Testing", "percentage": 15, "description": "..."},
-        {"category": "Deployment", "percentage": 10, "description": "..."}
-      ]
-    },
-    "risks": ["Risk 1 with mitigation", "..."],
-    "recommendations": ["Recommendation 1", "..."]
+    "budgetBreakdown": {"total": "Estimated total", "breakdown": [{"category": "Design", "percentage": 25}, {"category": "Development", "percentage": 55}, {"category": "Deployment", "percentage": 20}]},
+    "risks": ["Risk 1 with mitigation", "Risk 2 with mitigation"],
+    "recommendations": ["Recommendation 1", "Recommendation 2"]
   },
   "files": {
-    "/App.js": "import { useState } from 'react';\\nimport Header from './components/Header';\\nimport Footer from './components/Footer';\\nimport HomePage from './pages/HomePage';\\n...\\nexport default App;",
+    "/App.js": "import { useState } from 'react';\\nimport Header from './components/Header';\\n...\\nexport default App;",
     "/components/Header.js": "...",
     "/components/Footer.js": "...",
+    "/components/Sidebar.js": "...",
     "/pages/HomePage.js": "...",
     "/pages/AboutPage.js": "...",
-    "/pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js": "...",
-    "/pages/ContactPage.js": "..."
+    "/pages/ProductsPage.js": "...",
+    "/pages/ContactPage.js": "...",
+    "/pages/LoginPage.js": "...",
+    "/pages/RegisterPage.js": "...",
+    "/pages/DashboardPage.js": "...",
+    "/pages/UsersPage.js": "..."
   }
 }
 
-Alternatively you may return a single "code" string with the full App (all pages as inner components) if multi-file is not possible.
-
-CRITICAL CODE REQUIREMENTS:
-- App.js: shell only when using files — import Header, Footer, page components from ./components and ./pages; useState('home'); render {currentPage === 'home' && <HomePage />} etc.; nav via <button onClick={...}> only, NEVER <a href="#...">.
-- Single "code": same — HomePage, AboutPage, ${isEcommerce ? 'ProductsPage' : 'ServicesPage'}, ContactPage inside App.
-- Each page: export default; data arrays + .map() for cards/items.
-- Tailwind only (CDN loaded). NO icon libs — inline <svg> or emoji only. Responsive: sm:, md:, lg:.
-- Images: Exactly 3 images. __IMAGE_1__ (hero), __IMAGE_2__ and __IMAGE_3__ (display, repeat as needed) for content. Header logo MUST use __LOGO__ (<img src="__LOGO__" alt="Logo" />) — __LOGO__ is image-3, the logo. NEVER use __IMAGE_1__ for the logo. No picsum/placehold.
-- Real content only — NO Lorem Ipsum, NO "..." truncation. NO markdown in code/files.
-- String quoting: Use double quotes for text with apostrophes (e.g. "Artisans Quarterly", "We're open"). Never nest single quotes inside single-quoted strings — it causes parse errors.
+CODE REQUIREMENTS: App.js shell when using files — import Header, Footer or Sidebar, pages; useState('home' or 'login'); {currentPage === 'home' && <HomePage />} etc.; nav via <button onClick> only, never href. Tailwind only. Real content, no Lorem. Double quotes for apostrophe-containing strings.
 
 ${codeRules}
 
-COMPONENT SYNTAX (CRITICAL):
-- Root/App: function App() { } or const App = () => { }
-- Pages/components: function HomePage() { } or const HomePage = () => { }
-- NEVER: HomePage() { or Header() { — always prefix with function or const
-
-CODE STRUCTURE EXAMPLE (all components use function Name() { or const Name = () => — never bare Name() {):
+CODE PATTERN:
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState(${isManagement ? "'login'" : "'home'"});
   const [menuOpen, setMenuOpen] = useState(false);
-  const handleNav = (e, page) => { e.preventDefault(); e.stopPropagation(); setCurrentPage(page); setMenuOpen(false); };
-
-  const HomePage = () => {
-    const features = [
-      { icon: '...', title: 'Feature 1', desc: 'Description...' },
-      { icon: '...', title: 'Feature 2', desc: 'Description...' },
-      { icon: '...', title: 'Feature 3', desc: 'Description...' },
-    ];
-    const stats = [
-      { value: '500+', label: 'Projects' },
-      { value: '98%', label: 'Satisfaction' },
-    ];
-    const testimonials = [
-      { name: 'John', role: 'CEO', quote: '...', avatar: '__IMAGE_2__' },
-    ];
-    return (
-      <>
-        <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-24 text-center">...</section>
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-3 gap-8">
-            {features.map((f, i) => <div key={i} className="bg-white p-6 rounded-xl shadow hover:shadow-xl transition-all">{f.icon} {f.title} {f.desc}</div>)}
-          </div>
-        </section>
-        <section className="py-16">{stats.map((s, i) => <div key={i}><p className="text-4xl font-bold">{s.value}</p><p>{s.label}</p></div>)}</section>
-        <section className="py-16 bg-gray-50">{testimonials.map((t, i) => <div key={i}>...</div>)}</section>
-        <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-16 text-center">CTA...</section>
-      </>
-    );
-  };
-
-  const AboutPage = () => { /* same pattern: data arrays + .map() for team, stats, gallery */ };
-  const ServicesPage = () => { /* services array + .map() for cards, steps array + .map() for process */ };
-  const ContactPage = () => { /* contact info array + .map(), form fields, faq array + .map() */ };
-
+  const handleNav = (e, p) => { e.preventDefault(); setCurrentPage(p); setMenuOpen(false); };
+  const HomePage = () => { const features = [...]; return <>{features.map((f,i)=><div key={i}>...</div>)}</>; };
   return (
-    <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-50 bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button onClick={(e) => handleNav(e, 'home')} className="flex items-center gap-2 text-xl font-bold"><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" />Brand Name</button>
-          <nav className="hidden md:flex gap-6">
-            <button onClick={(e) => handleNav(e, 'home')}>Home</button>
-            <button onClick={(e) => handleNav(e, 'about')}>About</button>
-            <button onClick={(e) => handleNav(e, 'services')}>Services</button>
-            <button onClick={(e) => handleNav(e, 'contact')}>Contact</button>
-          </nav>
-          <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>Menu</button>
-        </div>
-      </header>
-      {currentPage === 'home' && <HomePage />}
-      {currentPage === 'about' && <AboutPage />}
-      {currentPage === 'services' && <ServicesPage />}
-      {currentPage === 'contact' && <ContactPage />}
-      <footer className="bg-gray-900 text-white py-12">...</footer>
+    <div className="min-h-screen">
+      <header><button onClick={(e)=>handleNav(e,'home')}><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" />Brand</button>
+      <nav><button onClick={(e)=>handleNav(e,'home')}>Home</button>...</nav></header>
+      {currentPage==='home'&&<HomePage/>}{currentPage==='about'&&<AboutPage/>}...
+      <footer>...</footer>
     </div>
   );
 }
 export default App;
+
+${isManagement ? `MANAGEMENT LAYOUT (fixed): const isAuth = currentPage==='login'||currentPage==='register'; return <div className="flex min-h-screen bg-gray-100">{isAuth?(currentPage==='login'?<LoginPage onNavigate={handleNav}/>:<RegisterPage onNavigate={handleNav}/>):(<><Sidebar onNavigate={handleNav} currentPage={currentPage}/><div className="flex-1 flex flex-col"><Header title={pageTitles[currentPage]}/><main className="flex-1 p-6 overflow-auto">{currentPage==='dashboard'&&<DashboardPage/>}{currentPage==='products'&&<ProductsPage/>}{currentPage==='users'&&<UsersPage/>}</main></div></>)}</div>;
+
+EXPORTS: export default DashboardPage; export default UsersPage; etc. Never export App from page files. handleNav=(e,p)=>{e?.preventDefault?.();setCurrentPage(p);}. Login onSubmit: onNavigate(e,'dashboard').` : ''}
 
 Generate now:`;
 }

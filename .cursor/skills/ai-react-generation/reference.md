@@ -2,7 +2,11 @@
 
 ## Template Structure (templateStructure.js)
 
-- **ECOMMERCE_KEYWORDS**: `ecommerce`, `store`, `shop`, `selling` → use ecommerce template.
+- **ECOMMERCE_KEYWORDS**: `ecommerce`, `store`, `shop`, `selling`, `sales` → use ecommerce template.
+- **MANAGEMENT_KEYWORDS**: `management`, `panel`, `erp`, `crm`, `admin`, `dashboard`, `backend` → use management panel template.
+- **Template resolution** (via `resolveTemplateType`): (1) If `previewTemplate` is set and not `'auto'`, use it directly. (2) When `previewTemplate` is `'auto'`, **prompt takes priority** over projectType — if prompt has ecommerce or management keywords, use that. (3) Else use projectType enum mapping. (4) Fallback to prompt keyword detection. E.g. "I need an ecommerce" overrides projectType "Management Panel".
+- **MANAGEMENT_UI_RULES**: Minimal, fixed structure for management panels (flex layout, 4 stat cards, single table per page) to prevent broken layouts.
+- **AUTH_FORM_SECTIONS**: shared Login/Register form instructions (used by ecommerce and management templates).
 - **COLOR_MAP**: keyword → Tailwind class (e.g. blue → blue-600). **DEFAULT_COLOR_SCHEME**: `purple-600, indigo-600`.
 - **STYLE_KEYWORDS**: modern, minimal, clean, bold, elegant, fun, professional, creative, playful, vibrant. **DEFAULT_STYLE**: modern.
 - **SHARED_COMPONENTS**: header (sticky nav, logo + nav buttons + hamburger, onClick only), footer (business name, copyright, quick links, social).
@@ -15,13 +19,20 @@
 
 - **buildOptimizedPrompt**: project spec JSON (analysis only); tech constraint JS ecosystem.
 - **buildWebsitePrompt**: single full React component (multi-page, Tailwind, Sandpack); business name, color, style from user input.
-- **buildCombinedPrompt**: uses `getTemplate()`, `extractColorScheme()`, `extractStyle()`, then `buildPageStructurePrompt`, `buildSharedComponentsPrompt`, `buildUIRulesPrompt`, `buildCodeRulesPrompt`; output is JSON with `analysis` + `code` (legacy) or `analysis` + `files` (preferred).
+- **buildCombinedPrompt**: uses `getTemplate(projectType, prompt, previewTemplate)`, `extractColorScheme()`, `extractStyle()`, then `buildPageStructurePrompt`, `buildSharedComponentsPrompt`, `buildUIRulesPrompt`, `buildCodeRulesPrompt`; output is JSON with `analysis` + `code` (legacy) or `analysis` + `files` (preferred).
 
 ## Build structure (multi-file)
 
 - **Parser**: Accepts both `code` (string) and `files` (object). If `files` is present, it is normalized and used; otherwise `code` is used. Frontend uses `metadata.websitePreviewFiles` when present; otherwise `metadata.websitePreviewCode` for a single `/App.js`.
-- **Required paths**: `/App.js`, `/components/Header.js`, `/components/Footer.js`, `/pages/HomePage.js`, `/pages/AboutPage.js`, `/pages/ServicesPage.js` or `/pages/ProductsPage.js`, `/pages/ContactPage.js`.
+- **Required paths (business/ecommerce)**: `/App.js`, `/components/Header.js`, `/components/Footer.js`, `/pages/HomePage.js`, `/pages/AboutPage.js`, `/pages/ServicesPage.js` or `/pages/ProductsPage.js`, `/pages/ContactPage.js`. Ecommerce also: `/pages/LoginPage.js`, `/pages/RegisterPage.js`.
+- **Required paths (management)**: `/App.js`, `/components/Sidebar.js`, `/components/Header.js`, `/pages/LoginPage.js`, `/pages/RegisterPage.js`, `/pages/DashboardPage.js`, `/pages/ProductsPage.js`, `/pages/UsersPage.js`.
+- **Contextual mock data (management)**: Products and users table rows must be domain-specific from the project prompt (e.g. T-shirts → "Cropped T-shirt", M, $39.99, Black; advocacy/employees → "John Smith", "Federal Laws Specialist", "Execution Dept"). Never generic "Product A" or "User 1".
 - **Optional paths**: `/components/ui/Button.js`, `/components/ui/Card.js` (or similar reusable UI). App.js is the shell (imports pages and layout components; holds currentPage state; nav via button onClick).
+
+## Generation params & logging
+
+- **metadata.generationParams**: Each completed preview stores `templateType`, `templateSource` (`previewTemplate` | `projectType` | `prompt`), `promptPreview`, `userInputs`, `modelId` for traceability.
+- **Console logging**: Backend logs `[AI Preview] Generation params` (prompt preview, userInputs, templateType, templateSource) at start; Vertex service logs `templateType`, `promptLength`, `modelId` before each API call. Set `DEBUG_PREVIEW_GENERATION=true` to log full prompt (truncated to 3000 chars).
 
 ## ui-components → Generation Mapping
 

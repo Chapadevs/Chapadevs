@@ -28,6 +28,7 @@ const PROJECT_TYPE_PHASES = {
   'New Website Design & Development': FULL_TRACK,
   'Website Redesign/Refresh': FULL_TRACK,
   'E-commerce Store': FULL_TRACK,
+  'Management Panel / ERP / CRM': FULL_TRACK,
   'Web Application': FULL_TRACK,
   'Landing Page': SHORT_TRACK,
   'Maintenance/Updates to Existing Site': SHORT_TRACK,

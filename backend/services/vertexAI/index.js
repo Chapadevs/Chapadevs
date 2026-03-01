@@ -5,6 +5,7 @@ import { createCache, getCacheStats } from './cacheManager.js';
 import { initializeVertexAI } from './initialization.js';
 import { extractUsage, extractText } from './responseUtils.js';
 import { buildOptimizedPrompt, buildWebsitePrompt, buildCombinedPrompt } from './promptBuilders.js';
+import { resolveTemplateType } from './templateStructureHelper.js';
 import { generateMockWebsite, generateMockAnalysis, generateMockCombined } from './mockGenerators.js';
 import { getModel } from './modelManager.js';
 
@@ -48,14 +49,21 @@ class VertexAIService {
     const cacheKey = `combined_${modelId}_${hashString(prompt + JSON.stringify(userInputs))}`;
     const cached = this.cache.get(cacheKey);
     if (cached) {
-      console.log('✅ Combined cache hit - saving API call');
+      const { type: templateType } = resolveTemplateType(userInputs.projectType, prompt, userInputs.previewTemplate);
+      console.log('[AI Preview] Combined cache hit:', { templateType, fromCache: true });
       return { result: cached, fromCache: true, usage: null };
     }
 
     const model = await this.getModel(modelId);
     if (!model) return generateMockCombined(prompt, userInputs, this.cache);
 
+    const { type: templateType } = resolveTemplateType(userInputs.projectType, prompt, userInputs.previewTemplate);
     const combinedPrompt = buildCombinedPrompt(prompt, userInputs);
+
+    if (process.env.DEBUG_PREVIEW_GENERATION === 'true') {
+      console.log('[AI Preview] Full prompt (truncated):', combinedPrompt.substring(0, 3000) + (combinedPrompt.length > 3000 ? '...' : ''));
+    }
+    console.log('[AI Preview] Vertex AI request:', { templateType, promptLength: combinedPrompt.length, modelId });
 
     try {
       let response;
@@ -76,6 +84,7 @@ class VertexAIService {
       const parsed = parseCombinedResponse(text);
       
       this.cache.set(cacheKey, parsed);
+      console.log('[AI Preview] Combined generation complete:', { tokenUsage: usage?.totalTokenCount, fromCache: false });
       return { result: parsed, fromCache: false, usage };
 
     } catch (error) {
@@ -103,10 +112,16 @@ class VertexAIService {
       return { result: mock, usage: null };
     }
 
+    const { type: templateType } = resolveTemplateType(userInputs.projectType, prompt, userInputs.previewTemplate);
     const combinedPrompt = buildCombinedPrompt(prompt, userInputs);
     const request = {
       contents: [{ role: 'user', parts: [{ text: combinedPrompt }] }],
     };
+
+    if (process.env.DEBUG_PREVIEW_GENERATION === 'true') {
+      console.log('[AI Preview] Full prompt (truncated):', combinedPrompt.substring(0, 3000) + (combinedPrompt.length > 3000 ? '...' : ''));
+    }
+    console.log('[AI Preview] Vertex AI stream request:', { templateType, promptLength: combinedPrompt.length, modelId });
 
     let fullText = '';
     try {
@@ -139,6 +154,7 @@ class VertexAIService {
         parsed.code = normalizeComponentCode(parsed.code);
         parsed.code = fixBrokenImageSrc(parsed.code);
       }
+      console.log('[AI Preview] Stream generation complete:', { tokenUsage: usage?.totalTokenCount });
       return { result: parsed, usage };
     } catch (error) {
       console.error('Stream Generation Error:', error.message);

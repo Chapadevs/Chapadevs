@@ -1,4 +1,5 @@
 import { hashString } from './responseParser.js';
+import { extractColorScheme, getTemplateType } from './templateStructureHelper.js';
 
 /**
  * Mock data generators for when Vertex AI is unavailable
@@ -36,17 +37,11 @@ export function generateMockWebsite(prompt, userInputs) {
     lowerPrompt.includes('shop') ||
     lowerPrompt.includes('selling');
 
-  // Theme variation: dark vs light, and accent color from keywords
+  // Theme variation: dark vs light, and accent color (literal + contextual, e.g. grapes→purple)
   const isDark = lowerPrompt.includes('dark');
-  const colorKeywords = ['blue', 'red', 'green', 'purple', 'amber', 'teal', 'rose', 'indigo'];
-  let accent = 'purple';
-  for (const c of colorKeywords) {
-    if (lowerPrompt.includes(c)) {
-      accent = c;
-      break;
-    }
-  }
-  const tailwindAccent = accent === 'purple' ? 'purple' : accent;
+  const colorScheme = extractColorScheme(prompt);
+  const primaryColor = colorScheme.split(',')[0].trim(); // e.g. 'purple-600'
+  const tailwindAccent = primaryColor.split('-')[0] || 'purple';
 
   const heroBg = isDark
     ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
@@ -214,7 +209,7 @@ function App() {
     <div className="min-h-screen ${sectionBg}">
       <header className={"sticky top-0 z-50 " + "${headerBg}" + " shadow-md"}>
         <nav className="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <button onClick={(e) => handleNav(e, 'home')} className={"flex items-center gap-2 text-xl font-bold text-left bg-transparent border-none cursor-pointer " + "${headerLogoClass}"}><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain" />${displayName.replace(/'/g, "\\'")}</button>
+          <button onClick={(e) => handleNav(e, 'home')} className={"flex items-center gap-2 text-xl font-bold text-left bg-transparent border-none cursor-pointer " + "${headerLogoClass}"}><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" />${displayName.replace(/'/g, "\\'")}</button>
           <div className="flex items-center gap-6">
             <button onClick={(e) => handleNav(e, 'home')} className={"bg-transparent border-none cursor-pointer " + "${navLinkClass}"}>Home</button>
             <button onClick={(e) => handleNav(e, 'about')} className={"bg-transparent border-none cursor-pointer " + "${navLinkClass}"}>About</button>
@@ -273,7 +268,7 @@ export function generateMockAnalysis(prompt, userInputs, cache) {
   console.log('🎭 Generating MOCK AI response');
 
   const words = prompt.replace(/\b(website|web|app|for|the|an?)\b/gi, '').trim().split(/\s+/).filter((w) => w.length > 1).slice(0, 3);
-  const mockBusinessName = words.length ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') + ' Co.' : 'Your Business';
+  const mockBusinessName = words.length ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : 'Your Business';
 
   const mockResponse = {
     title: `${userInputs.projectType || 'Web'} Project Analysis`,
@@ -409,12 +404,352 @@ export function generateMockAnalysis(prompt, userInputs, cache) {
   };
 }
 
+/**
+ * Infer contextual mock data from prompt for management panel fallback.
+ * Returns { products, users, stats, productsPageTitle, usersPageTitle }
+ */
+function inferContextualMockData(prompt) {
+  const lower = (prompt || '').toLowerCase();
+
+  // Product-centric domains (inventory, items, T-shirts, etc.)
+  if (/\b(t-shirt|tshirt|t shirt|clothing|apparel|fashion|garment)\b/.test(lower)) {
+    return {
+      productsPageTitle: 'Products',
+      usersPageTitle: 'Team',
+      products: [
+        { name: 'Cropped T-shirt', size: 'M', price: '$39.99', color: 'Black', status: 'Active' },
+        { name: 'Oversized Hoodie', size: 'L', price: '$59.99', color: 'Gray', status: 'Active' },
+        { name: 'Classic Tee', size: 'S', price: '$24.99', color: 'White', status: 'Active' },
+      ],
+      users: [
+        { name: 'Maria Lopez', email: 'maria@store.com', role: 'Store Manager', status: 'Active' },
+        { name: 'James Chen', email: 'james@store.com', role: 'Inventory Lead', status: 'Active' },
+      ],
+      stats: [
+        { label: 'Total SKUs', value: '128' },
+        { label: 'Sizes in Stock', value: '24' },
+        { label: 'Low Stock Alerts', value: '5' },
+        { label: 'Revenue', value: '$12,450' },
+      ],
+    };
+  }
+  if (/\b(bakery|bread|pastry|cake)\b/.test(lower)) {
+    return {
+      productsPageTitle: 'Inventory',
+      usersPageTitle: 'Staff',
+      products: [
+        { name: 'Sourdough Loaf', weight: '500g', price: '$6.99', category: 'Bread', status: 'Active' },
+        { name: 'Croissant', weight: '80g', price: '$3.50', category: 'Pastry', status: 'Active' },
+        { name: 'Chocolate Cake', weight: '1kg', price: '$24.99', category: 'Dessert', status: 'Active' },
+      ],
+      users: [
+        { name: 'Ana Santos', email: 'ana@bakery.com', role: 'Head Baker', status: 'Active' },
+        { name: 'Carlos Mendez', email: 'carlos@bakery.com', role: 'Cashier', status: 'Active' },
+      ],
+      stats: [
+        { label: 'Total Items', value: '45' },
+        { label: 'Daily Sales', value: '142' },
+        { label: 'Baking Today', value: '28' },
+        { label: 'Revenue', value: '$2,890' },
+      ],
+    };
+  }
+  if (/\b(employee|staff|advocacy|legal|law firm|lawyer)\b/.test(lower)) {
+    return {
+      productsPageTitle: 'Items',
+      usersPageTitle: 'Employees',
+      products: [
+        { name: 'Case File #2024-001', type: 'Active', client: 'Smith Corp', status: 'Open' },
+        { name: 'Contract Review', type: 'Pending', client: 'Johnson LLC', status: 'In Progress' },
+      ],
+      users: [
+        { name: 'John Smith', email: 'j.smith@firm.com', role: 'Federal Laws Specialist', dept: 'Execution Dept', status: 'Active' },
+        { name: 'Sarah Williams', email: 's.williams@firm.com', role: 'Corporate Counsel', dept: 'Legal Affairs', status: 'Active' },
+        { name: 'Michael Brown', email: 'm.brown@firm.com', role: 'Paralegal', dept: 'Research', status: 'Active' },
+      ],
+      stats: [
+        { label: 'Total Staff', value: '24' },
+        { label: 'Active Today', value: '18' },
+        { label: 'Open Cases', value: '12' },
+        { label: 'Billable Hours', value: '340' },
+      ],
+    };
+  }
+  if (/\b(restaurant|food|menu)\b/.test(lower)) {
+    return {
+      productsPageTitle: 'Menu Items',
+      usersPageTitle: 'Staff',
+      products: [
+        { name: 'Grilled Salmon', category: 'Main', price: '$24.99', status: 'Available' },
+        { name: 'Caesar Salad', category: 'Starter', price: '$12.99', status: 'Available' },
+      ],
+      users: [
+        { name: 'Chef Rodriguez', email: 'chef@restaurant.com', role: 'Head Chef', status: 'Active' },
+        { name: 'Emma Foster', email: 'emma@restaurant.com', role: 'Server', status: 'Active' },
+      ],
+      stats: [
+        { label: 'Menu Items', value: '32' },
+        { label: 'Tables Today', value: '48' },
+        { label: 'Orders Pending', value: '7' },
+        { label: 'Revenue', value: '$4,200' },
+      ],
+    };
+  }
+
+  // Default generic
+  return {
+    productsPageTitle: 'Products',
+    usersPageTitle: 'Users',
+    products: [
+      { name: 'Product A', price: '$29', status: 'Active' },
+      { name: 'Product B', price: '$49', status: 'Active' },
+      { name: 'Product C', price: '$39', status: 'Draft' },
+    ],
+    users: [
+      { name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'Active' },
+      { name: 'Jane Smith', email: 'jane@example.com', role: 'User', status: 'Active' },
+    ],
+    stats: [
+      { label: 'Total Products', value: '128' },
+      { label: 'Total Users', value: '1,240' },
+      { label: 'Recent Orders', value: '24' },
+      { label: 'Revenue', value: '$12,450' },
+    ],
+  };
+}
+
+function generateMockManagementFiles(prompt, userInputs) {
+  const niche = userInputs.projectType || prompt;
+  const lower = (niche || '').toLowerCase();
+  const words = lower.replace(/\b(management|panel|erp|crm|admin|dashboard)\b/gi, '').trim().split(/\s+/).filter((w) => w.length > 1).slice(0, 2);
+  const displayName = words.length ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Panel';
+  const ctx = inferContextualMockData(prompt);
+
+  const appJs = `import React, { useState } from 'react';
+import Sidebar from './components/Sidebar';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import ProductsPage from './pages/ProductsPage';
+import UsersPage from './pages/UsersPage';
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('login');
+  const handleNav = (e, p) => { e.preventDefault(); e.stopPropagation(); setCurrentPage(p); };
+
+  return (
+    <div className="min-h-screen flex bg-gray-50">
+      {['login', 'register'].includes(currentPage) ? (
+        <div className="w-full flex items-center justify-center">
+          {currentPage === 'login' && <LoginPage onNav={handleNav} />}
+          {currentPage === 'register' && <RegisterPage onNav={handleNav} />}
+        </div>
+      ) : (
+        <>
+          <Sidebar onNav={handleNav} />
+          <main className="flex-1 overflow-auto">
+            {currentPage === 'dashboard' && <DashboardPage />}
+            {currentPage === 'products' && <ProductsPage />}
+            {currentPage === 'users' && <UsersPage />}
+          </main>
+        </>
+      )}
+    </div>
+  );
+}
+export default App;`;
+
+  const sidebarJs = `import React from 'react';
+
+export default function Sidebar({ onNav }) {
+  const handleClick = (e, p) => { e.preventDefault(); if (onNav) onNav(e, p); };
+  return (
+    <aside className="w-64 bg-gray-900 text-white min-h-screen p-4 flex-shrink-0">
+      <h2 className="text-xl font-bold mb-6">${displayName}</h2>
+      <nav className="space-y-1">
+        <button onClick={(e) => handleClick(e, 'dashboard')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800">Dashboard</button>
+        <button onClick={(e) => handleClick(e, 'products')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800">Products</button>
+        <button onClick={(e) => handleClick(e, 'users')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800">Users</button>
+        <button onClick={(e) => handleClick(e, 'login')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800 mt-4 border-t border-gray-700 pt-4">Logout</button>
+      </nav>
+    </aside>
+  );
+}`;
+
+  const loginPageJs = `import React, { useState } from 'react';
+
+export default function LoginPage({ onNav }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const handleSubmit = (e) => { e.preventDefault(); };
+  const handleNav = (e, p) => { e.preventDefault(); if (onNav) onNav(e, p); };
+  return (
+    <div className="w-full max-w-md mx-auto p-8">
+      <div className="bg-white shadow-lg p-8">
+        <h1 className="text-2xl font-bold mb-2">Sign In</h1>
+        <p className="text-gray-600 mb-6">Welcome to ${displayName}</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="w-full py-2 bg-purple-600 text-white hover:bg-purple-700">Sign In</button>
+        </form>
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={(e) => handleNav(e, 'register')} className="text-purple-600 hover:underline">Don't have an account? Register</button>
+        </p>
+      </div>
+    </div>
+  );
+}`;
+
+  const registerPageJs = `import React, { useState } from 'react';
+
+export default function RegisterPage({ onNav }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const handleSubmit = (e) => { e.preventDefault(); };
+  const handleNav = (e, p) => { e.preventDefault(); if (onNav) onNav(e, p); };
+  return (
+    <div className="w-full max-w-md mx-auto p-8">
+      <div className="bg-white shadow-lg p-8">
+        <h1 className="text-2xl font-bold mb-2">Create Account</h1>
+        <p className="text-gray-600 mb-6">Join ${displayName} today</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="w-full py-2 bg-purple-600 text-white hover:bg-purple-700">Register</button>
+        </form>
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={(e) => handleNav(e, 'login')} className="text-purple-600 hover:underline">Already have an account? Login</button>
+        </p>
+      </div>
+    </div>
+  );
+}`;
+
+  const statsJson = JSON.stringify(ctx.stats, null, 2);
+  const productsJson = JSON.stringify(ctx.products, null, 2);
+  const usersJson = JSON.stringify(ctx.users, null, 2);
+
+  const productsColumns = ctx.products[0] ? Object.keys(ctx.products[0]) : ['name', 'price', 'status'];
+  const usersColumns = ctx.users[0] ? Object.keys(ctx.users[0]) : ['name', 'email', 'role', 'status'];
+
+  const dashboardPageJs = `import React from 'react';
+
+export default function DashboardPage() {
+  const stats = ${statsJson};
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="grid md:grid-cols-4 gap-6">
+        {stats.map((s, i) => (
+          <div key={i} className="bg-white p-6 shadow rounded-lg border">
+            <p className="text-sm text-gray-600">{s.label}</p>
+            <p className="text-2xl font-bold mt-1">{s.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}`;
+
+  const productsPageJs = `import React from 'react';
+
+export default function ProductsPage() {
+  const products = ${productsJson};
+  const columns = ${JSON.stringify(productsColumns)};
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">${ctx.productsPageTitle}</h1>
+      <div className="bg-white shadow overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((c) => (
+                <th key={c} className="px-6 py-3 text-left text-sm font-semibold capitalize">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((p, i) => (
+              <tr key={i} className="border-t">
+                {columns.map((c) => (
+                  <td key={c} className="px-6 py-4">{p[c]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}`;
+
+  const usersPageJs = `import React from 'react';
+
+export default function UsersPage() {
+  const users = ${usersJson};
+  const columns = ${JSON.stringify(usersColumns)};
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">${ctx.usersPageTitle}</h1>
+      <div className="bg-white shadow overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((c) => (
+                <th key={c} className="px-6 py-3 text-left text-sm font-semibold capitalize">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u, i) => (
+              <tr key={i} className="border-t">
+                {columns.map((c) => (
+                  <td key={c} className="px-6 py-4">{u[c]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}`;
+
+  return {
+    '/App.js': appJs,
+    '/components/Sidebar.js': sidebarJs,
+    '/pages/LoginPage.js': loginPageJs,
+    '/pages/RegisterPage.js': registerPageJs,
+    '/pages/DashboardPage.js': dashboardPageJs,
+    '/pages/ProductsPage.js': productsPageJs,
+    '/pages/UsersPage.js': usersPageJs,
+  };
+}
+
 export function generateMockCombined(prompt, userInputs, cache) {
   console.log('🎭 Generating MOCK combined response');
 
+  const templateType = getTemplateType(userInputs.projectType || prompt);
   const analysis = generateMockAnalysis(prompt, userInputs, cache);
-  const website = generateMockWebsite(prompt, userInputs);
 
+  if (templateType === 'management') {
+    const files = generateMockManagementFiles(prompt, userInputs);
+    return {
+      result: {
+        analysis: JSON.parse(analysis.result),
+        files,
+        code: files['/App.js'],
+      },
+      fromCache: false,
+      isMock: true,
+      usage: null,
+    };
+  }
+
+  const website = generateMockWebsite(prompt, userInputs);
   return {
     result: {
       analysis: JSON.parse(analysis.result),

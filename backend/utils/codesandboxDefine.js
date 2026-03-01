@@ -5,20 +5,7 @@
  */
 
 import LZString from 'lz-string'
-
-function unescapeCode(str) {
-  if (typeof str !== 'string') return str
-  try {
-    return JSON.parse(`"${str}"`)
-  } catch {
-    return str
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\"/g, '"')
-      .replace(/\\\\/g, '\\')
-  }
-}
+import { unescapeCode } from './codeUtils.js'
 
 function isJsonLike(str) {
   const s = (str || '').trim()
@@ -86,6 +73,9 @@ root.render(<App />);`.trim()),
     <link rel="icon" href="favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>React + Tailwind Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Anton&family=Cinzel:wght@400;700&family=Courier+Prime:wght@400;700&family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Passion+One&family=Permanent+Marker&family=Playfair+Display:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Roboto:wght@400;500;600;700&family=UnifrakturMaguntia&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

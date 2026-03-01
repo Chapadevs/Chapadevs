@@ -3,6 +3,9 @@
  * Universal AI response parser for Sandpack rendering
  */
 
+import { unescapeCode } from '../../utils/codeUtils.js';
+import { KNOWN_COMPONENT_NAMES, KNOWN_FILE_PATHS } from './templateStructure.js';
+
 export function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -91,7 +94,7 @@ export function injectGeneratedImages(code, files, dataUrls) {
     out = out.replace(/<button[^>]*>[\s\S]*?<\/button>/gi, (block) => {
       if (
         /<img[\s\S]*?>/.test(block) &&
-        (/object-contain|w-12|h-12|alt=["'][^"']*logo[^"']*["']/i.test(block)) &&
+        (/object-contain|w-16|h-16|alt=["'][^"']*logo[^"']*["']/i.test(block)) &&
         hasImage1InLogoContext(block)
       ) {
         return replaceLogo(block);
@@ -102,7 +105,7 @@ export function injectGeneratedImages(code, files, dataUrls) {
     out = out.replace(/<img[\s\S]*?>/gi, (tag) => {
       if (!hasImage1InLogoContext(tag)) return tag;
       if (/object-contain/.test(tag) && !/object-cover/.test(tag)) return replaceLogo(tag);
-      if (/\b(?:w-12|h-12)\b/.test(tag) && !/object-cover|w-full/.test(tag)) return replaceLogo(tag);
+      if (/\b(?:w-16|h-16)\b/.test(tag) && !/object-cover|w-full/.test(tag)) return replaceLogo(tag);
       if (/alt=["'][^"']*logo[^"']*["']/i.test(tag)) return replaceLogo(tag);
       return tag;
     });
@@ -150,7 +153,8 @@ export function injectGeneratedImages(code, files, dataUrls) {
   return { code: newCode, files: newFiles };
 }
 
-/** Minimal ContactPage fallback when AI omits it but App.js imports it. */
+/** Minimal fallbacks when AI omits required files but App.js imports them. */
+
 const FALLBACK_CONTACT_PAGE = `import React, { useState } from 'react';
 
 export default function ContactPage() {
@@ -179,18 +183,331 @@ export default function ContactPage() {
 }
 `;
 
+const FALLBACK_HEADER = `import React from 'react';
+
+export default function Header() {
+  return (
+    <header className="sticky top-0 z-50 bg-white shadow">
+      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xl font-bold">
+          <img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" />
+          <span>Brand</span>
+        </div>
+        <nav className="hidden md:flex gap-6">
+          <button>Home</button>
+          <button>About</button>
+          <button>Services</button>
+          <button>Contact</button>
+        </nav>
+      </div>
+    </header>
+  );
+}
+`;
+
+const FALLBACK_FOOTER = `import React from 'react';
+
+export default function Footer() {
+  return (
+    <footer className="bg-gray-900 text-white py-12">
+      <div className="max-w-6xl mx-auto px-4 text-center">
+        <p>&copy; 2024 Brand. All rights reserved.</p>
+      </div>
+    </footer>
+  );
+}
+`;
+
+const FALLBACK_HOME_PAGE = `import React from 'react';
+
+export default function HomePage() {
+  return (
+    <div className="py-16">
+      <section className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-24 text-center">
+        <h1 className="text-4xl font-bold mb-4">Welcome</h1>
+        <p className="text-xl opacity-90">Your business deserves the best.</p>
+      </section>
+      <section className="max-w-6xl mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold mb-8">Featured</h2>
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="bg-gray-50 p-6">Feature 1</div>
+          <div className="bg-gray-50 p-6">Feature 2</div>
+          <div className="bg-gray-50 p-6">Feature 3</div>
+        </div>
+      </section>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_ABOUT_PAGE = `import React from 'react';
+
+export default function AboutPage() {
+  return (
+    <div className="py-16">
+      <div className="max-w-4xl mx-auto px-4">
+        <h1 className="text-4xl font-bold mb-6">About Us</h1>
+        <p className="text-lg mb-8">We are a dedicated team focused on delivering quality.</p>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-gray-50 p-6 text-center">
+            <p className="text-3xl font-bold">100+</p>
+            <p>Projects</p>
+          </div>
+          <div className="bg-gray-50 p-6 text-center">
+            <p className="text-3xl font-bold">98%</p>
+            <p>Satisfaction</p>
+          </div>
+          <div className="bg-gray-50 p-6 text-center">
+            <p className="text-3xl font-bold">10+</p>
+            <p>Years</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_SERVICES_PAGE = `import React from 'react';
+
+export default function ServicesPage() {
+  const services = [
+    { title: 'Service 1', desc: 'Description for service 1' },
+    { title: 'Service 2', desc: 'Description for service 2' },
+    { title: 'Service 3', desc: 'Description for service 3' },
+  ];
+  return (
+    <div className="py-16">
+      <div className="max-w-6xl mx-auto px-4">
+        <h1 className="text-4xl font-bold mb-8">Our Services</h1>
+        <div className="grid md:grid-cols-3 gap-8">
+          {services.map((s, i) => (
+            <div key={i} className="bg-gray-50 p-6 rounded-lg shadow hover:shadow-lg transition">
+              <h3 className="text-xl font-bold mb-2">{s.title}</h3>
+              <p>{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_PRODUCTS_PAGE = `import React from 'react';
+
+export default function ProductsPage() {
+  const products = [
+    { name: 'Product 1', price: '$29' },
+    { name: 'Product 2', price: '$49' },
+    { name: 'Product 3', price: '$39' },
+  ];
+  return (
+    <div className="py-16">
+      <div className="max-w-6xl mx-auto px-4">
+        <h1 className="text-4xl font-bold mb-8">Our Products</h1>
+        <div className="grid md:grid-cols-3 gap-8">
+          {products.map((p, i) => (
+            <div key={i} className="bg-gray-50 p-6 rounded-lg shadow hover:shadow-lg transition">
+              <h3 className="text-xl font-bold">{p.name}</h3>
+              <p className="text-lg font-semibold text-purple-600">{p.price}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_LOGIN_PAGE = `import React, { useState } from 'react';
+
+export default function LoginPage({ onNav, onNavigate }) {
+  const nav = onNavigate || onNav;
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const handleSubmit = (e) => { e.preventDefault(); if (nav) nav(e, 'dashboard'); };
+  const handleNav = (e, p) => { e.preventDefault(); if (nav) nav(e, p); };
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white shadow-lg p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold mb-2">Sign In</h1>
+          <p className="text-gray-600">Welcome back</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="w-full py-2 bg-purple-600 text-white hover:bg-purple-700">Sign In</button>
+        </form>
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={(e) => handleNav(e, 'register')} className="text-purple-600 hover:underline">Don't have an account? Register</button>
+        </p>
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_REGISTER_PAGE = `import React, { useState } from 'react';
+
+export default function RegisterPage({ onNav, onNavigate }) {
+  const nav = onNavigate || onNav;
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const handleSubmit = (e) => { e.preventDefault(); if (nav) nav(e, 'login'); };
+  const handleNav = (e, p) => { e.preventDefault(); if (nav) nav(e, p); };
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white shadow-lg p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold mb-2">Create Account</h1>
+          <p className="text-gray-600">Join us today</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="w-full py-2 bg-purple-600 text-white hover:bg-purple-700">Register</button>
+        </form>
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={(e) => handleNav(e, 'login')} className="text-purple-600 hover:underline">Already have an account? Login</button>
+        </p>
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_DASHBOARD_PAGE = `import React from 'react';
+
+export default function DashboardPage() {
+  const stats = [
+    { label: 'Total Products', value: '128' },
+    { label: 'Total Users', value: '1,240' },
+    { label: 'Recent Orders', value: '24' },
+    { label: 'Revenue', value: '$12,450' },
+  ];
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="grid md:grid-cols-4 gap-6">
+        {stats.map((s, i) => (
+          <div key={i} className="bg-white p-6 shadow rounded-lg border">
+            <p className="text-sm text-gray-600">{s.label}</p>
+            <p className="text-2xl font-bold mt-1">{s.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_USERS_PAGE = `import React from 'react';
+
+export default function UsersPage() {
+  const users = [
+    { name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'Active' },
+    { name: 'Jane Smith', email: 'jane@example.com', role: 'User', status: 'Active' },
+    { name: 'Bob Wilson', email: 'bob@example.com', role: 'User', status: 'Inactive' },
+  ];
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Users</h1>
+      <div className="bg-white shadow overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Name</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Email</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Role</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u, i) => (
+              <tr key={i} className="border-t">
+                <td className="px-6 py-4">{u.name}</td>
+                <td className="px-6 py-4">{u.email}</td>
+                <td className="px-6 py-4">{u.role}</td>
+                <td className="px-6 py-4">{u.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+`;
+
+const FALLBACK_SIDEBAR = `import React from 'react';
+
+export default function Sidebar({ onNav, onNavigate }) {
+  const nav = onNavigate || onNav;
+  const handleClick = (e, p) => { e.preventDefault(); if (nav) nav(e, p); };
+  return (
+    <aside className="w-64 bg-gray-900 text-white min-h-screen p-4">
+      <h2 className="text-xl font-bold mb-6">Panel</h2>
+      <nav className="space-y-2">
+        <button onClick={(e) => handleClick(e, 'dashboard')} className="block w-full text-left px-4 py-2 hover:bg-gray-800">Dashboard</button>
+        <button onClick={(e) => handleClick(e, 'products')} className="block w-full text-left px-4 py-2 hover:bg-gray-800">Products</button>
+        <button onClick={(e) => handleClick(e, 'users')} className="block w-full text-left px-4 py-2 hover:bg-gray-800">Users</button>
+        <button onClick={(e) => handleClick(e, 'login')} className="block w-full text-left px-4 py-2 hover:bg-gray-800 mt-4">Login</button>
+      </nav>
+    </aside>
+  );
+}
+`;
+
+/** Map: component name -> { path, fallback } for ensureRequiredFiles. */
+const REQUIRED_IMPORTS = {
+  ContactPage: { path: '/pages/ContactPage.js', fallback: FALLBACK_CONTACT_PAGE },
+  HomePage: { path: '/pages/HomePage.js', fallback: FALLBACK_HOME_PAGE },
+  AboutPage: { path: '/pages/AboutPage.js', fallback: FALLBACK_ABOUT_PAGE },
+  ServicesPage: { path: '/pages/ServicesPage.js', fallback: FALLBACK_SERVICES_PAGE },
+  ProductsPage: { path: '/pages/ProductsPage.js', fallback: FALLBACK_PRODUCTS_PAGE },
+  LoginPage: { path: '/pages/LoginPage.js', fallback: FALLBACK_LOGIN_PAGE },
+  RegisterPage: { path: '/pages/RegisterPage.js', fallback: FALLBACK_REGISTER_PAGE },
+  DashboardPage: { path: '/pages/DashboardPage.js', fallback: FALLBACK_DASHBOARD_PAGE },
+  UsersPage: { path: '/pages/UsersPage.js', fallback: FALLBACK_USERS_PAGE },
+  Header: { path: '/components/Header.js', fallback: FALLBACK_HEADER },
+  Footer: { path: '/components/Footer.js', fallback: FALLBACK_FOOTER },
+  Sidebar: { path: '/components/Sidebar.js', fallback: FALLBACK_SIDEBAR },
+};
+
 /**
- * If App.js imports ContactPage but ContactPage.js is missing from files, add a fallback.
- * Prevents runtime errors when the AI omits the contact page.
+ * Extract component names imported from ./pages/ or ./components/ in App.js.
+ * @param {string} appCode - App.js source
+ * @returns {Set<string>} Set of imported component names (e.g. ContactPage, Header)
+ */
+function extractImportsFromApp(appCode) {
+  const imports = new Set();
+  if (!appCode || typeof appCode !== 'string') return imports;
+  const regex = /import\s+(\w+)\s+from\s+['"]\.\/(?:pages|components)\/[\w/]+['"]/g;
+  let m;
+  while ((m = regex.exec(appCode)) !== null) {
+    imports.add(m[1]);
+  }
+  return imports;
+}
+
+/**
+ * If App.js imports a component but the file is missing, add a fallback.
+ * Prevents runtime errors when the AI omits required files.
  * @param {object} files - websitePreviewFiles object (mutated in place)
  */
 export function ensureRequiredFiles(files) {
-  if (!files || typeof files !== "object") return;
-  const appCode = files["/App.js"] || files["App.js"] || "";
-  const needsContactPage =
-    /ContactPage|contactPage/.test(appCode) && !files["/pages/ContactPage.js"] && !files["pages/ContactPage.js"];
-  if (needsContactPage) {
-    files["/pages/ContactPage.js"] = FALLBACK_CONTACT_PAGE;
+  if (!files || typeof files !== 'object') return;
+  const appCode = files['/App.js'] || files['App.js'] || '';
+  const imports = extractImportsFromApp(appCode);
+  for (const [name, { path, fallback }] of Object.entries(REQUIRED_IMPORTS)) {
+    const pathNoLeading = path.slice(1);
+    if (imports.has(name) && !files[path] && !files[pathNoLeading]) {
+      files[path] = fallback;
+    }
   }
 }
 
@@ -216,103 +533,55 @@ export function normalizePreviewMetadata(metadata) {
   }
 }
 
-/**
- * Converts escaped AI strings into executable code
- */
-function unescapeCode(code) {
-  if (!code) return "";
+// --- Phase pipeline: used by normalizeComponentCode ---
 
-  let c = code.trim();
-
-  try {
-    if (c.startsWith('"') && c.endsWith('"')) {
-      c = JSON.parse(c);
-    }
-  } catch {}
-
-  return c
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, "\\");
-}
-
-/**
- * Repairs small syntax mistakes AI models often generate
- */
-function safeSyntaxFix(code) {
-  try {
-    new Function(code);
-    return code;
-  } catch {
-    return code
-      .replace(/;\s*}/g, "}")       // remove ; before }
-      .replace(/'\s*;/g, "'")       // string ending ;
-      .replace(/,\s*,/g, ",")       // double commas
-      .replace(/\{\s*,/g, "{")      // comma after {
-      .replace(/,\s*\}/g, "}");     // comma before }
-  }
-}
-
-function fixJSXExpressions(code) {
-  return code
-    // remove semicolons inside JSX braces
-    .replace(/\{([^{}]*?);+\}/g, "{$1}")
-
-    // remove trailing commas inside JSX braces
-    .replace(/\{([^{}]*?),+\}/g, "{$1}")
-
-    // remove stray periods
-    .replace(/\{([^{}]*?)\.\}/g, "{$1}");
-}
-
-
-/**
- * Normalizes AI component code into valid React component.
- * @param {string} code - Raw component code
- * @param {string} [filePath] - Optional path (e.g. "/components/ui/ProductCard.js") to fix export/name when model outputs App instead of filename
- */
-export function normalizeComponentCode(code, filePath) {
-  if (!code) return "";
-
-  let c = unescapeCode(code);
-
-  // Remove markdown fences
-  c = c.replace(/```[\s\S]*?```/g, (m) =>
+/** Strip markdown code fences from code blocks. */
+function removeMarkdown(code) {
+  return code.replace(/```[\s\S]*?```/g, (m) =>
     m.replace(/```[a-z]*/gi, "").replace(/```/g, "")
   );
+}
 
-  // Fix invalid \u escapes (JS requires \u to be followed by exactly 4 hex digits; otherwise treat as literal \u)
-  c = c.replace(/\\u(?!([0-9a-fA-F]{4}))/g, "\\\\u");
+/** Fix invalid escape sequences and string literal issues. */
+function fixInvalidEscapes(code) {
+  return code
+    .replace(/\\u(?!([0-9a-fA-F]{4}))/g, "\\\\u")
+    .replace(/\\'(?=\s*[,\]\}])/g, "'")
+    .replace(/([a-zA-Z])'([a-zA-Z])/g, "$1\\'$2")
+    .replace(/(?<![:\,\[\(\{\=]\s*)(\s)'([A-Z][a-zA-Z0-9_]*)'(\s)/g, (m, before, word, after) =>
+      `${before}\\'${word}\\'${after}`)
+    .replace(/'\s*;/g, "'");
+}
 
-  // Fix escaped quotes AI sometimes outputs
-  c = c.replace(/\\'(?=\s*[,\]\}])/g, "'");
+/**
+ * Fix AI corruption: </n + spaces used instead of \\n (newline).
+ * E.g. "123 Ave,</n              Venice, CA" -> "123 Ave,\nVenice, CA"
+ * Avoids replacing valid tags: </nav>, </noscript>, </nobr>
+ */
+function fixMalformedJsxNewlines(code) {
+  return code.replace(/<\/n\s*(?!av>|oscript>|obr>)(?=[A-Za-z])/g, "\n");
+}
 
-  // Escape apostrophes inside words (e.g. "word's" -> "word\'s")
-  c = c.replace(/([a-zA-Z])'([a-zA-Z])/g, "$1\\'$2");
+/** Fix structural issues (extra braces, etc.). */
+function fixStructure(code) {
+  return code.replace(/\}\}\s*export default/g, "}\nexport default");
+}
 
-  // Escape quoted proper nouns inside prose strings (e.g. "little 'Sparkle' is" -> "little \'Sparkle\' is")
-  // Do NOT escape when 'Word' is a direct value (object prop, array element, etc.) — skip if preceded by : , [ ( { =
-  c = c.replace(/(?<![:\,\[\(\{\=]\s*)(\s)'([A-Z][a-zA-Z0-9_]*)'(\s)/g, (m, before, word, after) =>
-    `${before}\\'${word}\\'${after}`);
+/**
+ * Fix component declarations: bare Name() {, function App() =>, wrong exports, path-derived names.
+ * @param {string} code
+ * @param {string} [filePath]
+ * @param {string} componentNamesRegex - Pipe-separated names, e.g. "Header|Footer|HomePage|..."
+ */
+function fixComponentDeclarations(code, filePath, componentNamesRegex) {
+  let c = code;
 
-  // Fix objects ending with semicolon
-  c = c.replace(/'\s*;/g, "'");
-
-  // Fix extra braces before export
-  c = c.replace(/\}\}\s*export default/g, "}\nexport default");
-
-  // Fix missing "function" before App — Gemini 2.5 often outputs " App() {" or " App() => {" or " App () {"
   if (!c.includes("function App") && !c.includes("const App")) {
     c = c.replace(/(^|\n)(\s*)App\s*\(\s*\)\s*(=>\s*)?\{/gm, "$1$2function App() {");
   }
-  // Fix invalid "function App() => {" (function keyword + arrow) → "function App() {"
   c = c.replace(/function App\s*\(\s*\)\s*=>\s*\{/g, "function App() {");
 
-  // Fix missing "export default function" before page/component names and bare "App(" / "ProductCard(" in non-root files (^|\n) so start-of-file is fixed too
-  const componentNames = "Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|Card|Button|App";
-  c = c.replace(new RegExp(`(^|\\n)(\\s*)(${componentNames})(\\s*)(\\()`, "g"), (m, start, sp, name, sp2, paren, offset, fullString) => {
+  c = c.replace(new RegExp(`(^|\\n)(\\s*)(${componentNamesRegex})(\\s*)(\\()`, "g"), (m, start, sp, name, sp2, paren, offset, fullString) => {
     const lineStart = offset > 0 ? fullString.lastIndexOf("\n", offset - 1) + 1 : 0;
     const line = fullString.slice(lineStart, offset);
     if (new RegExp(`(?:function|export\\s+default\\s+function|const)\\s+${name}\\b`).test(line)) return m;
@@ -320,14 +589,12 @@ export function normalizeComponentCode(code, filePath) {
   });
   c = c.replace(/export default function export default function /g, "export default function ");
 
-  // Fix wrong "export default App" when this file's main component is Header, Footer, ProductCard, etc. (replace all occurrences)
-  const mainExportMatch = c.match(/export default function (Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|Card|Button)\s*\(/);
+  const mainExportMatch = c.match(new RegExp(`export default function (${componentNamesRegex})\\s*\\(`));
   if (mainExportMatch) {
     const correctName = mainExportMatch[1];
     c = c.replace(/\bexport default App\s*;?/g, `export default ${correctName};`);
   }
 
-  // When path indicates a non-root file (e.g. ProductCard.js), fix App → path-derived name if model exported App
   if (filePath && !/(^|\/)App\.(js|jsx)$/.test(filePath) && c.includes("export default App")) {
     const base = filePath.replace(/.*\//, "").replace(/\.(js|jsx)$/, "");
     const expectedName = base && /^[A-Z][a-zA-Z0-9]*$/.test(base) ? base : null;
@@ -338,35 +605,87 @@ export function normalizeComponentCode(code, filePath) {
     }
   }
 
-  // Ensure component name = App only in root App.js (when no other export default function X is present)
-  const hasOtherExportDefaultFunction = /export default function (?:Header|Footer|HomePage|AboutPage|ProductsPage|ServicesPage|ContactPage|ProductCard|Card|Button)\s*\(/.test(c);
-  if (!hasOtherExportDefaultFunction && !c.includes("function App") && !c.includes("const App")) {
-    c = c.replace(
-      /(function|const|class)\s+([A-Z][a-zA-Z0-9_]*)/,
-      "$1 App"
-    );
+  // Fix inner component wrongly named App: when page file uses <StatCard> etc. but defines const App =, rename it
+  if (filePath && /\/pages\/\w+Page\.(js|jsx)$/.test(filePath)) {
+    if (c.includes('<StatCard') && !c.match(/(?:const|function)\s+StatCard\b/)) {
+      c = c.replace(/\bconst App\s*=\s*\(/g, 'const StatCard = (');
+    }
+    if (c.includes('<QuickActionButton') && !c.match(/(?:const|function)\s+QuickActionButton\b/)) {
+      c = c.replace(/\bconst App\s*=\s*\(/g, 'const QuickActionButton = (');
+    }
   }
 
-  // Ensure export default App only when this is the root app (no other main component)
-  if (!hasOtherExportDefaultFunction && !c.includes("export default App")) {
+  // Fix LoginPage/RegisterPage: onNavigate('page') must be onNavigate(e, 'page') so parent receives page correctly
+  if (filePath && /\/pages\/(Login|Register)Page\.(js|jsx)$/.test(filePath)) {
+    c = c.replace(/onNavigate\s*\(\s*['"]dashboard['"]\s*\)/g, 'onNavigate(e, \'dashboard\')');
+    c = c.replace(/onNavigate\s*\(\s*['"]login['"]\s*\)/g, 'onNavigate(e, \'login\')');
+    c = c.replace(/onNavigate\s*\(\s*['"]register['"]\s*\)/g, 'onNavigate(e, \'register\')');
+  }
+
+  const nonAppComponentPattern = componentNamesRegex.replace(/\|App$/, "");
+  const hasOtherExportDefaultFunction = new RegExp(`export default function (?:${nonAppComponentPattern})\\s*\\(`).test(c);
+  // Page files (DashboardPage, etc.) export the page component and may have inner helpers (StatCard, QuickActionButton).
+  // Never replace those inner components with App.
+  const isPageFile = filePath && /\/pages\/\w+Page\.(js|jsx)$/.test(filePath);
+  const pageBase = isPageFile ? filePath.replace(/.*\//, "").replace(/\.(js|jsx)$/, "") : null;
+  const hasCorrectPageExport = pageBase && new RegExp(`export default\\s+${pageBase}\\s*;?`).test(c);
+  const skipCreateApp = isPageFile && hasCorrectPageExport;
+  if (!skipCreateApp && !hasOtherExportDefaultFunction && !c.includes("function App") && !c.includes("const App")) {
+    c = c.replace(/(function|const|class)\s+([A-Z][a-zA-Z0-9_]*)/, "$1 App");
+  }
+
+  if (!skipCreateApp && !hasOtherExportDefaultFunction && !c.includes("export default App")) {
     c = c.replace(/export default\s+\w+;?/g, "");
     if (!c.endsWith(";")) c += ";";
     c += "\n\nexport default App;";
   }
 
-  /* -------------------------------------- */
-  /* JSX EXPRESSION SANITIZER (CRITICAL)   */
-  /* fixes Gemini 2.5 JSX syntax mistakes  */
-  /* -------------------------------------- */
-  c = c
-    .replace(/\{([^{}]*?);+\}/g, "{$1}")   // {value;} → {value}
-    .replace(/\{([^{}]*?),+\}/g, "{$1}")   // {value,} → {value}
-    .replace(/\{([^{}]*?)\.\}/g, "{$1}")   // {value.} → {value}
-    .replace(/\{;\}/g, "{}");              // {;} → {}
+  return c;
+}
 
-  /* -------------------------------------- */
-  /* FINAL JS SAFETY PASS                   */
-  /* -------------------------------------- */
+/** Fix invalid JSX expression syntax (semicolons, trailing commas, stray periods). */
+function fixJSXExpressions(code) {
+  return code
+    .replace(/\{([^{}]*?);+\}/g, "{$1}")
+    .replace(/\{([^{}]*?),+\}/g, "{$1}")
+    .replace(/\{([^{}]*?)\.\}/g, "{$1}")
+    .replace(/\{;\}/g, "{}");
+}
+
+/** Repairs small syntax mistakes AI models often generate. */
+function safeSyntaxFix(code) {
+  try {
+    new Function(code);
+    return code;
+  } catch {
+    return code
+      .replace(/;\s*}/g, "}")
+      .replace(/'\s*;/g, "'")
+      .replace(/,\s*,/g, ",")
+      .replace(/\{\s*,/g, "{")
+      .replace(/,\s*\}/g, "}");
+  }
+}
+
+/** Regex pattern for component names (from templateStructure registry). */
+const COMPONENT_NAMES_REGEX = KNOWN_COMPONENT_NAMES.join('|');
+
+/**
+ * Normalizes AI component code into valid React component.
+ * Pipeline: unescape → removeMarkdown → fixInvalidEscapes → fixStructure → fixComponentDeclarations → fixJSXExpressions → safeSyntaxFix
+ * @param {string} code - Raw component code
+ * @param {string} [filePath] - Optional path (e.g. "/components/ui/ProductCard.js") to fix export/name when model outputs App instead of filename
+ */
+export function normalizeComponentCode(code, filePath) {
+  if (!code) return "";
+
+  let c = unescapeCode(code);
+  c = removeMarkdown(c);
+  c = fixInvalidEscapes(c);
+  c = fixMalformedJsxNewlines(c);
+  c = fixStructure(c);
+  c = fixComponentDeclarations(c, filePath, COMPONENT_NAMES_REGEX);
+  c = fixJSXExpressions(c);
   c = safeSyntaxFix(c);
 
   return c.trim();
@@ -430,18 +749,6 @@ function extractReactCodeFromRaw(text) {
   if (end <= start) return "";
   return text.substring(start, end).trim();
 }
-
-/** Known file paths in multi-file AI output (try both with and without leading slash). */
-const KNOWN_FILE_PATHS = [
-  "/App.js",
-  "/components/Header.js",
-  "/components/Footer.js",
-  "/pages/HomePage.js",
-  "/pages/AboutPage.js",
-  "/pages/ServicesPage.js",
-  "/pages/ProductsPage.js",
-  "/pages/ContactPage.js",
-];
 
 /**
  * Extract "files" object from raw text by pulling each known path's string value.

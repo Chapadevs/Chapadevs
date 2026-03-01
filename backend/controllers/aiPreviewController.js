@@ -4,6 +4,7 @@ import User from '../models/User.js'
 import { logProjectActivity } from '../utils/activityLogger.js'
 import asyncHandler from 'express-async-handler'
 import vertexAIService from '../services/vertexAI/index.js'
+import { resolveTemplateType } from '../services/vertexAI/templateStructureHelper.js'
 import { generateImagesForPreview } from '../services/vertexAI/imageGeneration.js'
 import { injectGeneratedImages, normalizePreviewMetadata, ensureRequiredFiles } from '../services/vertexAI/responseParser.js'
 import { buildDefineFiles } from '../utils/codesandboxDefine.js'
@@ -17,7 +18,7 @@ const ESTIMATED_TOKENS_PER_REQUEST = 20000
 // @route   POST /api/ai-previews
 // @access  Private
 export const generateAIPreview = asyncHandler(async (req, res) => {
-  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, modelId } = req.body
+  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, previewTemplate, modelId } = req.body
 
   if (!prompt) {
     res.status(400)
@@ -52,6 +53,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
   }
 
   const selectedModelId = modelId || 'gemini-2.5-pro'
+  const { type: templateType, source: templateSource } = resolveTemplateType(projectType, prompt, previewTemplate)
 
   // CREATES THE PREVIEW RECORD: userId, projectId, prompt, previewType, previewResult, status, metadata
   const preview = await AIPreview.create({
@@ -61,11 +63,22 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     previewType: previewType || 'text',
     previewResult: '',
     status: 'generating',
-    metadata: { budget, timeline, techStack, projectType, modelId: selectedModelId }
+    metadata: { budget, timeline, techStack, projectType, previewTemplate, modelId: selectedModelId }
   })
 
+  console.log('[AI Preview] Generation params:', JSON.stringify({
+    previewId: preview._id.toString(),
+    prompt: prompt.substring(0, 200) + (prompt.length > 200 ? '...' : ''),
+    promptLength: prompt.length,
+    userInputs: { budget, timeline, techStack, projectType, previewTemplate },
+    templateType,
+    templateSource,
+    modelId: selectedModelId,
+    timestamp: new Date().toISOString(),
+  }, null, 2))
+
   try {
-    const userInputs = { budget, timeline, techStack, projectType }
+    const userInputs = { budget, timeline, techStack, projectType, previewTemplate }
     
     // Use combined preview generation (single API call)
     const { result, fromCache, usage, isMock } = await vertexAIService.generateCombinedPreview(
@@ -134,6 +147,14 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
       websitePreviewCode: code,
       ...(files && { websitePreviewFiles: files }),
       ...metadataImageFields,
+      generationParams: {
+        templateType,
+        templateSource,
+        previewTemplate: previewTemplate || null,
+        promptPreview: prompt.substring(0, 300),
+        userInputs: { budget, timeline, techStack, projectType },
+        modelId: selectedModelId,
+      },
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,
@@ -259,7 +280,7 @@ async function createAndCacheCodesandbox(preview) {
 // @route   POST /api/ai-previews/stream
 // @access  Private
 export const generateAIPreviewStream = asyncHandler(async (req, res) => {
-  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, modelId } = req.body
+  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, previewTemplate, modelId } = req.body
 
   if (!prompt) {
     res.status(400).json({ error: 'Please provide a prompt for the AI preview' })
@@ -291,6 +312,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
   }
 
   const selectedModelId = modelId || 'gemini-2.5-pro'
+  const { type: templateType, source: templateSource } = resolveTemplateType(projectType, prompt, previewTemplate)
 
   const preview = await AIPreview.create({
     userId: req.user._id,
@@ -299,8 +321,19 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     previewType: previewType || 'text',
     previewResult: '',
     status: 'generating',
-    metadata: { budget, timeline, techStack, projectType, modelId: selectedModelId }
+    metadata: { budget, timeline, techStack, projectType, previewTemplate, modelId: selectedModelId }
   })
+
+  console.log('[AI Preview] Generation params:', JSON.stringify({
+    previewId: preview._id.toString(),
+    prompt: prompt.substring(0, 200) + (prompt.length > 200 ? '...' : ''),
+    promptLength: prompt.length,
+    userInputs: { budget, timeline, techStack, projectType, previewTemplate },
+    templateType,
+    templateSource,
+    modelId: selectedModelId,
+    timestamp: new Date().toISOString(),
+  }, null, 2))
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -311,7 +344,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
   sendSSE(res, { type: 'start', previewId: preview._id.toString() })
 
   try {
-    const userInputs = { budget, timeline, techStack, projectType }
+    const userInputs = { budget, timeline, techStack, projectType, previewTemplate }
     const { result, usage } = await vertexAIService.generateCombinedPreviewStream(
       prompt,
       userInputs,
@@ -371,6 +404,14 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
       websitePreviewCode: code,
       ...(files && { websitePreviewFiles: files }),
       ...metadataImageFields,
+      generationParams: {
+        templateType,
+        templateSource,
+        previewTemplate: previewTemplate || null,
+        promptPreview: prompt.substring(0, 300),
+        userInputs: { budget, timeline, techStack, projectType },
+        modelId: selectedModelId,
+      },
       usage: usage ? {
         combined: {
           promptTokenCount: usage.promptTokenCount || 0,

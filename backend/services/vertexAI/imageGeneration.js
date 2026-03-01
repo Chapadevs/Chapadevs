@@ -47,20 +47,24 @@ function is429(err) {
  * Generate a single image from a text prompt. Returns a data URL or null.
  * Retries up to 2 times with increasing delay on 429 Resource Exhausted.
  * @param {string} prompt - Description for the image
+ * @param {object} [opts] - Optional { imageConfig: { imageSize, aspectRatio } } for larger output
  * @returns {Promise<string|null>} data:image/png;base64,... or null
  */
-export async function generateOneImage(prompt) {
+export async function generateOneImage(prompt, opts = {}) {
   const ai = await getClient();
   if (!ai || !ai.Modality) return null;
+
+  const config = {
+    responseModalities: [ai.Modality.TEXT, ai.Modality.IMAGE],
+    ...(opts.imageConfig && { imageConfig: opts.imageConfig }),
+  };
 
   const attempt = async () => {
     const response = await Promise.race([
       ai.models.generateContentStream({
         model: IMAGE_MODEL,
         contents: prompt,
-        config: {
-          responseModalities: [ai.Modality.TEXT, ai.Modality.IMAGE],
-        },
+        config,
       }),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Image generation timeout')), IMAGE_TIMEOUT_MS)
@@ -109,14 +113,14 @@ export async function generateOneImage(prompt) {
 
 /**
  * Build logo image prompt (slot 0 = image-1). Flat 2D icon for header.
- * Generated first to avoid 429 rate limits. Gemini does not support true transparency; we accept simple solid background.
+ * Generated first to avoid 429 rate limits. No text, full-frame, pure white BG (post-processed to transparency).
  * @param {object} analysis - Parsed analysis
  * @returns {string}
  */
 export function buildLogoPrompt(analysis) {
   const title = analysis?.businessName || analysis?.title || 'Business';
   const logoConcept = (analysis?.logoIconConcept || 'abstract professional mark').slice(0, 80);
-  return `Simple flat logo icon for "${title}". ${logoConcept}. Geometric symbol or minimalist emblem like an app icon. Square, centered, white or light background. No 3D, no photograph, no scene. Small icon usable at 48x48px.`;
+  return `Simple flat logo icon for "${title}". ${logoConcept}. Geometric symbol or minimalist emblem like an app icon. CRITICAL: No text, no letters, no words, no typography. No border, no frame, no black outline, no rounded corners, no decorative elements. The logo symbol must fill the entire canvas — maximize its size, minimal or no padding around edges. Pure white #ffffff background only. No 3D, no photograph, no scene. Square composition.`;
 }
 
 /**
@@ -164,8 +168,79 @@ const DISPLAY_PLACEHOLDER_URL = 'https://placehold.co/400x300?text=Image';
 const HERO_PLACEHOLDER_URL = 'https://placehold.co/1200x600?text=Hero';
 const LOGO_PLACEHOLDER_URL = 'https://placehold.co/96x96?text=Logo';
 
+/** Logo output size (higher = better quality; trim + scale-to-fill removes gaps). */
+const LOGO_SIZE = 512;
+
 /** Delay between API requests to reduce 429 rate limits. */
 const STAGGER_DELAY_MS = 4000;
+
+/**
+ * Make white background transparent using sharp. Clean, no AI halo/edge artifacts.
+ * Gemini outputs solid backgrounds; we convert white/near-white pixels to transparent.
+ * @param {string} dataUrl - data:image/png;base64,...
+ * @returns {Promise<string|null>} Transparent PNG data URL, or original on failure
+ */
+async function whiteToTransparent(dataUrl) {
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) return dataUrl;
+  try {
+    const sharp = (await import('sharp')).default;
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+    const { data, info } = await sharp(buffer)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const threshold = 248;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      if (r >= threshold && g >= threshold && b >= threshold) {
+        data[i + 3] = 0;
+      }
+    }
+    const out = await sharp(data, {
+      raw: { width: info.width, height: info.height, channels: 4 },
+    })
+      .png()
+      .toBuffer();
+    let result = `data:image/png;base64,${out.toString('base64')}`;
+    result = (await trimAndFillLogo(result)) || result;
+    return result;
+  } catch (err) {
+    console.warn('Logo white-to-transparent failed, using original:', err?.message);
+    return dataUrl;
+  }
+}
+
+/**
+ * Trim transparent padding and scale logo to fill LOGO_SIZE for crisp, full-frame display.
+ * Removes gap between logo and image border; uses Lanczos for high-quality upscaling.
+ * @param {string} dataUrl - data:image/png;base64,...
+ * @returns {Promise<string|null>} Processed data URL, or original on failure
+ */
+async function trimAndFillLogo(dataUrl) {
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) return dataUrl;
+  try {
+    const sharp = (await import('sharp')).default;
+    const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64, 'base64');
+    const resizeOpts = {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      kernel: 'lanczos3',
+    };
+    const out = await sharp(buffer)
+      .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 }, threshold: 2 })
+      .resize(LOGO_SIZE, LOGO_SIZE, resizeOpts)
+      .png()
+      .toBuffer();
+    return `data:image/png;base64,${out.toString('base64')}`;
+  } catch (err) {
+    console.warn('Logo trim-and-fill failed:', err?.message);
+    return dataUrl;
+  }
+}
 
 /**
  * Generate exactly 3 images for a preview: logo, hero, display.
@@ -181,7 +256,12 @@ export async function generateImagesForPreview(analysis, userPrompt, count = MAX
 
   const prompts = buildImagePrompts(analysis, userPrompt, MAX_IMAGES);
 
-  const logoUrl = await generateOneImage(prompts[0]);
+  let logoUrl = await generateOneImage(prompts[0], {
+    imageConfig: { imageSize: '2K', aspectRatio: '1:1' },
+  });
+  if (logoUrl && logoUrl.startsWith('data:image/')) {
+    logoUrl = (await whiteToTransparent(logoUrl)) || logoUrl;
+  }
   await new Promise((r) => setTimeout(r, STAGGER_DELAY_MS));
   const heroUrl = await generateOneImage(prompts[1]);
   await new Promise((r) => setTimeout(r, STAGGER_DELAY_MS));

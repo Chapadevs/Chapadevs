@@ -123,6 +123,7 @@ const CreateProject = () => {
                 <option value="New Website Design & Development">New Website Design & Development</option>
                 <option value="Website Redesign/Refresh">Website Redesign/Refresh</option>
                 <option value="E-commerce Store">E-commerce Store</option>
+                <option value="Management Panel / ERP / CRM">Management Panel / ERP / CRM</option>
                 <option value="Landing Page">Landing Page</option>
                 <option value="Web Application">Web Application</option>
                 <option value="Maintenance/Updates to Existing Site">Maintenance/Updates to Existing Site</option>

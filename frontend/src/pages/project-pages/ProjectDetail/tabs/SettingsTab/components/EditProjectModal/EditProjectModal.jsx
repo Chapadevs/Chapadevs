@@ -7,6 +7,7 @@ const PROJECT_TYPES = [
   'New Website Design & Development',
   'Website Redesign/Refresh',
   'E-commerce Store',
+  'Management Panel / ERP / CRM',
   'Landing Page',
   'Web Application',
   'Maintenance/Updates to Existing Site',
