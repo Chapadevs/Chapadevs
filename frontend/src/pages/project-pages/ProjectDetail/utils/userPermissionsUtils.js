@@ -30,8 +30,6 @@ export const calculatePermissions = (user, project) => {
   const isProgrammerInProject = (user?.role === 'programmer' || user?.role === 'admin') &&
     (isAssignedProgrammer || isInTeam)
 
-  const hasProgrammers = project.assignedProgrammerId ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
   const isOpen = project.status === 'Open'
   const isReadyForDev = project.status === 'Ready'
 
@@ -54,12 +52,12 @@ export const calculatePermissions = (user, project) => {
   const canToggleTeamClosed = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     (project.status === 'Holding' || project.status === 'Open')
-  // Client marks ready first (I've reviewed); then programmers can create steps and confirm ready
+  // Client marks ready first (I've reviewed); then programmers can create steps and confirm ready.
+  // Client can mark ready even with no programmers yet, so when one joins they can create phases straight away.
   const clientMarkedReady = project.clientMarkedReady === true
   const canMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     isOpen &&
-    hasProgrammers &&
     !clientMarkedReady
   const showMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&

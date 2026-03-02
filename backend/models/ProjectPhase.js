@@ -116,6 +116,10 @@ const projectPhaseSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    clientApprovalFeedback: {
+      type: String,
+      default: null,
+    },
     attachments: {
       type: [
         {

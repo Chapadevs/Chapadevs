@@ -149,9 +149,10 @@ export const projectAPI = {
     return response.data
   },
 
-  approvePhase: async (projectId, phaseId, approved = true) => {
+  approvePhase: async (projectId, phaseId, approved = true, feedback = null) => {
     const response = await api.post(`/projects/${projectId}/phases/${phaseId}/approve`, {
       approved,
+      feedback,
     })
     return response.data
   },

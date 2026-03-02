@@ -9,6 +9,7 @@ import ClientQuestion from './ClientQuestion'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
 import WeekTimeline from './WeekTimeline'
 import SubStepModal from '../../../../../../components/modal-components/SubStepModal/SubStepModal'
+import AttachmentManager from './AttachmentManager'
 import { isPendingApproval } from '../../../../../../utils/phaseApprovalUtils'
 import { Button, Alert, Avatar, AvatarImage, AvatarFallback } from '../../../../../../components/ui-components'
 import './CycleDetail.css'
@@ -132,7 +133,7 @@ const CycleDetail = ({
     [canUpdateSubSteps, localPhase, project, onUpdate]
   )
 
-  const handleApprove = async (approved) => {
+  const handleApprove = async (approved, feedback = null) => {
     if (!canAnswerQuestion) {
       setError('Only the client can approve phases')
       return
@@ -144,7 +145,8 @@ const CycleDetail = ({
       const updated = await projectAPI.approvePhase(
         project._id || project.id,
         localPhase._id || localPhase.id,
-        approved
+        approved,
+        feedback
       )
       setLocalPhase(updated)
       if (onUpdate) {
@@ -458,14 +460,39 @@ const CycleDetail = ({
                         variant="secondary"
                         className="btn dark:btn-primary-dark"
                         disabled={loading}
-                        onClick={() => handleApprove(false)}
+                        onClick={() => {
+                          const feedback = window.prompt('Optional: Add feedback for the programmer')
+                          handleApprove(false, feedback ?? null)
+                        }}
                       >
                         Request Changes
                       </Button>
                     </li>
                   </>
                 )}
+                {!canStartPhase && !canCompletePhase && !needsApproval && !canApprove && (
+                  <li>
+                    <p className="text-ink-muted text-sm">No actions available for this cycle.</p>
+                  </li>
+                )}
               </ul>
+            </div>
+
+            <div className="phase-cycle-attachments">
+              <h3 className="phase-cycle-panel-title font-heading text-sm text-ink uppercase tracking-wide">
+                Attachments
+              </h3>
+              <AttachmentManager
+                phase={localPhase}
+                project={project}
+                canUpload={canUploadAttachments}
+                isProgrammerOrAdmin={isProgrammerOrAdmin}
+                userId={userId}
+                onUpdate={(updated) => {
+                  setLocalPhase(updated)
+                  onUpdate?.(updated)
+                }}
+              />
             </div>
           </div>
 

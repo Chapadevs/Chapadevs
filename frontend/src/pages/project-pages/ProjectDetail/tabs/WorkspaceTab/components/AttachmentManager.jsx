@@ -93,6 +93,15 @@ const AttachmentManager = ({
     return `${backendUrl.replace('/api', '')}${url}`
   }
 
+  const isImage = (type) => type && String(type).includes('image')
+  const sortedAttachments = [...attachments].sort((a, b) => {
+    const aImg = isImage(a.type)
+    const bImg = isImage(b.type)
+    if (aImg && !bImg) return -1
+    if (!aImg && bImg) return 1
+    return 0
+  })
+
   return (
     <div className="attachment-manager">
       {error && <Alert variant="error">{error}</Alert>}
@@ -102,6 +111,7 @@ const AttachmentManager = ({
           <label className="attachment-upload-label">
             <input
               type="file"
+              accept="image/*,.pdf,.doc,.docx"
               onChange={handleFileSelect}
               disabled={uploading}
               className="attachment-upload-input"
@@ -118,15 +128,32 @@ const AttachmentManager = ({
         <p className="empty-state">No attachments yet.</p>
       ) : (
         <div className="attachments-list">
-          {attachments.map((attachment) => {
+          {sortedAttachments.map((attachment) => {
             const attachmentId = attachment._id || attachment.id
             const canDelete =
               (attachment.uploadedBy?.toString() === userIdStr) ||
               isProgrammerOrAdmin
+            const attachmentIsImage = isImage(attachment.type)
+            const fileUrl = getFileUrl(attachment.url)
 
             return (
               <div key={attachmentId} className="attachment-item">
-                <div className="attachment-icon">{getFileIcon(attachment.type)}</div>
+                {attachmentIsImage ? (
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="attachment-thumbnail-link block"
+                  >
+                    <img
+                      src={fileUrl}
+                      alt={attachment.filename}
+                      className="max-h-24 w-auto object-cover rounded-none border border-border"
+                    />
+                  </a>
+                ) : (
+                  <div className="attachment-icon">{getFileIcon(attachment.type)}</div>
+                )}
                 <div className="attachment-info">
                   <div className="attachment-filename">{attachment.filename}</div>
                   <div className="attachment-meta">
@@ -136,7 +163,7 @@ const AttachmentManager = ({
                 </div>
                 <div className="attachment-actions">
                   <a
-                    href={getFileUrl(attachment.url)}
+                    href={fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="attachment-download-btn"

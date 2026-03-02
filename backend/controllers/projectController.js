@@ -655,6 +655,15 @@ export const confirmPhases = asyncHandler(async (req, res) => {
   project.phaseProposal = null
   await project.save()
   await logProjectActivity(project._id, req.user._id, 'phases.confirmed', null, null, { phaseCount: phasesToCreate.length })
+  if (project.clientId) {
+    await createNotification(
+      project.clientId,
+      'project_updated',
+      'Timeline Ready',
+      'The project timeline has been created. Please review the phases in the Workspace.',
+      project._id
+    )
+  }
   const phases = await ProjectPhase.find({ projectId: project._id }).sort({ order: 1 }).lean()
   res.status(201).json(phases)
 })
@@ -732,9 +741,16 @@ export const updatePhase = asyncHandler(async (req, res) => {
   }
 
   // Only programmer/admin can update these fields
+  let subStepStatusesBefore = null
   if (isProgrammer || req.user.role === 'admin') {
     if (req.body.subSteps !== undefined) {
       const existingSubSteps = phase.subSteps || []
+      subStepStatusesBefore = existingSubSteps.map((s) => ({
+        id: (s._id || s.id)?.toString(),
+        order: s.order,
+        status: s.status,
+        title: s.title,
+      }))
       phase.subSteps = req.body.subSteps.map((step) => {
         const normalized = { ...step }
         const existing = existingSubSteps.find(
@@ -802,6 +818,28 @@ export const updatePhase = asyncHandler(async (req, res) => {
       `The programmer has marked phase "${phase.title}" as completed for project "${project.title}". Please review and approve if required.`,
       projectId
     )
+  }
+
+  // Send notification to client when any sub-step changes to waiting_client
+  if (subStepStatusesBefore && isProgrammer && project.clientId && phase.subSteps?.length > 0) {
+    const changedToWaiting = phase.subSteps.find((s, idx) => {
+      const prev = subStepStatusesBefore.find(
+        (p) => (p.id && (s._id || s.id)?.toString() === p.id) || p.order === (s.order ?? idx + 1)
+      )
+      const prevStatus = prev?.status ?? 'pending'
+      const newStatus = s.status ?? 'pending'
+      return prevStatus !== 'waiting_client' && newStatus === 'waiting_client'
+    })
+    if (changedToWaiting) {
+      const taskTitle = changedToWaiting.title || 'A task'
+      await createNotification(
+        project.clientId,
+        'project_updated',
+        'Action Needed',
+        `"${taskTitle}" is waiting on your input in phase "${phase.title}" for project "${project.title}".`,
+        projectId
+      )
+    }
   }
 
   // Activity log for phase status changes
@@ -983,7 +1021,7 @@ export const answerQuestion = asyncHandler(async (req, res) => {
 export const approvePhase = asyncHandler(async (req, res) => {
   const projectId = req.params.id
   const phaseId = req.params.phaseId
-  const { approved } = req.body
+  const { approved, feedback } = req.body
 
   const project = await Project.findById(projectId).lean()
   if (!project) {
@@ -1011,6 +1049,7 @@ export const approvePhase = asyncHandler(async (req, res) => {
   const previousStatus = phase.status
   phase.clientApproved = approved !== false
   phase.clientApprovedAt = phase.clientApproved ? new Date() : null
+  phase.clientApprovalFeedback = approved === false ? (feedback || null) : null
 
   // If approved and phase is in_progress, can mark as completed (if all other requirements met)
   if (phase.clientApproved && phase.status === 'in_progress') {
@@ -1026,7 +1065,7 @@ export const approvePhase = asyncHandler(async (req, res) => {
   }
 
   await phase.save()
-  
+
   // Send notification to programmer if phase was just completed
   if (phase.status === 'completed' && previousStatus !== 'completed' && project.assignedProgrammerId) {
     await createNotification(
@@ -1038,10 +1077,24 @@ export const approvePhase = asyncHandler(async (req, res) => {
     )
   }
 
+  // Send notification to programmer(s) when client requests changes
+  if (phase.clientApproved === false && project.clientId) {
+    const feedbackText = phase.clientApprovalFeedback?.trim() || 'No feedback provided'
+    const message = `The client requested changes on phase "${phase.title}" for project "${project.title}". Feedback: ${feedbackText}`
+    const programmerIds = [
+      ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+      ...(project.assignedProgrammerIds || []),
+    ]
+    const uniqueIds = [...new Set(programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean))]
+    for (const id of uniqueIds) {
+      await createNotification(id, 'project_updated', 'Changes Requested', message, projectId)
+    }
+  }
+
   if (phase.clientApproved) {
     await logProjectActivity(projectId, req.user._id, 'phase.approved', 'phase', phase._id, { phaseTitle: phase.title })
   }
-  
+
   const updated = await ProjectPhase.findById(phase._id).lean()
   res.json(updated)
 })
@@ -1360,14 +1413,8 @@ export const markProjectReady = asyncHandler(async (req, res) => {
     throw new Error('Project must be open for recruitment to mark as ready')
   }
 
-  const hasProgrammers = project.assignedProgrammerId ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.length > 0)
-  if (!hasProgrammers) {
-    res.status(400)
-    throw new Error('At least one programmer must have joined before marking as ready')
-  }
-
-  // Client marks "I've reviewed - ready for programmers to create steps". Do not require programmers to have confirmed yet.
+  // Client marks "I've reviewed - ready for programmers to create steps". Do not require programmers to have joined yet.
+  // Client can mark ready with no programmers so when one joins they can create phases straight away.
   if (!project.clientMarkedReady) {
     project.clientMarkedReady = true
     await project.save()

@@ -578,6 +578,12 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
         </details>
       )}
 
+      {showPendingApprovalsStrip && (
+        <Alert variant="warning" className="mb-4">
+          You have {pendingApprovals.length} phase(s) awaiting your approval. Review and approve in the cycle below.
+        </Alert>
+      )}
+
       <h3 className="project-tab-panel-title">Project Cycle</h3>
 
       <div className="workspace-cycle">

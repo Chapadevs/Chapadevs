@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { 
@@ -88,13 +88,22 @@ function ProjectDetail() {
   const [settingsFetching, setSettingsFetching] = useState(false)
   const [settingsFetchAttempted, setSettingsFetchAttempted] = useState(false)
 
+  // Merge API response with current project; preserve phases/previewCount when API omits them
+  // (e.g. unmarkReady returns project without phases, which would hide the Workspace for client)
+  const applyProjectUpdate = useCallback((updated, prev) => ({
+    ...prev,
+    ...updated,
+    phases: updated.phases !== undefined ? updated.phases : prev?.phases,
+    previewCount: updated.previewCount !== undefined ? updated.previewCount : prev?.previewCount,
+  }), [])
+
   // --- Handlers ---
   const handleMarkReady = async () => {
     if (!window.confirm('Mark this project as Ready?')) return
     try {
       setMarkingReady(true); setError(null)
       const updatedProject = await projectAPI.markReady(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError(err.response?.data?.message || 'Failed to mark ready') }
     finally { setMarkingReady(false) }
   }
@@ -104,7 +113,7 @@ function ProjectDetail() {
     try {
       setConfirmingReady(true); setError(null)
       const updatedProject = await projectAPI.confirmReady(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError(err.response?.data?.message || "Failed to confirm ready") }
     finally { setConfirmingReady(false) }
   }
@@ -114,7 +123,7 @@ function ProjectDetail() {
     try {
       setUnconfirmingReady(true); setError(null)
       const updatedProject = await projectAPI.unconfirmReady(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError(err.response?.data?.message || 'Failed to revert') }
     finally { setUnconfirmingReady(false) }
   }
@@ -124,7 +133,7 @@ function ProjectDetail() {
     try {
       setUnmarkingReady(true); setError(null)
       const updatedProject = await projectAPI.unmarkReady(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError(err.response?.data?.message || 'Failed to revert') }
     finally { setUnmarkingReady(false) }
   }
@@ -135,7 +144,7 @@ function ProjectDetail() {
     try {
       setTogglingTeamClosed(true); setError(null)
       const updatedProject = await projectAPI.toggleTeamClosed(id, newStatus)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError('Toggle failed') }
     finally { setTogglingTeamClosed(false) }
   }
@@ -145,7 +154,7 @@ function ProjectDetail() {
     try {
       setStartingDevelopment(true); setError(null)
       const updatedProject = await projectAPI.startDevelopment(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError('Failed to start development') }
     finally { setStartingDevelopment(false) }
   }
@@ -155,7 +164,7 @@ function ProjectDetail() {
     try {
       setStoppingDevelopment(true); setError(null)
       const updatedProject = await projectAPI.stopDevelopment(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError('Failed to stop development') }
     finally { setStoppingDevelopment(false) }
   }
@@ -165,7 +174,7 @@ function ProjectDetail() {
     try {
       setMarkingHolding(true); setError(null)
       const updatedProject = await projectAPI.markHolding(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError('Failed to set On Hold') }
     finally { setMarkingHolding(false) }
   }
@@ -175,7 +184,7 @@ function ProjectDetail() {
     try {
       setMarkingCompleted(true); setError(null)
       const updatedProject = await projectAPI.markCompleted(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError(err.response?.data?.message || 'Failed to mark completed') }
     finally { setMarkingCompleted(false) }
   }
@@ -185,7 +194,7 @@ function ProjectDetail() {
     try {
       setMarkingCancelled(true); setError(null)
       const updatedProject = await projectAPI.markCancelled(id)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError(err.response?.data?.message || 'Failed to cancel project') }
     finally { setMarkingCancelled(false) }
   }
@@ -204,14 +213,14 @@ function ProjectDetail() {
     try {
       setRemovingProgrammerId(pId); setError(null)
       const updatedProject = await assignmentAPI.removeProgrammer(id, pId)
-      setProject(updatedProject)
+      setProject((prev) => applyProjectUpdate(updatedProject, prev))
     } catch (err) { setError('Failed to remove') }
     finally { setRemovingProgrammerId(null) }
   }
 
   const handleEditSave = async (payload) => {
     const updated = await projectAPI.update(id, payload)
-    setProject(updated)
+    setProject((prev) => applyProjectUpdate(updated, prev))
     return updated
   }
 
