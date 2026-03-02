@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button, Input, Select } from '../../../../../../../components/ui-components'
 import { Textarea } from '../../../../../../../components/shadcn-components/shadcn-textarea/textarea'
+import { getDueDateFromStartAndWeeks } from '../../../../../../../utils/dateUtils'
 import './EditProjectModal.css'
 
 const PROJECT_TYPES = [
@@ -24,6 +25,12 @@ const textToArray = (text) =>
     .map((s) => s.trim())
     .filter(Boolean)
 
+const toDateInputValue = (d) => {
+  if (!d) return ''
+  const date = typeof d === 'string' ? new Date(d) : d
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
 export default function EditProjectModal({ project, onSave, onClose }) {
   const [form, setForm] = useState({
     title: '',
@@ -32,6 +39,8 @@ export default function EditProjectModal({ project, onSave, onClose }) {
     projectType: '',
     budget: '',
     timeline: '',
+    startDate: '',
+    dueDate: '',
     goals: '',
     features: '',
     designStyles: '',
@@ -55,6 +64,8 @@ export default function EditProjectModal({ project, onSave, onClose }) {
       projectType: project.projectType ?? '',
       budget: project.budget ?? '',
       timeline: project.timeline ?? '',
+      startDate: toDateInputValue(project.startDate),
+      dueDate: toDateInputValue(project.dueDate),
       goals: arrayToText(project.goals),
       features: arrayToText(project.features),
       designStyles: arrayToText(project.designStyles),
@@ -86,13 +97,22 @@ export default function EditProjectModal({ project, onSave, onClose }) {
   }
 
   const buildPayload = () => {
+    const weeks = form.timeline?.trim()
+    const startDateVal = form.startDate ? new Date(form.startDate).toISOString() : null
+    let dueDateVal = form.dueDate ? new Date(form.dueDate).toISOString() : null
+    if (!dueDateVal && form.startDate && weeks) {
+      const computed = getDueDateFromStartAndWeeks(form.startDate, weeks)
+      dueDateVal = computed ? computed.toISOString() : null
+    }
     const payload = {
       title: form.title.trim() || undefined,
       description: form.description.trim() || undefined,
       priority: form.priority || undefined,
       projectType: form.projectType || undefined,
       budget: form.budget.trim() || undefined,
-      timeline: form.timeline.trim() || undefined,
+      timeline: weeks || undefined,
+      startDate: startDateVal,
+      dueDate: dueDateVal,
       goals: textToArray(form.goals),
       features: textToArray(form.features),
       designStyles: textToArray(form.designStyles),
@@ -212,7 +232,21 @@ export default function EditProjectModal({ project, onSave, onClose }) {
                 id="edit-timeline"
                 value={form.timeline}
                 onChange={(e) => handleChange('timeline', e.target.value)}
-                placeholder="e.g. 8 weeks"
+                placeholder="e.g. 8"
+              />
+              <Input
+                label="Start date"
+                type="date"
+                id="edit-startDate"
+                value={form.startDate}
+                onChange={(e) => handleChange('startDate', e.target.value)}
+              />
+              <Input
+                label="Due date"
+                type="date"
+                id="edit-dueDate"
+                value={form.dueDate || toDateInputValue(getDueDateFromStartAndWeeks(form.startDate, form.timeline))}
+                onChange={(e) => handleChange('dueDate', e.target.value)}
               />
             </div>
           </section>

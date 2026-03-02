@@ -2,15 +2,16 @@ import './WeekTimeline.css'
 
 /**
  * Week timeline for a cycle (phase). Horizontal or vertical layout.
- * Derives week range from project start + phase order, or phase.startedAt/dueDate.
+ * Derives week range from phase.startedAt/dueDate, or project start + phase order + estimatedDurationDays (legacy).
  * Shows progress highlight from week start to "today" or completedAt.
  */
-const WeekTimeline = ({ phase, project, vertical = false }) => {
+const WeekTimeline = ({ phase, project, phases = [], vertical = false }) => {
   const projectStart = project?.startDate ? new Date(project.startDate) : null
   const order = phase?.order ?? 1
   const phaseStartedAt = phase?.startedAt ? new Date(phase.startedAt) : null
   const phaseDueDate = phase?.dueDate ? new Date(phase.dueDate) : null
   const phaseCompletedAt = phase?.completedAt ? new Date(phase.completedAt) : null
+  const estimatedDurationDays = phase?.estimatedDurationDays ?? null
   const status = phase?.status
 
   let weekStart
@@ -18,6 +19,17 @@ const WeekTimeline = ({ phase, project, vertical = false }) => {
   if (phaseStartedAt && phaseDueDate) {
     weekStart = phaseStartedAt
     weekEnd = phaseDueDate
+  } else if (projectStart && (estimatedDurationDays != null || phases.length > 0)) {
+    weekStart = new Date(projectStart)
+    const prevDuration = Array.isArray(phases)
+      ? phases
+          .filter((p) => (p.order ?? 0) < order)
+          .reduce((sum, p) => sum + (p.estimatedDurationDays ?? 7), 0)
+      : (order - 1) * 7
+    weekStart.setDate(weekStart.getDate() + prevDuration)
+    const duration = estimatedDurationDays ?? 7
+    weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + duration)
   } else if (projectStart) {
     weekStart = new Date(projectStart)
     weekStart.setDate(weekStart.getDate() + (order - 1) * 7)

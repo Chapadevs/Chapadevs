@@ -63,11 +63,17 @@ export const calculatePermissions = (user, project) => {
     !clientMarkedReady
   const showMarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
-    (project.status === 'Holding' || project.status === 'Open')
-  // Programmer can confirm ready only after client has marked ready
-  const canConfirmReady = isProgrammerInProject && isOpen && !project.teamClosed && !hasUserConfirmedReady && clientMarkedReady
-  const showConfirmReady = isProgrammerInProject &&
-    (project.status === 'Holding' || project.status === 'Open')
+    isOpen &&
+    !clientMarkedReady
+  // Programmer can confirm ready only after client has marked ready AND workspace (phases) has been created
+  const hasPhases = project?.phases && project.phases.length > 0
+  const canConfirmReady = isProgrammerInProject && isOpen && !project.teamClosed && !hasUserConfirmedReady && clientMarkedReady && hasPhases
+  const showConfirmReady = isProgrammerInProject && isOpen
+  const canUnconfirmReady = isProgrammerInProject && (isOpen || project.status === 'Ready') && hasUserConfirmedReady
+  const canUnmarkReady = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
+    isClientOwner &&
+    (isOpen || project.status === 'Ready') &&
+    clientMarkedReady
   // Programmer can create steps (Workspace) only after client has marked ready
   const canCreateSteps = (isAssignedProgrammer || isInTeam || admin) && isOpen && clientMarkedReady
 
@@ -114,6 +120,8 @@ export const calculatePermissions = (user, project) => {
     canConfirmReady,
     showMarkReady,
     showConfirmReady,
+    canUnconfirmReady,
+    canUnmarkReady,
     allTeamConfirmedReady,
     canToggleTeamClosed,
     canStartDevelopment,

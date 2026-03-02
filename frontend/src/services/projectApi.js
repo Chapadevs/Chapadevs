@@ -36,6 +36,18 @@ export const projectAPI = {
     return response.data
   },
 
+  savePhaseProposal: async (projectId, proposal) => {
+    const response = await api.patch(`/projects/${projectId}/phases/proposal`, { proposal })
+    return response.data
+  },
+
+  regeneratePhaseProposal: async (projectId, currentProposal) => {
+    const response = await api.post(`/projects/${projectId}/phases/proposal/regenerate`, {
+      currentProposal: currentProposal ?? undefined,
+    })
+    return response.data
+  },
+
   confirmPhases: async (projectId, definitions) => {
     const response = await api.post(`/projects/${projectId}/phases/confirm`, definitions)
     return response.data
@@ -43,6 +55,11 @@ export const projectAPI = {
 
   create: async (projectData) => {
     const response = await api.post('/projects', projectData)
+    return response.data
+  },
+
+  generateProjectRequirements: async (prompt) => {
+    const response = await api.post('/projects/generate-requirements', { prompt })
     return response.data
   },
 
@@ -61,8 +78,18 @@ export const projectAPI = {
     return response.data
   },
 
+  unconfirmReady: async (id) => {
+    const response = await api.put(`/projects/${id}/unconfirm-ready`)
+    return response.data
+  },
+
   markReady: async (id) => {
     const response = await api.put(`/projects/${id}/mark-ready`)
+    return response.data
+  },
+
+  unmarkReady: async (id) => {
+    const response = await api.put(`/projects/${id}/unmark-ready`)
     return response.data
   },
 

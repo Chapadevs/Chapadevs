@@ -41,9 +41,6 @@ const TeamMemberCard = ({
             <span className="team-member-role font-body text-ink-muted font-normal normal-case text-xs">{role}</span>
           </h4>
           <div className="team-member-status flex items-center gap-2">
-            {isPrimary && role === 'Programmer' && (
-              <Badge variant="programmer" className="team-member-status-badge status-assigned rounded-none font-button text-xs">Assigned</Badge>
-            )}
             <span 
               className={`team-availability-badge ${status.status}`}
               style={{ color: status.color }}
@@ -54,7 +51,7 @@ const TeamMemberCard = ({
             <span className="team-availability-text font-body text-sm text-ink-muted">{status.label}</span>
           </div>
         </div>
-        {role === 'Programmer' && isReady !== undefined && (
+        {isReady !== undefined && (
           <div className="team-member-detail">
             <span className="font-body text-sm">
               {isReady ? (

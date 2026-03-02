@@ -26,6 +26,22 @@
   padding: 2rem;
 }
 
+.create-project-ai-block {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+}
+
+.create-project-ai-input-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.create-project-ai-input-row .form-group.flex-1 {
+  flex: 1;
+}
+
 .form-section {
   margin-bottom: 2rem;
 }
@@ -169,6 +185,10 @@
 }
 
 @media (max-width: 768px) {
+  .create-project-ai-input-row {
+    flex-direction: column;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
   }

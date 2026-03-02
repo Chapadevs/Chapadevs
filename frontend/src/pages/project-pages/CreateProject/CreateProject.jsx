@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../../context/AuthContext'
 import { projectAPI } from '../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../utils/techStack'
+import { getDueDateFromStartAndWeeks } from '../../../utils/dateUtils'
 import Header from '../../../components/layout-components/Header/Header'
 import { Button, SectionTitle, Alert, Input, Select, Textarea } from '../../../components/ui-components'
 import './CreateProject.css'
@@ -24,18 +24,55 @@ const parseBudgetForSubmit = (displayValue) => {
   return raw === '' ? '' : raw
 }
 
+const toISODateOnly = (d) => {
+  if (!d) return ''
+  const date = typeof d === 'string' ? new Date(d) : d
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
+const mapProjectDataToForm = (projectData) => {
+  const toStr = (v) => (Array.isArray(v) ? v.join(', ') : (v ?? ''))
+  let budget = projectData.budget ?? ''
+  if (typeof budget === 'string' && /^\d+(\.\d+)?$/.test(budget.replace(/[$,]/g, ''))) {
+    budget = formatBudgetDisplay(budget.replace(/[$,]/g, ''))
+  }
+  return {
+    title: projectData.title ?? '',
+    description: projectData.description ?? '',
+    projectType: projectData.projectType ?? '',
+    budget,
+    timeline: projectData.timeline ?? '',
+    startDate: toISODateOnly(projectData.startDate) || toISODateOnly(new Date()),
+    goals: toStr(projectData.goals),
+    features: toStr(projectData.features),
+    designStyles: toStr(projectData.designStyles),
+    technologies: Array.isArray(projectData.technologies) ? projectData.technologies : [],
+    hasBranding: projectData.hasBranding ?? '',
+    brandingDetails: projectData.brandingDetails ?? '',
+    contentStatus: projectData.contentStatus ?? '',
+    referenceWebsites: projectData.referenceWebsites ?? '',
+    specialRequirements: projectData.specialRequirements ?? '',
+    additionalComments: projectData.additionalComments ?? '',
+    dueDate: '',
+  }
+}
+
 const CreateProject = () => {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const dueDateInputRef = useRef(null)
+  const startDateInputRef = useRef(null)
   const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
   const [error, setError] = useState(null)
+  const defaultStart = toISODateOnly(new Date())
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     projectType: '',
     budget: '',
     timeline: '',
+    startDate: defaultStart,
     goals: '',
     features: '',
     designStyles: '',
@@ -65,10 +102,29 @@ const CreateProject = () => {
   }
 
   const timelineWeeks = Math.max(1, Math.min(52, parseInt(formData.timeline, 10) || 4))
+  const derivedDueDate = formData.dueDate || toISODateOnly(getDueDateFromStartAndWeeks(formData.startDate, formData.timeline || String(timelineWeeks)))
 
   const handleWorkspaceChange = (delta) => {
     const next = Math.max(1, Math.min(52, timelineWeeks + delta))
     setFormData((prev) => ({ ...prev, timeline: String(next) }))
+  }
+
+  const handleGenerateWithAI = async (e) => {
+    e.preventDefault()
+    if (!aiPrompt.trim()) {
+      setError('Please describe your project to generate requirements')
+      return
+    }
+    setError(null)
+    setGenerating(true)
+    try {
+      const { projectData } = await projectAPI.generateProjectRequirements(aiPrompt.trim())
+      setFormData(mapProjectDataToForm(projectData))
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to generate project requirements')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -77,16 +133,24 @@ const CreateProject = () => {
     setLoading(true)
 
     try {
-      // Process arrays from comma-separated strings
+      const weeks = formData.timeline || String(Math.max(1, Math.min(52, parseInt(formData.timeline, 10) || 4)))
+      const startDate = formData.startDate || toISODateOnly(new Date())
+      let dueDate = formData.dueDate || null
+      if (!dueDate && startDate && weeks) {
+        const computed = getDueDateFromStartAndWeeks(startDate, weeks)
+        dueDate = computed ? toISODateOnly(computed) : null
+      }
+
       const projectData = {
         ...formData,
         budget: parseBudgetForSubmit(formData.budget),
-        timeline: formData.timeline || String(Math.max(1, Math.min(52, parseInt(formData.timeline, 10) || 4))),
+        timeline: weeks,
+        startDate: startDate || null,
+        dueDate: dueDate || null,
         goals: formData.goals ? formData.goals.split(',').map((g) => g.trim()).filter(Boolean) : [],
         features: formData.features ? formData.features.split(',').map((f) => f.trim()).filter(Boolean) : [],
         designStyles: formData.designStyles ? formData.designStyles.split(',').map((s) => s.trim()).filter(Boolean) : [],
         technologies: Array.isArray(formData.technologies) ? formData.technologies : [],
-        dueDate: formData.dueDate || null,
       }
 
       const project = await projectAPI.create(projectData)
@@ -108,6 +172,32 @@ const CreateProject = () => {
       </div>
 
       {error && <Alert variant="error" className="error-message">{error}</Alert>}
+
+      <div className="form-section create-project-ai-block">
+        <SectionTitle className="mb-4">Generate with AI</SectionTitle>
+        <p className="form-hint mb-3">Describe your project in your own words and we&apos;ll fill the form for you.</p>
+        <div className="create-project-ai-input-row">
+          <Textarea
+            id="ai-prompt"
+            label="Project description"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            rows={3}
+            placeholder="e.g., E-commerce store for handmade ceramics with inventory, user accounts, and Stripe payments"
+            wrapperClassName="form-group flex-1"
+            disabled={generating}
+          />
+          <Button
+            type="button"
+            variant="primary"
+            size="lg"
+            onClick={handleGenerateWithAI}
+            disabled={generating || !aiPrompt.trim()}
+          >
+            {generating ? 'Generating...' : 'Generate with AI'}
+          </Button>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="create-project-form">
         <div className="form-section">
@@ -131,6 +221,35 @@ const CreateProject = () => {
               </Select>
 
             <div className="form-group">
+              <label htmlFor="startDate">Start Date</label>
+              <div className="date-input-wrapper">
+                <button
+                  type="button"
+                  className="date-input-calendar-btn"
+                  onClick={() => startDateInputRef.current?.showPicker?.() ?? startDateInputRef.current?.focus()}
+                  aria-label="Open calendar to pick start date"
+                  title="Pick date"
+                >
+                  <svg className="date-input-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </button>
+                <input
+                  ref={startDateInputRef}
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  className="date-input-field"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
               <label htmlFor="dueDate">Due Date</label>
               <div className="date-input-wrapper">
                 <button
@@ -152,7 +271,7 @@ const CreateProject = () => {
                   type="date"
                   id="dueDate"
                   name="dueDate"
-                  value={formData.dueDate}
+                  value={derivedDueDate}
                   onChange={handleChange}
                   className="date-input-field"
                 />

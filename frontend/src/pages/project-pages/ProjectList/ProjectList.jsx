@@ -3,6 +3,7 @@ import { useRole } from '../../../hooks/useRole'
 import { useNotifications } from '../../../context/NotificationContext'
 import { projectAPI } from '../../../services/api'
 import { loadProjectsForRole } from '../../../utils/projectListLoader'
+import { formatDateOnly } from '../../../utils/dateUtils'
 import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
 import RoleGate from '../../../components/layout-components/RoleGate/RoleGate'
@@ -128,11 +129,11 @@ const ProjectList = () => {
                 </div>
                 <div className="flex flex-col gap-1 text-xs text-ink-muted">
                   {project.startDate && (
-                    <span>Started: {new Date(project.startDate).toLocaleDateString()}</span>
+                    <span>Started: {formatDateOnly(project.startDate)}</span>
                   )}
                   <span className="flex items-center justify-between gap-2">
                     {project.dueDate && (
-                      <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
+                      <span>Due: {formatDateOnly(project.dueDate)}</span>
                     )}
                     {projectHasUnreadNotifications(project.id || project._id) && (
                       <span className="notification-badge" aria-label="Unread notifications" />

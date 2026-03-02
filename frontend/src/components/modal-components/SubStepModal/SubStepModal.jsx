@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Input, Textarea, Avatar, AvatarImage, AvatarFallback } from '../../ui-components'
 import ClientQuestion from '../../../pages/project-pages/ProjectDetail/tabs/WorkspaceTab/components/ClientQuestion'
@@ -29,16 +29,26 @@ function SubStepModal({
   const [notes, setNotes] = useState(subStep?.notes ?? '')
   const [status, setStatus] = useState(subStep?.status ?? (subStep?.completed ? 'completed' : 'pending'))
   const [completed, setCompleted] = useState(subStep?.completed ?? false)
+  const [todos, setTodos] = useState(() => (subStep?.todos || []).map((t) => ({ ...t, order: t.order ?? 0 })).sort((a, b) => a.order - b.order))
+  const [newTodoText, setNewTodoText] = useState('')
+  const [editingTodoIndex, setEditingTodoIndex] = useState(null)
+  const [editingTodoValue, setEditingTodoValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const todoInputRef = useRef(null)
+
+  const subStepOrder = subStep?.order != null ? subStep.order : null
+  const currentSubStep = phase?.subSteps?.find((s) => s.order === subStepOrder) || subStep
 
   useEffect(() => {
-    if (subStep) {
-      setTitle(subStep.title ?? '')
-      setNotes(subStep.notes ?? '')
-      setStatus(subStep.status ?? (subStep.completed ? 'completed' : 'pending'))
-      setCompleted(subStep.completed ?? false)
+    const source = currentSubStep || subStep
+    if (source) {
+      setTitle(source.title ?? '')
+      setNotes(source.notes ?? '')
+      setStatus(source.status ?? (source.completed ? 'completed' : 'pending'))
+      setCompleted(source.completed ?? false)
+      setTodos((source.todos || []).map((t) => ({ ...t, order: t.order ?? 0 })).sort((a, b) => a.order - b.order))
     }
-  }, [subStep])
+  }, [currentSubStep, subStep])
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -61,6 +71,7 @@ function SubStepModal({
       status,
       completed: status === 'completed' || completed,
       order: subStep?.order,
+      todos: todos.map((t, i) => ({ text: t.text, completed: t.completed ?? false, order: i + 1 })),
     }
     try {
       setSaving(true)
@@ -73,8 +84,74 @@ function SubStepModal({
     }
   }
 
-  const subStepOrder = subStep?.order != null ? subStep.order : null
-  const currentSubStep = phase?.subSteps?.find((s) => s.order === subStepOrder) || subStep
+  const handleTodoToggle = async (index) => {
+    const next = todos.map((t, i) => (i === index ? { ...t, completed: !t.completed } : t))
+    setTodos(next)
+    if (onUpdate) {
+      try {
+        await Promise.resolve(onUpdate({ todos: next.map((t, i) => ({ text: t.text, completed: t.completed ?? false, order: i + 1 })) }))
+      } catch (_) {}
+    }
+  }
+
+  const handleAddTodo = async () => {
+    const text = newTodoText.trim()
+    if (!text) return
+    const next = [...todos, { text, completed: false, order: todos.length + 1 }]
+    setTodos(next)
+    setNewTodoText('')
+    if (onUpdate) {
+      try {
+        await Promise.resolve(onUpdate({ todos: next.map((t, i) => ({ text: t.text, completed: t.completed ?? false, order: i + 1 })) }))
+      } catch (_) {}
+    }
+  }
+
+  const handleRemoveTodo = async (index) => {
+    setEditingTodoIndex(null)
+    const next = todos.filter((_, i) => i !== index).map((t, i) => ({ ...t, order: i + 1 }))
+    setTodos(next)
+    if (onUpdate) {
+      try {
+        await Promise.resolve(onUpdate({ todos: next.map((t, i) => ({ text: t.text, completed: t.completed ?? false, order: i + 1 })) }))
+      } catch (_) {}
+    }
+  }
+
+  const handleStartEditTodo = (index) => {
+    if (!canEdit) return
+    setEditingTodoIndex(index)
+    setEditingTodoValue(todos[index]?.text ?? '')
+  }
+
+  const handleSaveTodoEdit = async () => {
+    if (editingTodoIndex == null) return
+    const trimmed = editingTodoValue.trim()
+    const next = todos.map((t, i) =>
+      i === editingTodoIndex ? { ...t, text: trimmed || 'Untitled task' } : t
+    )
+    setEditingTodoIndex(null)
+    setEditingTodoValue('')
+    setTodos(next)
+    if (onUpdate) {
+      try {
+        await Promise.resolve(onUpdate({ todos: next.map((t, i) => ({ text: t.text, completed: t.completed ?? false, order: i + 1 })) }))
+      } catch (_) {}
+    }
+  }
+
+  const handleCancelTodoEdit = () => {
+    setEditingTodoIndex(null)
+    setEditingTodoValue('')
+  }
+
+  useEffect(() => {
+    if (editingTodoIndex != null && todoInputRef.current) {
+      todoInputRef.current.focus()
+      todoInputRef.current.select()
+    }
+  }, [editingTodoIndex])
+
   const assignedUser =
     currentSubStep?.assignedTo &&
     typeof currentSubStep.assignedTo === 'object' &&
@@ -198,6 +275,93 @@ function SubStepModal({
                   </Avatar>
                   <span>{assignedUser.name}</span>
                 </Link>
+              </div>
+            )}
+          </section>
+
+          <section className="substep-modal-section w-full overflow-hidden">
+            <h3 className="substep-modal-section-title font-heading">Tasks</h3>
+            {todos.length > 0 ? (
+              <ul className="list-none pl-0 font-body text-sm space-y-1.5 w-full">
+                {todos.map((todo, index) => (
+                  <li key={index} className="grid grid-cols-[auto_1fr_auto] gap-2 items-center w-full py-1.5">
+                    <input
+                      type="checkbox"
+                      id={`substep-todo-${index}`}
+                      checked={todo.completed ?? false}
+                      onChange={canEdit ? () => handleTodoToggle(index) : undefined}
+                      disabled={!canEdit}
+                      className="rounded-none border-border w-4 h-4 shrink-0"
+                      aria-label={`Mark "${todo.text}" as complete`}
+                    />
+                    {editingTodoIndex === index ? (
+                      <Input
+                        ref={todoInputRef}
+                        type="text"
+                        value={editingTodoValue}
+                        onChange={(e) => setEditingTodoValue(e.target.value)}
+                        onBlur={handleSaveTodoEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleSaveTodoEdit()
+                          }
+                          if (e.key === 'Escape') handleCancelTodoEdit()
+                        }}
+                        wrapperClassName="min-w-0 gap-0"
+                        className="!py-1 !px-2 !text-sm !min-h-0 !border"
+                        aria-label="Edit task"
+                      />
+                    ) : (
+                      <div className="min-w-0 overflow-hidden">
+                        {canEdit ? (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleStartEditTodo(index)}
+                            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleStartEditTodo(index)}
+                            className={`block break-words text-left cursor-pointer hover:bg-gray-100 py-1 px-0.5 -mx-0.5 rounded-none ${todo.completed ? 'line-through text-ink-muted' : ''}`}
+                            aria-label={`Edit task: ${todo.text || 'Untitled'}`}
+                          >
+                            {todo.text || 'Untitled task'}
+                          </span>
+                        ) : (
+                          <span className={`block break-words text-left ${todo.completed ? 'line-through text-ink-muted' : ''}`}>
+                            {todo.text || 'Untitled task'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTodo(index)}
+                        className="shrink-0 text-ink-muted hover:text-ink p-0.5 text-xs leading-none"
+                        aria-label={`Remove task "${todo.text}"`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="substep-modal-section-hint font-body text-sm text-ink-muted">No tasks yet.</p>
+            )}
+            {canEdit && (
+              <div className="flex gap-2 mt-1 min-w-0 items-center">
+                <Input
+                  type="text"
+                  value={newTodoText}
+                  onChange={(e) => setNewTodoText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
+                  placeholder="Add a task"
+                  wrapperClassName="flex-1 min-w-0 gap-0"
+                  className="!py-1 !px-2 !text-sm !min-h-0 !border"
+                />
+                <Button type="button" variant="secondary" size="sm" onClick={handleAddTodo} disabled={!newTodoText.trim()} className="!py-1 !px-2 text-xs">
+                  Add
+                </Button>
               </div>
             )}
           </section>

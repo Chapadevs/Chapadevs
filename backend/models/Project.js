@@ -130,6 +130,32 @@ const projectSchema = new mongoose.Schema(
       ref: 'User',
       default: [],
     },
+    /** Persisted phase proposal before confirmation; used when project has no phases */
+    phaseProposal: {
+      type: [
+        {
+          title: { type: String, default: '' },
+          description: { type: String, default: null },
+          order: { type: Number, default: 0 },
+          deliverables: { type: [String], default: [] },
+          weeks: { type: Number, default: null },
+          dueDate: { type: Date, default: null },
+          subSteps: [
+            {
+              title: { type: String, default: '' },
+              order: { type: Number, default: 0 },
+              todos: [
+                {
+                  text: { type: String, default: '' },
+                  order: { type: Number, default: 0 },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      default: null,
+    },
   },
   {
     timestamps: true,

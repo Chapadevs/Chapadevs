@@ -1,11 +1,14 @@
 import express from 'express'
 import {
   createProject,
+  generateProjectRequirements,
   getProjects,
   getProjectById,
   getProjectPreviews,
   getProjectActivity,
   getPhaseProposal,
+  savePhaseProposal,
+  regeneratePhaseProposal,
   confirmPhases,
   updateProject,
   updatePhase,
@@ -19,7 +22,9 @@ import {
   getAssignedProjects,
   updateProjectStatus,
   confirmReady,
+  unconfirmReady,
   markProjectReady,
+  unmarkProjectReady,
   startDevelopment,
   stopDevelopment,
   markProjectCompleted,
@@ -41,11 +46,14 @@ router.get('/assigned', getAssignedProjects)
 
 // General routes
 router.post('/', createProject)
+router.post('/generate-requirements', generateProjectRequirements)
 router.get('/', getProjects)
 router.put('/:id/ready', updateProjectStatus)
 router.put('/:id/holding', updateProjectStatus)
 router.put('/:id/confirm-ready', authorizeProjectAccess, confirmReady)
+router.put('/:id/unconfirm-ready', authorizeProjectAccess, unconfirmReady)
 router.put('/:id/mark-ready', authorizeProjectAccess, markProjectReady)
+router.put('/:id/unmark-ready', authorizeProjectAccess, unmarkProjectReady)
 router.put('/:id/start-development', authorizeProjectAccess, startDevelopment)
 router.put('/:id/stop-development', authorizeProjectAccess, stopDevelopment)
 router.put('/:id/complete', authorizeProjectAccess, markProjectCompleted)
@@ -53,6 +61,8 @@ router.put('/:id/cancel', authorizeProjectAccess, markProjectCancelled)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
 router.get('/:id/activity', authorizeProjectAccess, getProjectActivity)
 router.get('/:id/phases/proposal', authorizeProjectAccess, getPhaseProposal)
+router.patch('/:id/phases/proposal', authorizeProjectAccess, savePhaseProposal)
+router.post('/:id/phases/proposal/regenerate', authorizeProjectAccess, regeneratePhaseProposal)
 router.post('/:id/phases/confirm', authorizeProjectAccess, confirmPhases)
 router.patch('/:id/phases/:phaseId', authorizeProjectAccess, updatePhase)
 router.post('/:id/phases/:phaseId/sub-steps', authorizeProjectAccess, updateSubStep)

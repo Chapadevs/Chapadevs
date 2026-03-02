@@ -17,7 +17,6 @@ import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
 import { useProjectNotifications } from './hooks/useProjectNotifications'
 import { calculatePermissions } from './utils/userPermissionsUtils'
-import { getStatusBadgeClass } from './utils/userPermissionsUtils'
 import ProjectSidebar from './components/ProjectSidebar/ProjectSidebar'
 import SettingsTab from './tabs/SettingsTab/SettingsTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
@@ -74,6 +73,8 @@ function ProjectDetail() {
   // --- UI States for Actions ---
   const [markingReady, setMarkingReady] = useState(false)
   const [confirmingReady, setConfirmingReady] = useState(false)
+  const [unconfirmingReady, setUnconfirmingReady] = useState(false)
+  const [unmarkingReady, setUnmarkingReady] = useState(false)
   const [markingHolding, setMarkingHolding] = useState(false)
   const [togglingTeamClosed, setTogglingTeamClosed] = useState(false)
   const [startingDevelopment, setStartingDevelopment] = useState(false)
@@ -82,7 +83,7 @@ function ProjectDetail() {
   const [markingCompleted, setMarkingCompleted] = useState(false)
   const [markingCancelled, setMarkingCancelled] = useState(false)
   const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
-  const [activeTab, setActiveTab] = useState('ai-preview')
+  const [activeTab, setActiveTab] = useState('timeline')
   const [settingsPreview, setSettingsPreview] = useState(null)
   const [settingsFetching, setSettingsFetching] = useState(false)
   const [settingsFetchAttempted, setSettingsFetchAttempted] = useState(false)
@@ -106,6 +107,26 @@ function ProjectDetail() {
       setProject(updatedProject)
     } catch (err) { setError(err.response?.data?.message || "Failed to confirm ready") }
     finally { setConfirmingReady(false) }
+  }
+
+  const handleUnconfirmReady = async () => {
+    if (!window.confirm('Revert to not ready?')) return
+    try {
+      setUnconfirmingReady(true); setError(null)
+      const updatedProject = await projectAPI.unconfirmReady(id)
+      setProject(updatedProject)
+    } catch (err) { setError(err.response?.data?.message || 'Failed to revert') }
+    finally { setUnconfirmingReady(false) }
+  }
+
+  const handleUnmarkReady = async () => {
+    if (!window.confirm('Revert to not ready? Programmers will need to confirm again.')) return
+    try {
+      setUnmarkingReady(true); setError(null)
+      const updatedProject = await projectAPI.unmarkReady(id)
+      setProject(updatedProject)
+    } catch (err) { setError(err.response?.data?.message || 'Failed to revert') }
+    finally { setUnmarkingReady(false) }
   }
 
   const handleToggleTeamClosed = async () => {
@@ -289,10 +310,7 @@ function ProjectDetail() {
                 </Button>
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-bold">{project.title}</h1>
-                  <Badge 
-                    variant={project.status?.toLowerCase() || 'default'} 
-                    className={getStatusBadgeClass(project.status)}
-                  >
+                  <Badge variant={project.status?.toLowerCase() || 'default'}>
                     {project.status}
                   </Badge>
                 </div>
@@ -328,6 +346,7 @@ function ProjectDetail() {
                     previews={previews}
                     onPhaseUpdate={handlePhaseUpdate}
                     onWorkspaceConfirmed={loadProject}
+                    onSwitchToPreviews={() => handleTabChange('ai-preview')}
                   />
                 )}
                 {activeTab === 'activity' && (
@@ -340,6 +359,8 @@ function ProjectDetail() {
                     onDelete={handleDelete}
                     onMarkReady={handleMarkReady}
                     onConfirmReady={handleConfirmReady}
+                    onUnconfirmReady={handleUnconfirmReady}
+                    onUnmarkReady={handleUnmarkReady}
                     onToggleTeamClosed={handleToggleTeamClosed}
                     onStartDevelopment={handleStartDevelopment}
                     onStopDevelopment={handleStopDevelopment}
@@ -350,6 +371,8 @@ function ProjectDetail() {
                     onEditSave={handleEditSave}
                     markingReady={markingReady}
                     confirmingReady={confirmingReady}
+                    unconfirmingReady={unconfirmingReady}
+                    unmarkingReady={unmarkingReady}
                     togglingTeamClosed={togglingTeamClosed}
                     startingDevelopment={startingDevelopment}
                     stoppingDevelopment={stoppingDevelopment}

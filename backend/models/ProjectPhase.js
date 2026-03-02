@@ -57,7 +57,7 @@ const projectPhaseSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null,
-          },    
+          },
           title: { type: String, required: true },
           completed: { type: Boolean, default: false },
           order: { type: Number, required: true },
@@ -67,11 +67,23 @@ const projectPhaseSchema = new mongoose.Schema(
             enum: ['pending', 'waiting_client', 'in_progress', 'completed'],
             default: 'pending',
           },
+          dueDate: { type: Date, default: null },
+          estimatedDurationDays: { type: Number, default: null },
           questionAnswers: {
             type: [
               {
                 order: { type: Number, required: true },
                 answer: { type: String, default: '' },
+              },
+            ],
+            default: [],
+          },
+          todos: {
+            type: [
+              {
+                text: { type: String, required: true },
+                completed: { type: Boolean, default: false },
+                order: { type: Number, required: true },
               },
             ],
             default: [],

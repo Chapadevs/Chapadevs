@@ -79,6 +79,74 @@ Provide a detailed analysis in the following JSON structure (respond ONLY with v
 Generate the response now:`;
 }
 
+/** Project type enum values for schema validation */
+const PROJECT_TYPE_ENUM = [
+  'New Website Design & Development',
+  'Website Redesign/Refresh',
+  'E-commerce Store',
+  'Management Panel / ERP / CRM',
+  'Landing Page',
+  'Web Application',
+  'Maintenance/Updates to Existing Site',
+  'Other',
+]
+
+/** Allowed technology values (must match frontend techStack.js) */
+const ALLOWED_TECHNOLOGIES = [
+  'React', 'Angular', 'Node.js', 'Express', 'MongoDB', 'PostgreSQL',
+  'TypeScript', 'Next.js', 'Tailwind CSS',
+]
+
+/**
+ * Build prompt for AI-generated project requirements from user's natural-language input.
+ * Output maps to Project schema for CreateProject form pre-fill.
+ */
+export function buildProjectRequirementsPrompt(prompt) {
+  return `You are an expert web development agency project analyst. A client has described their project in their own words. Generate a complete project specification in JSON format that maps to our project creation form.
+
+CRITICAL: Our team ONLY works with the JavaScript ecosystem. You MUST suggest ONLY these technologies: ${ALLOWED_TECHNOLOGIES.join(', ')}. NO Python, Java, C#, PHP, Ruby, or other non-JS languages.
+
+CLIENT REQUEST: "${prompt}"
+
+Respond ONLY with valid JSON (no markdown, no code fences). Use this exact structure:
+
+{
+  "title": "Short, professional project title",
+  "description": "2-4 sentence project description based on the client request",
+  "projectType": "EXACTLY one of: ${PROJECT_TYPE_ENUM.join(' | ')}",
+  "budget": "Numeric string e.g. 5000 or range e.g. $5,000 - $10,000",
+  "timeline": "Number of weeks as string, e.g. 8",
+  "goals": ["Goal 1", "Goal 2", "Goal 3"],
+  "features": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5"],
+  "designStyles": ["Modern", "Minimalist", "Corporate", etc. - 2-4 styles],
+  "techStack": {
+    "frontend": ["React", "TypeScript", "Tailwind CSS"],
+    "backend": ["Node.js", "Express"],
+    "database": ["MongoDB"] or ["PostgreSQL"]
+  },
+  "hasBranding": "Yes" or "No" or "Partial",
+  "brandingDetails": "Description if hasBranding is Yes or Partial, else null",
+  "contentStatus": "Ready" or "Need creation" or "Partial" or null,
+  "referenceWebsites": "Comma-separated URLs or descriptions, or null",
+  "specialRequirements": "Combined risks and key requirements as text, or null",
+  "additionalComments": "Any extra context for the development team, or null",
+  "analysisExtras": {
+    "businessName": "Short 2-3 word brand name if applicable",
+    "logoIconConcept": "Abstract logo concept e.g. abstract gear, pie slice",
+    "overview": "1-2 sentence executive summary"
+  }
+}
+
+Rules:
+- projectType MUST match one of the enum values exactly.
+- techStack values MUST be from: ${ALLOWED_TECHNOLOGIES.join(', ')}.
+- Infer projectType, budget, timeline from the client request when not explicit.
+- Keep goals, features, designStyles specific to the domain described.
+- analysisExtras is for future AI preview use; always include it.
+
+Generate the response now:`;
+}
+
 export function buildWebsitePrompt(prompt, userInputs) {
   const projectType = userInputs.projectType || 'Website';
   const lowerPrompt = prompt.toLowerCase();
@@ -303,9 +371,9 @@ OUTPUT FORMAT: JSON only, no markdown. Use \\n, \\", \\\\ in strings. Prefer "fi
     "timeline": {
       "totalWeeks": 8,
       "phases": [
-        {"phase": "Planning", "weeks": 2, "deliverables": ["..."]},
-        {"phase": "Development", "weeks": 4, "deliverables": ["..."]},
-        {"phase": "Testing & Launch", "weeks": 2, "deliverables": ["..."]}
+        {"phase": "Planning", "weeks": 2, "deliverables": ["Requirements doc", "Wireframes"], "subSteps": [{"title": "Gather requirements", "order": 1}, {"title": "Create wireframes", "order": 2}]},
+        {"phase": "Development", "weeks": 4, "deliverables": ["Core features", "Integration"], "subSteps": [{"title": "Implement HomePage", "order": 1}, {"title": "Build ProductsPage", "order": 2}]},
+        {"phase": "Testing & Launch", "weeks": 2, "deliverables": ["QA", "Deployment"], "subSteps": [{"title": "Run QA", "order": 1}, {"title": "Deploy to production", "order": 2}]}
       ]
     },
     "budgetBreakdown": {"total": "Estimated total", "breakdown": [{"category": "Design", "percentage": 25}, {"category": "Development", "percentage": 55}, {"category": "Deployment", "percentage": 20}]},

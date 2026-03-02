@@ -65,6 +65,7 @@ const ProgrammersTab = ({
           role="Client"
           status={getUserStatus(project.clientId)}
           isPrimary={false}
+          isReady={project.clientMarkedReady === true}
         />
       )}
 

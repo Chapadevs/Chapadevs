@@ -4,9 +4,11 @@
 import { createCache, getCacheStats } from './cacheManager.js';
 import { initializeVertexAI } from './initialization.js';
 import { extractUsage, extractText } from './responseUtils.js';
-import { buildOptimizedPrompt, buildWebsitePrompt, buildCombinedPrompt } from './promptBuilders.js';
+import { buildOptimizedPrompt, buildWebsitePrompt, buildCombinedPrompt, buildProjectRequirementsPrompt } from './promptBuilders.js';
+import { buildWorkspaceProposalPrompt } from './workspacePromptBuilder.js';
 import { resolveTemplateType } from './templateStructureHelper.js';
-import { generateMockWebsite, generateMockAnalysis, generateMockCombined } from './mockGenerators.js';
+import { generateMockWebsite, generateMockAnalysis, generateMockCombined, generateMockProjectRequirements, generateMockWorkspaceProposal } from './mockGenerators.js';
+import { extractPageAndComponentPaths } from '../../utils/previewCodeStructure.js';
 import { getModel } from './modelManager.js';
 
 // ALL PARSING LOGIC NOW LIVES HERE
@@ -216,6 +218,125 @@ class VertexAIService {
     } catch (error) {
       console.error('Regenerate Error:', error.message);
       return { htmlCode: cachedCode, fromCache: false, usage: null };
+    }
+  }
+
+  /**
+   * GENERATE PROJECT REQUIREMENTS: From user prompt to Project-schema-matching object.
+   * Returns { projectData, analysisExtras } for CreateProject form pre-fill.
+   */
+  async generateProjectRequirements(prompt, modelId = 'gemini-2.5-pro') {
+    if (!this.initialized || !this.vertex) {
+      console.warn('⚠️ Vertex AI not initialized, using mock project requirements');
+      return generateMockProjectRequirements(prompt, this.cache);
+    }
+
+    const cacheKey = `project_reqs_${modelId}_${hashString(prompt)}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
+      console.log('[Project Requirements] Cache hit');
+      return { result: cached, fromCache: true, usage: null };
+    }
+
+    const model = await this.getModel(modelId);
+    if (!model) return generateMockProjectRequirements(prompt, this.cache);
+
+    const reqPrompt = buildProjectRequirementsPrompt(prompt);
+    try {
+      const response = await model.generateContent(reqPrompt);
+      const text = extractText(response);
+      const usage = extractUsage(response);
+
+      let clean = text.trim();
+      clean = clean.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '');
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) clean = match[0];
+      clean = clean.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+      const parsed = JSON.parse(clean);
+      this.cache.set(cacheKey, parsed);
+      console.log('[Project Requirements] Generation complete:', { tokenUsage: usage?.totalTokenCount });
+      return { result: parsed, fromCache: false, usage };
+    } catch (error) {
+      console.error('Project Requirements Error:', error.message);
+      return generateMockProjectRequirements(prompt, this.cache);
+    }
+  }
+
+  /**
+   * WORKSPACE PROPOSAL: Generate phases and sub-steps from project + previews.
+   * Consumes project data, AI preview analysis, and generated code structure.
+   * @param {Object} project - Project document (lean)
+   * @param {Object} preview - Latest completed AIPreview (with previewResult, metadata)
+   * @param {string} modelId - Model to use
+   * @returns {Promise<Array>} Phase definitions with title, description, order, weeks, deliverables, subSteps
+   */
+  async generateWorkspaceProposal(project, preview, modelId = 'gemini-2.5-pro') {
+    if (!this.initialized || !this.vertex) {
+      console.warn('⚠️ Vertex AI not initialized, using mock Workspace proposal');
+      const codeStructure = preview?.metadata ? extractPageAndComponentPaths(preview.metadata) : {}
+      const analysis = preview?.previewResult ? this._parsePreviewResult(preview.previewResult) : {}
+      return generateMockWorkspaceProposal(project, { analysis, codeStructure })
+    }
+
+    const model = await this.getModel(modelId)
+    if (!model) {
+      const codeStructure = preview?.metadata ? extractPageAndComponentPaths(preview.metadata) : {}
+      const analysis = preview?.previewResult ? this._parsePreviewResult(preview.previewResult) : {}
+      return generateMockWorkspaceProposal(project, { analysis, codeStructure })
+    }
+
+    const analysis = preview?.previewResult ? this._parsePreviewResult(preview.previewResult) : {}
+    const codeStructure = preview?.metadata ? extractPageAndComponentPaths(preview.metadata) : {}
+    const prompt = buildWorkspaceProposalPrompt(project, { analysis, codeStructure })
+
+    console.log('[Workspace] Generating AI proposal:', { projectId: project?._id, modelId })
+
+    try {
+      const response = await model.generateContent(prompt)
+      const text = extractText(response)
+
+      let clean = text.trim()
+      clean = clean.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '')
+      const match = clean.match(/\{[\s\S]*\}/)
+      if (match) clean = match[0]
+      clean = clean.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, '')
+
+      const parsed = JSON.parse(clean)
+      const phases = Array.isArray(parsed.phases) ? parsed.phases : []
+
+      if (phases.length === 0) {
+        console.warn('[Workspace] AI returned empty phases, falling back to mock')
+        return generateMockWorkspaceProposal(project, { analysis, codeStructure })
+      }
+
+      return phases.map((p, i) => ({
+        title: p.title || `Phase ${i + 1}`,
+        description: p.description ?? null,
+        order: typeof p.order === 'number' ? p.order : i + 1,
+        weeks: typeof p.weeks === 'number' ? p.weeks : null,
+        deliverables: Array.isArray(p.deliverables) ? p.deliverables : [],
+        subSteps: Array.isArray(p.subSteps) ? p.subSteps.map((s, j) => ({
+          title: s.title || `Task ${j + 1}`,
+          order: typeof s.order === 'number' ? s.order : j + 1,
+          todos: Array.isArray(s.todos)
+            ? s.todos.map((t, k) => ({ text: typeof t.text === 'string' ? t.text.trim() : '', order: k + 1 })).filter((t) => t.text)
+            : [],
+        })) : [],
+      }))
+    } catch (error) {
+      console.error('[Workspace] Generation error:', error.message)
+      return generateMockWorkspaceProposal(project, { analysis, codeStructure })
+    }
+  }
+
+  _parsePreviewResult(raw) {
+    if (!raw || typeof raw !== 'string') return {}
+    try {
+      const trimmed = raw.trim().replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '')
+      return JSON.parse(trimmed)
+    } catch {
+      return {}
     }
   }
 

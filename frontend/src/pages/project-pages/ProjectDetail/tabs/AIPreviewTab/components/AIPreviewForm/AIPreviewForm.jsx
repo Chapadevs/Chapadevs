@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react'
-import { SecondaryButton, Button, Alert, Textarea, Select } from '../../../../../../../components/ui-components'
+import { SecondaryButton, Button, Alert, Textarea } from '../../../../../../../components/ui-components'
 import './AIPreviewForm.css'
 
 /** Make streamed JSON/code readable: literal \n → newline, \t → tab, \" → ", \\ → \ */
@@ -67,19 +67,6 @@ const AIPreviewForm = ({
         </div>
       ) : (
         <>
-          <Select
-            id="previewTemplate"
-            label="Preview type"
-            name="previewTemplate"
-            value={generateFormData.previewTemplate ?? 'auto'}
-            onChange={(e) => handleChange('previewTemplate', e.target.value)}
-            wrapperClassName="mb-4"
-          >
-            <option value="auto">Auto — detect from project type and prompt</option>
-            <option value="ecommerce">E-commerce store</option>
-            <option value="management">Management panel</option>
-            <option value="business">Business website</option>
-          </Select>
           <Textarea
             id="preview-prompt"
             label="Project description"

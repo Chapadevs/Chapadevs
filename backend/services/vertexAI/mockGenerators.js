@@ -760,3 +760,244 @@ export function generateMockCombined(prompt, userInputs, cache) {
     usage: null,
   };
 }
+
+/**
+ * Mock for AI-generated project requirements (CreateProject form pre-fill).
+ * Returns structure matching buildProjectRequirementsPrompt output.
+ */
+export function generateMockProjectRequirements(prompt, cache) {
+  console.log('🎭 Generating MOCK project requirements');
+
+  const words = (prompt || '')
+    .replace(/\b(website|web|app|for|the|an?|build|create|make|design|i need|i want)\b/gi, '')
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 3);
+  const displayName = words.length ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : 'Custom Project';
+
+  const lower = (prompt || '').toLowerCase();
+  const isEcommerce = lower.includes('ecommerce') || lower.includes('store') || lower.includes('shop');
+  const isManagement = lower.includes('management') || lower.includes('erp') || lower.includes('crm') || lower.includes('panel');
+  const isLanding = lower.includes('landing');
+
+  let projectType = 'Web Application';
+  if (isEcommerce) projectType = 'E-commerce Store';
+  else if (isManagement) projectType = 'Management Panel / ERP / CRM';
+  else if (isLanding) projectType = 'Landing Page';
+
+  const result = {
+    title: `${displayName} - Web Project`,
+    description: `A professional ${projectType.toLowerCase()} project based on your requirements: "${(prompt || '').substring(0, 120)}...". This solution will deliver modern UI/UX, scalable architecture, and best practices.`,
+    projectType,
+    budget: '$10,000 - $25,000',
+    timeline: '8',
+    goals: [
+      'Deliver a modern, responsive user experience',
+      'Implement scalable architecture for future growth',
+      'Ensure security and performance best practices',
+    ],
+    features: [
+      'Responsive design for all devices',
+      'User authentication and authorization',
+      'Admin dashboard or management interface',
+      'API integration capabilities',
+      'SEO optimization',
+    ],
+    designStyles: ['Modern', 'Clean', 'Professional'],
+    techStack: {
+      frontend: ['React', 'TypeScript', 'Tailwind CSS'],
+      backend: ['Node.js', 'Express'],
+      database: ['MongoDB'],
+    },
+    hasBranding: 'Partial',
+    brandingDetails: null,
+    contentStatus: 'Need creation',
+    referenceWebsites: null,
+    specialRequirements: 'Consider accessibility (WCAG) and mobile-first design.',
+    additionalComments: 'Generated from your description. Feel free to edit any field before creating the project.',
+    analysisExtras: {
+      businessName: displayName,
+      logoIconConcept: 'abstract geometric mark',
+      overview: `A comprehensive ${projectType.toLowerCase()} project tailored to your needs.`,
+    },
+  };
+
+  return {
+    result,
+    fromCache: false,
+    usage: null,
+  };
+}
+
+/**
+ * Mock for AI-powered Workspace proposal generation.
+ * Returns phases with subSteps when Vertex AI is unavailable.
+ * @param {Object} project - Project document
+ * @param {Object} context - { analysis, codeStructure }
+ * @returns {Array} Phase definitions with subSteps
+ */
+import { getProjectDurationFromDates } from '../../utils/projectDuration.js'
+
+export function generateMockWorkspaceProposal(project, context = {}) {
+  console.log('🎭 Generating MOCK Workspace proposal');
+
+  const { analysis = {}, codeStructure = {} } = context
+  const dateDuration = getProjectDurationFromDates(project)
+  const totalDaysFromDates = dateDuration?.totalDays ?? null
+  const timelineWeeks = parseInt(project?.timeline, 10) || 8
+  const totalDays = totalDaysFromDates ?? timelineWeeks * 7
+  const pages = codeStructure?.pages || []
+  const components = codeStructure?.components || []
+
+  const subStepTodos = (title, count = 3) => {
+    const lower = (title || '').toLowerCase()
+    if (lower.includes('implement') || lower.includes('build')) {
+      return [
+        { text: 'Setup structure and dependencies', order: 1 },
+        { text: 'Implement core logic', order: 2 },
+        { text: 'Add styling and polish', order: 3 },
+      ].slice(0, count)
+    }
+    if (lower.includes('gather') || lower.includes('document') || lower.includes('requirements')) {
+      return [
+        { text: 'Schedule kickoff', order: 1 },
+        { text: 'Document scope', order: 2 },
+        { text: 'Define milestones', order: 3 },
+      ].slice(0, count)
+    }
+    if (lower.includes('wireframe') || lower.includes('design')) {
+      return [
+        { text: 'Create wireframe for main flow', order: 1 },
+        { text: 'Review and iterate', order: 2 },
+        { text: 'Get client approval', order: 3 },
+      ].slice(0, count)
+    }
+    if (lower.includes('test') || lower.includes('qa')) {
+      return [
+        { text: 'Run unit tests', order: 1 },
+        { text: 'Integration testing', order: 2 },
+        { text: 'Document results', order: 3 },
+      ].slice(0, count)
+    }
+    if (lower.includes('deploy') || lower.includes('launch')) {
+      return [
+        { text: 'Prepare production environment', order: 1 },
+        { text: 'Deploy and verify', order: 2 },
+        { text: 'Post-launch checklist', order: 3 },
+      ].slice(0, count)
+    }
+    return [
+      { text: 'Setup and planning', order: 1 },
+      { text: 'Implementation', order: 2 },
+      { text: 'Review and complete', order: 3 },
+    ].slice(0, count)
+  }
+
+  const withTodos = (subSteps) =>
+    subSteps.map((s, i) => ({
+      ...s,
+      todos: Array.isArray(s.todos) && s.todos.length > 0
+        ? s.todos.map((t, k) => ({ text: t.text ?? '', order: k + 1 }))
+        : subStepTodos(s.title, i < 2 ? 3 : 3),
+    }))
+
+  const developmentSubSteps = []
+  if (pages.length > 0) {
+    pages.forEach((p, i) => developmentSubSteps.push({ title: `Implement ${p}`, order: i + 1 }))
+  }
+  developmentSubSteps.push({ title: 'Set up routing and state management', order: developmentSubSteps.length + 1 })
+  if (components.length > 0) {
+    developmentSubSteps.push({ title: `Build shared components (${components.slice(0, 3).join(', ')})`, order: developmentSubSteps.length + 1 })
+  }
+  developmentSubSteps.push({ title: 'Integration and API wiring', order: developmentSubSteps.length + 1 })
+
+  if (totalDays <= 7) {
+    const sprintSubSteps = developmentSubSteps.length > 0 ? developmentSubSteps : [
+      { title: 'Implement core features', order: 1 },
+      { title: 'Integration and testing', order: 2 },
+      { title: 'Deploy and handoff', order: 3 },
+    ]
+    return [
+      {
+        title: 'Sprint / Delivery',
+        description: 'Focused development sprint, integration, and delivery',
+        order: 1,
+        weeks: totalDays / 7,
+        deliverables: ['Core features', 'Integration', 'Delivery'],
+        subSteps: withTodos(sprintSubSteps),
+      },
+    ]
+  }
+
+  let planningDays = Math.max(1, Math.floor(totalDays * 0.2))
+  let designDays = Math.max(1, Math.floor(totalDays * 0.2))
+  let testingDays = Math.max(1, Math.floor(totalDays * 0.15))
+  let launchDays = Math.max(1, Math.floor(totalDays * 0.1))
+  let devDays = Math.max(2, totalDays - planningDays - designDays - testingDays - launchDays)
+  let currentSum = planningDays + designDays + devDays + testingDays + launchDays
+  if (currentSum !== totalDays) {
+    devDays = Math.max(2, devDays + (totalDays - currentSum))
+  }
+
+  const devSubSteps = developmentSubSteps.length > 0 ? developmentSubSteps : [
+    { title: 'Implement core features', order: 1 },
+    { title: 'Integration and testing', order: 2 },
+    { title: 'Deploy and handoff', order: 3 },
+  ]
+
+  return [
+    {
+      title: 'Planning & Requirements',
+      description: 'Discovery, requirements gathering, and scope definition',
+      order: 1,
+      weeks: planningDays / 7,
+      deliverables: ['Requirements documentation', 'Scope agreement'],
+      subSteps: withTodos([
+        { title: 'Gather and document requirements', order: 1 },
+        { title: 'Define scope and milestones', order: 2 },
+      ]),
+    },
+    {
+      title: 'Design',
+      description: 'Wireframes and design approval',
+      order: 2,
+      weeks: designDays / 7,
+      deliverables: ['Wireframes', 'Design approval'],
+      subSteps: withTodos([
+        { title: 'Create wireframes for main flows', order: 1 },
+        { title: 'Client design review', order: 2 },
+      ]),
+    },
+    {
+      title: 'Development',
+      description: 'Core feature development and integration',
+      order: 3,
+      weeks: devDays / 7,
+      deliverables: ['Core features', 'Integration', 'Codebase'],
+      subSteps: withTodos(devSubSteps),
+    },
+    {
+      title: 'Testing & QA',
+      description: 'Quality assurance and user acceptance testing',
+      order: 4,
+      weeks: testingDays / 7,
+      deliverables: ['QA report', 'UAT'],
+      subSteps: withTodos([
+        { title: 'Unit and integration testing', order: 1 },
+        { title: 'User acceptance testing', order: 2 },
+      ]),
+    },
+    {
+      title: 'Launch & Handoff',
+      description: 'Deployment and client handoff',
+      order: 5,
+      weeks: launchDays / 7,
+      deliverables: ['Deployment', 'Handoff'],
+      subSteps: withTodos([
+        { title: 'Production deployment', order: 1 },
+        { title: 'Client handoff', order: 2 },
+      ]),
+    },
+  ]
+}

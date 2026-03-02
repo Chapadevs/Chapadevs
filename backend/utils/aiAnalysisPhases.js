@@ -36,12 +36,37 @@ export async function getPhasesFromAIAnalysis(projectId) {
   const phases = parsed?.timeline?.phases
   if (!Array.isArray(phases) || phases.length === 0) return null
 
+  const phaseDescriptions = {
+    'Planning': 'Discovery, requirements gathering, and scope definition',
+    'Design': 'Wireframes, UI/UX mockups, and design approval',
+    'Development': 'Core feature development and integration',
+    'Testing': 'Quality assurance, bug fixes, and user acceptance testing',
+    'Launch': 'Production deployment, documentation, and client handoff',
+  }
+  const getDefaultDescription = (phaseTitle) => {
+    const t = (phaseTitle || '').toLowerCase()
+    for (const [key, desc] of Object.entries(phaseDescriptions)) {
+      if (t.includes(key.toLowerCase())) return desc
+    }
+    return null
+  }
+
   return phases.map((p, index) => {
     const title = typeof p.phase === 'string' ? p.phase.trim() : `Phase ${index + 1}`
     const weeks = typeof p.weeks === 'number' ? p.weeks : null
-    const description = weeks != null ? `${weeks} week${weeks !== 1 ? 's' : ''}` : null
+    const rawDesc = typeof p.description === 'string' ? p.description.trim() : null
+    const isDurationLike = rawDesc && /^\d+\s*week(s)?$/i.test(rawDesc)
+    const description = rawDesc && !isDurationLike ? rawDesc : getDefaultDescription(title) ?? null
     const deliverables = Array.isArray(p.deliverables)
       ? p.deliverables.map((d) => (typeof d === 'string' ? d.trim() : String(d))).filter(Boolean)
+      : []
+    const subSteps = Array.isArray(p.subSteps)
+      ? p.subSteps
+          .map((s, i) => ({
+            title: typeof s.title === 'string' ? s.title.trim() : `Task ${i + 1}`,
+            order: typeof s.order === 'number' ? s.order : i + 1,
+          }))
+          .sort((a, b) => a.order - b.order)
       : []
 
     return {
@@ -49,6 +74,8 @@ export async function getPhasesFromAIAnalysis(projectId) {
       description,
       order: index + 1,
       deliverables,
+      weeks,
+      subSteps,
     }
   })
 }

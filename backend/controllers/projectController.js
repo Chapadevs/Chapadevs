@@ -2,12 +2,15 @@ import Project from '../models/Project.js'
 import ProjectPhase from '../models/ProjectPhase.js'
 import ProjectActivity from '../models/ProjectActivity.js'
 import AIPreview from '../models/AIPreview.js'
+import vertexAIService from '../services/vertexAI/index.js'
 import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
 import { logProjectActivity } from '../utils/activityLogger.js'
 import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
+import { getProjectDurationFromDates } from '../utils/projectDuration.js'
 import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
 import { getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
+import { generateSubStepTodos } from '../utils/subStepTodoGenerator.js'
 import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
 import multer from 'multer'
@@ -58,6 +61,74 @@ export const createProject = asyncHandler(async (req, res) => {
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
 
   res.status(201).json(populated)
+})
+
+/** Allowed project types and technologies for AI response normalization */
+const PROJECT_TYPE_ENUM = [
+  'New Website Design & Development',
+  'Website Redesign/Refresh',
+  'E-commerce Store',
+  'Management Panel / ERP / CRM',
+  'Landing Page',
+  'Web Application',
+  'Maintenance/Updates to Existing Site',
+  'Other',
+]
+const ALLOWED_TECH_VALUES = ['React', 'Angular', 'Node.js', 'Express', 'MongoDB', 'PostgreSQL', 'TypeScript', 'Next.js', 'Tailwind CSS']
+
+function normalizeProjectRequirements(parsed) {
+  const techStack = parsed.techStack || {}
+  const flatTech = []
+  for (const key of ['frontend', 'backend', 'database', 'deployment', 'other']) {
+    const arr = techStack[key]
+    if (Array.isArray(arr)) {
+      for (const t of arr) {
+        const val = (typeof t === 'string' ? t : String(t)).trim().toLowerCase()
+        for (const allowed of ALLOWED_TECH_VALUES) {
+          if (val.includes(allowed.toLowerCase()) || val === allowed.toLowerCase()) {
+            if (!flatTech.includes(allowed)) flatTech.push(allowed)
+            break
+          }
+        }
+      }
+    }
+  }
+  const toArr = (v) => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : [])
+  const projectType = PROJECT_TYPE_ENUM.includes(parsed.projectType) ? parsed.projectType : 'Other'
+  const budget = parsed.budget != null ? String(parsed.budget) : null
+  const timeline = parsed.timeline != null ? String(parsed.timeline) : (parsed.timeline?.totalWeeks != null ? String(parsed.timeline.totalWeeks) : null)
+  return {
+    title: parsed.title || 'Untitled Project',
+    description: parsed.description || parsed.overview || parsed.analysisExtras?.overview || '',
+    projectType,
+    budget,
+    timeline,
+    goals: toArr(parsed.goals),
+    features: toArr(parsed.features),
+    designStyles: toArr(parsed.designStyles),
+    technologies: flatTech.length ? flatTech : ['React', 'Node.js', 'MongoDB'],
+    hasBranding: ['Yes', 'No', 'Partial'].includes(parsed.hasBranding) ? parsed.hasBranding : null,
+    brandingDetails: parsed.brandingDetails || null,
+    contentStatus: parsed.contentStatus || null,
+    referenceWebsites: parsed.referenceWebsites || null,
+    specialRequirements: parsed.specialRequirements || null,
+    additionalComments: parsed.additionalComments || null,
+  }
+}
+
+// @desc    Generate project requirements from AI (for CreateProject form pre-fill)
+// @route   POST /api/projects/generate-requirements
+// @access  Private
+export const generateProjectRequirements = asyncHandler(async (req, res) => {
+  const { prompt } = req.body
+  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    res.status(400)
+    throw new Error('Please provide a prompt describing your project')
+  }
+  const { result, fromCache, usage } = await vertexAIService.generateProjectRequirements(prompt.trim())
+  const projectData = normalizeProjectRequirements(result)
+  const analysisExtras = result.analysisExtras || null
+  res.status(200).json({ projectData, analysisExtras, fromCache: fromCache === true })
 })
 
 // @desc    Get all projects (filtered by user role)
@@ -170,37 +241,206 @@ export const getProjectById = asyncHandler(async (req, res) => {
   res.json({ ...project, phases, previewCount })
 })
 
-// @desc    Get proposed timeline (from AI or template). No phases created.
+const normalizePhaseProposal = (proposal) =>
+  (Array.isArray(proposal) ? proposal : []).map((d) => ({
+    title: d.title ?? '',
+    description: d.description ?? null,
+    order: typeof d.order === 'number' ? d.order : 0,
+    deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
+    weeks: d.weeks ?? null,
+    dueDate: d.dueDate ?? null,
+    subSteps: Array.isArray(d.subSteps)
+      ? d.subSteps.map((s, i) => ({
+          title: typeof s.title === 'string' ? s.title.trim() : '',
+          order: typeof s.order === 'number' ? s.order : i + 1,
+          todos: Array.isArray(s.todos)
+            ? s.todos
+                .map((t, k) => ({ text: t.text ?? '', completed: false, order: k + 1 }))
+                .filter((t) => (t.text || '').trim())
+                .map((t, k) => ({ ...t, order: k + 1 }))
+            : [],
+        }))
+      : [],
+  }))
+
+const ensureProgrammerOrAdminForProposal = (project, user) => {
+  const assignedId = project.assignedProgrammerId?.toString?.()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => id?.toString())
+  const userId = user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  if (user.role !== 'admin' && !isProgrammer) {
+    throw new Error('Only the assigned programmer or admin can modify the phase proposal')
+  }
+}
+
+// @desc    Get proposed timeline (from stored, AI, or template). No phases created.
 // @route   GET /api/projects/:id/phases/proposal
 // @access  Private (project access)
 export const getPhaseProposal = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id).lean()
+  const project = await Project.findById(req.params.id)
   if (!project) {
     res.status(404)
     throw new Error('Project not found')
   }
 
-  let definitions = await getPhasesFromAIAnalysis(project._id)
-  if (!definitions?.length) {
-    const template = getPhasesForProjectType(project.projectType)
-    definitions = template.map((d) => ({
-      title: d.title,
-      description: d.description ?? null,
-      order: d.order,
-      deliverables: d.deliverables ?? [],
-      weeks: d.weeks ?? null,
-    }))
+  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  if (existingCount > 0) {
+    res.status(400)
+    throw new Error('Project already has phases')
   }
 
-  const proposal = definitions.map((d) => ({
-    title: d.title,
-    description: d.description ?? null,
-    order: d.order,
-    deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
-    weeks: d.weeks ?? null,
-  }))
+  const projectLean = project.toObject?.() ?? project
+  const preview = await AIPreview.findOne({
+    projectId: project._id,
+    status: 'completed',
+  })
+    .sort({ createdAt: -1 })
+    .select('previewResult metadata')
+    .lean()
 
-  res.json(proposal)
+  let proposal
+  const hasRichProposal = (arr) =>
+    Array.isArray(arr) && arr.length > 0 && arr.some((p) => (p.subSteps?.length ?? 0) > 0)
+
+  if (Array.isArray(project.phaseProposal) && project.phaseProposal.length > 0 && hasRichProposal(project.phaseProposal)) {
+    return res.json(normalizePhaseProposal(project.phaseProposal))
+  }
+
+  try {
+    proposal = await vertexAIService.generateWorkspaceProposal(projectLean, preview ?? null)
+  } catch (err) {
+    console.warn('[getPhaseProposal] AI generation failed, falling back to analysis:', err.message)
+    const definitions = await getPhasesFromAIAnalysis(project._id)
+    if (definitions?.length) {
+      proposal = definitions.map((d) => ({
+        title: d.title,
+        description: d.description ?? null,
+        order: d.order,
+        deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
+        weeks: d.weeks ?? null,
+        subSteps: Array.isArray(d.subSteps) ? d.subSteps : [],
+      }))
+    } else {
+      proposal = await vertexAIService.generateWorkspaceProposal(projectLean, null)
+    }
+  }
+
+  if (!hasRichProposal(proposal)) {
+    try {
+      proposal = await vertexAIService.generateWorkspaceProposal(projectLean, null)
+    } catch {
+      const template = getPhasesForProjectType(project.projectType)
+      proposal = template.map((d) => ({
+        title: d.title,
+        description: d.description ?? null,
+        order: d.order,
+        deliverables: d.deliverables ?? [],
+        weeks: d.weeks ?? null,
+        subSteps: [],
+      }))
+    }
+  }
+
+  const normalized = normalizePhaseProposal(proposal)
+  project.phaseProposal = normalized
+  await project.save()
+
+  res.json(normalized)
+})
+
+// @desc    Save phase proposal (draft). Programmer or admin only.
+// @route   PATCH /api/projects/:id/phases/proposal
+// @access  Private (assigned programmer or admin)
+export const savePhaseProposal = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  ensureProgrammerOrAdminForProposal(project, req.user)
+
+  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  if (existingCount > 0) {
+    res.status(400)
+    throw new Error('Project already has phases')
+  }
+
+  const proposal = req.body?.proposal ?? req.body
+  if (!Array.isArray(proposal)) {
+    res.status(400)
+    throw new Error('Request body must include proposal array')
+  }
+
+  const normalized = normalizePhaseProposal(proposal)
+  project.phaseProposal = normalized
+  await project.save()
+
+  res.json(normalized)
+})
+
+// @desc    Regenerate phase proposal from AI. Programmer or admin only.
+// @route   POST /api/projects/:id/phases/proposal/regenerate
+// @access  Private (assigned programmer or admin)
+export const regeneratePhaseProposal = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  ensureProgrammerOrAdminForProposal(project, req.user)
+
+  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  if (existingCount > 0) {
+    res.status(400)
+    throw new Error('Project already has phases')
+  }
+
+  const projectLean = project.toObject?.() ?? project
+  const preview = await AIPreview.findOne({
+    projectId: project._id,
+    status: 'completed',
+  })
+    .sort({ createdAt: -1 })
+    .select('previewResult metadata')
+    .lean()
+
+  const currentProposal = req.body?.currentProposal ?? req.body?.proposal
+  const hasRichProposal = (arr) =>
+    Array.isArray(arr) && arr.length > 0 && arr.some((p) => (p.subSteps?.length ?? 0) > 0)
+  const needsExpand = Array.isArray(currentProposal) && currentProposal.length > 0 && !hasRichProposal(currentProposal)
+
+  let proposal
+  if (needsExpand) {
+    const { expandPhasesWithSubSteps } = await import('../utils/phaseProposalExpander.js')
+    proposal = expandPhasesWithSubSteps(currentProposal, projectLean)
+  } else {
+    try {
+      proposal = await vertexAIService.generateWorkspaceProposal(projectLean, preview ?? null)
+    } catch (err) {
+      console.warn('[regeneratePhaseProposal] AI generation failed:', err.message)
+      try {
+        proposal = await vertexAIService.generateWorkspaceProposal(projectLean, null)
+      } catch {
+        const template = getPhasesForProjectType(project.projectType)
+        proposal = template.map((d) => ({
+          title: d.title,
+          description: d.description ?? null,
+          order: d.order,
+          deliverables: d.deliverables ?? [],
+          weeks: d.weeks ?? null,
+          subSteps: [],
+        }))
+      }
+    }
+  }
+
+  const normalized = normalizePhaseProposal(proposal)
+  project.phaseProposal = normalized
+  await project.save()
+
+  res.json(normalized)
 })
 
 // @desc    Confirm timeline: create phases from (possibly edited) proposal. Programmer or admin only.
@@ -231,71 +471,189 @@ export const confirmPhases = asyncHandler(async (req, res) => {
   const definitions = req.body
   if (!Array.isArray(definitions) || definitions.length === 0) {
     res.status(400)
-    throw new Error('Request body must be an array of phase definitions (title, description, order, deliverables?)')
+    throw new Error('Request body must be an array of phase definitions (title, description, order, deliverables?, subSteps?)')
   }
 
-  const phasesToCreate = await Promise.all(
-    definitions.map(async (d) => {
-      const title = typeof d.title === 'string' ? d.title.trim() : `Phase ${d.order ?? 0}`
-      const description = d.description != null ? String(d.description).trim() : null
-      const order = typeof d.order === 'number' ? d.order : 0
-      const deliverables = Array.isArray(d.deliverables) ? d.deliverables.map((x) => (typeof x === 'string' ? x.trim() : String(x))).filter(Boolean) : []
-      const weeks = typeof d.weeks === 'number' ? d.weeks : null
-      const estimatedDurationDays = weeks ? weeks * 7 : null
+  const sortedDefs = [...definitions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  const timelineWeeks = Math.max(1, parseInt(project.timeline, 10) || 8)
 
-      const requiresApproval = checkClientApprovalRequired({ title })
-      let clientQuestions = []
-      try {
-        clientQuestions = await extractClientQuestionsFromPreview(project._id, title)
-      } catch {
-        clientQuestions = getDefaultQuestionsForPhase(title)
+  const dateDuration = getProjectDurationFromDates(project)
+  const totalDaysFromDates = dateDuration?.totalDays ?? null
+  const totalDays = totalDaysFromDates ?? timelineWeeks * 7
+
+  // Resolve effective project start
+  let projectStart
+  if (project.startDate) {
+    projectStart = new Date(project.startDate)
+  } else if (project.dueDate && project.timeline) {
+    projectStart = new Date(project.dueDate)
+    projectStart.setDate(projectStart.getDate() - totalDays)
+    project.startDate = projectStart
+  } else {
+    projectStart = new Date()
+  }
+
+  // Resolve effective project end
+  const projectEnd = project.dueDate
+    ? new Date(project.dueDate)
+    : (() => {
+        const end = new Date(projectStart)
+        end.setDate(end.getDate() + totalDays)
+        return end
+      })()
+
+  // Day-based allocation: always use days
+  const rawDaysFromWeeks = sortedDefs.map((d) => (typeof d.weeks === 'number' ? Math.round(d.weeks * 7) : null))
+  const hasDuration = rawDaysFromWeeks.every((d) => d != null && d > 0)
+  let phaseEstimatedDaysList
+
+  if (hasDuration) {
+    let rawDays = rawDaysFromWeeks.map((d) => d ?? 1)
+    let sum = rawDays.reduce((s, d) => s + d, 0)
+    if (sum !== totalDays) {
+      if (sum > 0) {
+        rawDays = rawDays.map((d) => Math.max(1, Math.round((d / sum) * totalDays)))
+        sum = rawDays.reduce((s, d) => s + d, 0)
+        const diff = totalDays - sum
+        if (diff !== 0) {
+          const adjustIdx = sortedDefs.findIndex((d) =>
+            (d.title || '').toLowerCase().includes('development')
+          )
+          const idx = adjustIdx >= 0 ? adjustIdx : 0
+          rawDays[idx] = Math.max(1, rawDays[idx] + diff)
+        }
+      } else {
+        rawDays = sortedDefs.map(() => 1)
+        rawDays[0] = totalDays - rawDays.length + 1
       }
+    }
+    phaseEstimatedDaysList = rawDays
+  } else {
+    const n = sortedDefs.length
+    const perPhaseDays = Math.floor(totalDays / n)
+    const remainder = totalDays - perPhaseDays * n
+    phaseEstimatedDaysList = sortedDefs.map((_, i) => {
+      const days = i < remainder ? perPhaseDays + 1 : perPhaseDays
+      return days > 0 ? days : 1
+    })
+  }
 
-      let subSteps = deliverables.map((deliverable, index) => ({
+  let currentPhaseStart = new Date(projectStart)
+
+  const phasesToCreate = []
+  for (let i = 0; i < sortedDefs.length; i++) {
+    const d = sortedDefs[i]
+    const title = typeof d.title === 'string' ? d.title.trim() : `Phase ${d.order ?? i + 1}`
+    const description = d.description != null ? String(d.description).trim() : null
+    const order = i + 1
+    const deliverables = Array.isArray(d.deliverables)
+      ? d.deliverables.map((x) => (typeof x === 'string' ? x.trim() : String(x))).filter(Boolean)
+      : []
+    const estimatedDurationDays = phaseEstimatedDaysList[i] ?? 1
+    let phaseDueDate
+    if (d.dueDate) {
+      phaseDueDate = new Date(d.dueDate)
+    } else {
+      phaseDueDate = new Date(currentPhaseStart)
+      phaseDueDate.setDate(phaseDueDate.getDate() + estimatedDurationDays)
+    }
+
+    const requiresApproval = checkClientApprovalRequired({ title })
+    let clientQuestions = []
+    try {
+      clientQuestions = await extractClientQuestionsFromPreview(project._id, title)
+    } catch {
+      clientQuestions = getDefaultQuestionsForPhase(title)
+    }
+
+    let subSteps
+    if (Array.isArray(d.subSteps) && d.subSteps.length > 0) {
+      subSteps = d.subSteps
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((s, index) => {
+          const existingTodos = Array.isArray(s.todos) && s.todos.length > 0
+            ? s.todos.map((t, k) => ({ text: (t.text ?? '').trim(), completed: false, order: k + 1 })).filter((t) => t.text)
+            : []
+          return {
+            title: typeof s.title === 'string' ? s.title.trim() : `Task ${index + 1}`,
+            completed: false,
+            order: index + 1,
+            notes: '',
+            status: 'pending',
+            todos: existingTodos,
+          }
+        })
+    } else {
+      subSteps = deliverables.map((deliverable, index) => ({
         title: deliverable,
         completed: false,
         order: index + 1,
         notes: '',
         status: 'pending',
+        todos: [],
       }))
+    }
 
-      if (subSteps.length === 0) {
-        subSteps = [
-          {
-            title: title,
-            completed: false,
-            order: 1,
-            notes: '',
-            status: 'pending',
-          },
-        ]
-      }
+    if (subSteps.length === 0) {
+      subSteps = [
+        {
+          title: title,
+          completed: false,
+          order: 1,
+          notes: '',
+          status: 'pending',
+          todos: [],
+        },
+      ]
+    }
 
-      const numSubSteps = Math.max(1, subSteps.length)
-      const clientQuestionsWithSubStep = clientQuestions.map((q, i) => ({
-        ...q,
-        subStepOrder: (i % numSubSteps) + 1,
-      }))
-
+    // Compute sub-step due dates (equal segments within phase)
+    const phaseDurationMs = phaseDueDate.getTime() - currentPhaseStart.getTime()
+    const segmentMs = phaseDurationMs / subSteps.length
+    subSteps = subSteps.map((s, idx) => {
+      const subDue = new Date(currentPhaseStart.getTime() + segmentMs * (idx + 1))
+      const estimatedDurationDays = Math.round(segmentMs / (24 * 60 * 60 * 1000))
+      const todos = (s.todos && s.todos.length > 0)
+        ? s.todos
+        : generateSubStepTodos({ title: s.title, estimatedDurationDays, deliverables }).map((t) => ({ ...t, completed: false }))
       return {
-        projectId: project._id,
-        title,
-        description,
-        order,
-        status: 'not_started',
-        deliverables,
+        ...s,
+        dueDate: subDue,
         estimatedDurationDays,
-        requiresClientApproval: requiresApproval,
-        clientApproved: false,
-        clientQuestions: clientQuestionsWithSubStep,
-        subSteps,
-        notes: '',
-        attachments: [],
+        todos,
       }
     })
-  )
+
+    const numSubSteps = Math.max(1, subSteps.length)
+    const clientQuestionsWithSubStep = clientQuestions.map((q, j) => ({
+      ...q,
+      subStepOrder: (j % numSubSteps) + 1,
+    }))
+
+    phasesToCreate.push({
+      projectId: project._id,
+      title,
+      description,
+      order,
+      status: 'not_started',
+      deliverables,
+      estimatedDurationDays,
+      startedAt: new Date(currentPhaseStart),
+      dueDate: new Date(phaseDueDate),
+      requiresClientApproval: requiresApproval,
+      clientApproved: false,
+      clientQuestions: clientQuestionsWithSubStep,
+      subSteps,
+      notes: '',
+      attachments: [],
+    })
+
+    currentPhaseStart = new Date(phaseDueDate)
+  }
 
   await ProjectPhase.insertMany(phasesToCreate)
+  project.phaseProposal = null
+  await project.save()
   await logProjectActivity(project._id, req.user._id, 'phases.confirmed', null, null, { phaseCount: phasesToCreate.length })
   const phases = await ProjectPhase.find({ projectId: project._id }).sort({ order: 1 }).lean()
   res.status(201).json(phases)
@@ -874,10 +1232,11 @@ export const updateProject = asyncHandler(async (req, res) => {
     }
   })
 
-  // If team is being closed from Open: go to Holding (On Hold) — no one can be ready in Holding
+  // If team is being closed from Open: go to Holding (On Hold) — reset all ready states
   if (isClosingTeam && project.status === 'Open') {
     project.status = 'Holding'
     project.readyConfirmedBy = []
+    project.clientMarkedReady = false
   }
 
   // If team is being opened from Holding: go to Open (programmers can join)
@@ -936,6 +1295,12 @@ export const confirmReady = asyncHandler(async (req, res) => {
   if (!project.clientMarkedReady) {
     res.status(400)
     throw new Error('Client must mark the project ready first before programmers can confirm ready')
+  }
+
+  const phaseCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  if (phaseCount === 0) {
+    res.status(400)
+    throw new Error('Create the project timeline in the Workspace first, then you can mark ready')
   }
 
   if (project.teamClosed) {
@@ -1020,6 +1385,117 @@ export const markProjectReady = asyncHandler(async (req, res) => {
     await project.save()
     await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
   }
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+    .populate('readyConfirmedBy', 'name email')
+
+  res.json(populated)
+})
+
+// @desc    Unconfirm ready (programmer reverts to not ready)
+// @route   PUT /api/projects/:id/unconfirm-ready
+// @access  Private (programmer in team)
+export const unconfirmReady = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const userIdStr = req.user._id.toString()
+  const isProgrammer = req.user.role === 'programmer' || req.user.role === 'admin'
+  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+
+  if (!isProgrammer || !isInTeam) {
+    res.status(403)
+    throw new Error('Only programmers assigned to this project can unconfirm ready')
+  }
+
+  if (project.status !== 'Open' && project.status !== 'Ready') {
+    res.status(400)
+    throw new Error('Project must be Open or Ready to unconfirm')
+  }
+
+  if (!project.readyConfirmedBy || !project.readyConfirmedBy.some(id => id.toString() === userIdStr)) {
+    const populated = await Project.findById(project._id)
+      .populate('clientId', 'name email')
+      .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+      .populate('assignedProgrammerIds', 'name email')
+      .populate('readyConfirmedBy', 'name email')
+    return res.json(populated)
+  }
+
+  project.readyConfirmedBy = project.readyConfirmedBy.filter(id => id.toString() !== userIdStr)
+
+  // If status was Ready (team closed), revert to Open so recruitment can continue
+  if (project.status === 'Ready') {
+    project.status = 'Open'
+    project.teamClosed = false
+    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Open' })
+  }
+
+  await project.save()
+  await logProjectActivity(project._id, req.user._id, 'programmer.unconfirmed_ready', 'project', project._id, {})
+
+  const populated = await Project.findById(project._id)
+    .populate('clientId', 'name email')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate('assignedProgrammerIds', 'name email')
+    .populate('readyConfirmedBy', 'name email')
+
+  res.json(populated)
+})
+
+// @desc    Unmark ready (client reverts to not ready)
+// @route   PUT /api/projects/:id/unmark-ready
+// @access  Private (client only)
+export const unmarkProjectReady = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id)
+
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isAdmin = req.user.role === 'admin'
+  const isClientOwner = project.clientId.toString() === req.user._id.toString()
+
+  if (!isClientOwner && !isAdmin) {
+    res.status(403)
+    throw new Error('Only the project client can unmark as ready')
+  }
+
+  if (project.status !== 'Open' && project.status !== 'Ready') {
+    res.status(400)
+    throw new Error('Project must be Open or Ready to unmark')
+  }
+
+  if (!project.clientMarkedReady) {
+    const populated = await Project.findById(project._id)
+      .populate('clientId', 'name email')
+      .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+      .populate('assignedProgrammerIds', 'name email')
+      .populate('readyConfirmedBy', 'name email')
+    return res.json(populated)
+  }
+
+  project.clientMarkedReady = false
+  project.readyConfirmedBy = []
+  project.teamClosed = false
+
+  // If status was Ready, revert to Open
+  if (project.status === 'Ready') {
+    project.status = 'Open'
+    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Open' })
+  }
+
+  await project.save()
+  await logProjectActivity(project._id, req.user._id, 'project.client_unmarked_ready', 'project', project._id, {})
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
@@ -1171,6 +1647,7 @@ export const updateProjectStatus = asyncHandler(async (req, res) => {
     project.status = 'Holding'
     project.teamClosed = true
     project.readyConfirmedBy = []
+    project.clientMarkedReady = false
   }
 
   await project.save()

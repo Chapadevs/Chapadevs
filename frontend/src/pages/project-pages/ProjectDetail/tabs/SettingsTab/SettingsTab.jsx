@@ -2,10 +2,21 @@ import { useState } from 'react'
 import { Button, Alert } from '../../../../../components/ui-components'
 import EditProjectModal from './components/EditProjectModal/EditProjectModal'
 
-const formatDate = (d) => {
-  if (!d) return '—'
-  const date = typeof d === 'string' ? new Date(d) : d
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
+import { formatDateOnly, getDueDateFromStartAndWeeks } from '../../../../../utils/dateUtils'
+
+const formatDate = (d) => formatDateOnly(d, '—')
+
+const formatWorkspace = (timeline) => {
+  if (!timeline) return '—'
+  const weeks = parseInt(timeline, 10)
+  if (Number.isNaN(weeks)) return String(timeline)
+  return weeks === 1 ? '1 Week' : `${weeks} Weeks`
+}
+
+const getDisplayDueDate = (project) => {
+  if (project?.dueDate) return formatDate(project.dueDate)
+  const computed = getDueDateFromStartAndWeeks(project?.startDate, project?.timeline)
+  return computed ? formatDate(computed) : '—'
 }
 
 const SettingsTab = ({
@@ -13,6 +24,8 @@ const SettingsTab = ({
   onDelete,
   onMarkReady,
   onConfirmReady,
+  onUnconfirmReady,
+  onUnmarkReady,
   onToggleTeamClosed,
   onStartDevelopment,
   onStopDevelopment,
@@ -23,6 +36,8 @@ const SettingsTab = ({
   onEditSave,
   markingReady,
   confirmingReady,
+  unconfirmingReady,
+  unmarkingReady,
   togglingTeamClosed,
   startingDevelopment,
   stoppingDevelopment,
@@ -38,7 +53,9 @@ const SettingsTab = ({
     permissions.canConfirmReady ||
     permissions.canMarkReady ||
     permissions.showMarkReady ||
-    permissions.showConfirmReady
+    permissions.showConfirmReady ||
+    permissions.canUnconfirmReady ||
+    permissions.canUnmarkReady
   const hasDevActions =
     permissions.canStartDevelopment ||
     permissions.showStartDevelopment ||
@@ -48,14 +65,24 @@ const SettingsTab = ({
     (project.status === 'Ready' && permissions.isClientOwner)
 
   const clientName = project.clientId?.name ?? project.clientId ?? '—'
-  const programmers = [
+  const programmersRaw = [
     ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
     ...(project.assignedProgrammerIds || []),
   ]
+  const seenIds = new Set()
+  const programmers = programmersRaw.filter((p) => {
+    const id = (p?._id || p)?.toString()
+    if (!id || seenIds.has(id)) return false
+    seenIds.add(id)
+    return true
+  })
   const programmerNames = programmers
     .map((p) => (typeof p === 'object' && p?.name ? p.name : null))
     .filter(Boolean)
-  const readyCount = (project.readyConfirmedBy || []).length
+  const programmerReadyCount = (project.readyConfirmedBy || []).length
+  const clientReady = project.clientMarkedReady === true
+  const totalMembers = 1 + programmers.length
+  const readyCount = (clientReady ? 1 : 0) + programmerReadyCount
 
   return (
     <div className="flex flex-col gap-8">
@@ -63,11 +90,6 @@ const SettingsTab = ({
         {hasTeamActions && (
         <div className="flex flex-col gap-3 pb-6 border-b border-border">
           <h4 className="text-sm font-heading font-bold uppercase text-ink">Team & recruitment</h4>
-          {project.status === 'Holding' && !permissions.isClientOwner && (permissions.showConfirmReady || permissions.canConfirmReady) && (
-            <Alert variant="warning" className="text-sm">
-              Waiting for the client to open the project first. Once the team is open, you can confirm you&apos;re ready.
-            </Alert>
-          )}
           {project.clientMarkedReady && project.status === 'Open' && permissions.isClientOwner && !permissions.allTeamConfirmedReady && (
             <Alert variant="warning" className="text-sm">
               Waiting for programmers to create project steps and mark themselves as ready. Then the project will move to Ready.
@@ -76,7 +98,47 @@ const SettingsTab = ({
           {project.status === 'Open' && !project.clientMarkedReady && permissions.isClientOwner && (
             <p className="text-ink-muted text-sm">Mark ready once you&apos;ve reviewed the project; then programmers can create the timeline and confirm ready.</p>
           )}
+          {project.status === 'Open' && !project.clientMarkedReady && permissions.isProgrammerInProject && (
+            <Alert variant="info" className="text-sm">
+              Waiting for client to review project and mark ready first. Then you can create the timeline and confirm you&apos;re ready.
+            </Alert>
+          )}
+          {project.status === 'Open' && project.clientMarkedReady && (!project?.phases || project.phases.length === 0) && permissions.isProgrammerInProject && (
+            <Alert variant="info" className="text-sm">
+              Create the project timeline in the Workspace tab first, then you can mark ready.
+            </Alert>
+          )}
           <div className="flex flex-wrap gap-3">
+            {permissions.canUnconfirmReady && onUnconfirmReady && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onUnconfirmReady}
+                disabled={unconfirmingReady}
+              >
+                Not ready
+              </Button>
+            )}
+            {(permissions.showMarkReady || permissions.canMarkReady) && !project.clientMarkedReady && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onMarkReady}
+                disabled={markingReady || !permissions.canMarkReady}
+              >
+                {project.status === 'Open' ? "I've Reviewed" : 'Mark Ready'}
+              </Button>
+            )}
+            {permissions.canUnmarkReady && onUnmarkReady && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onUnmarkReady}
+                disabled={unmarkingReady}
+              >
+                Not ready
+              </Button>
+            )}
             {permissions.canToggleTeamClosed && (
               <Button
                 variant="primary"
@@ -95,16 +157,6 @@ const SettingsTab = ({
                 disabled={confirmingReady || !permissions.canConfirmReady}
               >
                 {confirmingReady ? 'Confirming...' : "I'm Ready"}
-              </Button>
-            )}
-            {(permissions.showMarkReady || permissions.canMarkReady) && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onMarkReady}
-                disabled={markingReady || !permissions.canMarkReady}
-              >
-                {markingReady ? 'Marking...' : project.status === 'Open' && !project.clientMarkedReady ? "I've reviewed – ready for next step" : 'Mark Ready'}
               </Button>
             )}
           </div>
@@ -139,7 +191,7 @@ const SettingsTab = ({
           </div>
           <div>
             <dt className="text-ink-muted">Workspace</dt>
-            <dd className="font-medium">{project.timeline ?? '—'}</dd>
+            <dd className="font-medium">{formatWorkspace(project.timeline)}</dd>
           </div>
           <div>
             <dt className="text-ink-muted">Start date</dt>
@@ -147,7 +199,7 @@ const SettingsTab = ({
           </div>
           <div>
             <dt className="text-ink-muted">Due date</dt>
-            <dd className="font-medium">{formatDate(project.dueDate)}</dd>
+            <dd className="font-medium">{getDisplayDueDate(project)}</dd>
           </div>
           <div>
             <dt className="text-ink-muted">Completed date</dt>
@@ -169,7 +221,7 @@ const SettingsTab = ({
           </div>
           <div>
             <dt className="text-ink-muted">Ready confirmed</dt>
-            <dd className="font-medium">{readyCount} of {programmers.length || 0}</dd>
+            <dd className="font-medium">{readyCount} of {totalMembers}</dd>
           </div>
         </dl>
       </div>

@@ -51,7 +51,6 @@ const AIPreviewTab = ({
     budget: project?.budget ? mapBudgetToForm(project.budget) : '',
     timeline: project?.timeline ? mapWorkspaceToForm(project.timeline) : '',
     projectType: project?.projectType || '',
-    previewTemplate: 'auto',
     techStack: Array.isArray(project?.technologies) ? project.technologies : [],
     modelId: 'gemini-2.5-pro',
   }), [project])
