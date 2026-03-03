@@ -174,7 +174,7 @@ const CommentsTab = ({ project, user }) => {
                         alt={senderName} 
                       />
                       <AvatarFallback className="text-[10px] bg-surface-gray">
-                        {senderName.charAt(0).toUpperCase()}
+                        {senderName?.charAt(0)?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                   </div>

@@ -128,3 +128,58 @@ export async function deleteAvatarFromGCS(urlOrPath) {
 export function isGcsAvatar(avatar) {
   return !!parseObjectPath(avatar)
 }
+
+/** Default expiry for signed avatar URLs: 1 hour */
+const SIGNED_URL_EXPIRY_MS = 60 * 60 * 1000
+
+/**
+ * Get a signed URL for a GCS avatar. Use when the bucket is private.
+ * @param {string} urlOrPath - Full GCS URL or object path (e.g. assets/avatars/xxx.jpeg)
+ * @param {number} [expiresInMs] - Expiration in milliseconds (default 1 hour)
+ * @returns {Promise<string|null>} Signed URL, or original urlOrPath if signing fails (e.g. public bucket)
+ */
+export async function getSignedAvatarUrl(urlOrPath, expiresInMs = SIGNED_URL_EXPIRY_MS) {
+  const objectPath = parseObjectPath(urlOrPath)
+  if (!objectPath) return urlOrPath
+
+  try {
+    const client = getStorage()
+    const bucket = client.bucket(BUCKET_NAME)
+    const file = bucket.file(objectPath)
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + expiresInMs,
+    })
+    return url
+  } catch (err) {
+    console.warn('GCS signed avatar URL failed:', err.message)
+    return urlOrPath
+  }
+}
+
+/**
+ * Create a readable stream of an avatar from GCS. For proxying to clients.
+ * @param {string} urlOrPath - Full GCS URL or object path
+ * @returns {Promise<{ stream: import('stream').Readable, contentType: string }|null>}
+ */
+export async function getAvatarStream(urlOrPath) {
+  const objectPath = parseObjectPath(urlOrPath)
+  if (!objectPath) return null
+
+  try {
+    const client = getStorage()
+    const bucket = client.bucket(BUCKET_NAME)
+    const file = bucket.file(objectPath)
+    const [exists] = await file.exists()
+    if (!exists) return null
+
+    const [metadata] = await file.getMetadata()
+    const contentType = metadata?.contentType || 'image/jpeg'
+    const stream = file.createReadStream()
+    return { stream, contentType }
+  } catch (err) {
+    console.warn('GCS avatar stream failed:', err.message)
+    return null
+  }
+}

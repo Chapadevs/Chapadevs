@@ -1,5 +1,6 @@
 import User from '../models/User.js'
 import asyncHandler from 'express-async-handler'
+import { isGcsAvatar, getSignedAvatarUrl } from '../utils/avatarStorage.js'
 
 // @desc    Get all users (Admin only)
 // @route   GET /api/users
@@ -149,12 +150,16 @@ export const getUserProfile = asyncHandler(async (req, res) => {
       res.status(404)
       throw new Error('User not found')
     }
+    let avatar = user.avatar
+    if (avatar && isGcsAvatar(avatar)) {
+      avatar = await getSignedAvatarUrl(avatar)
+    }
     return res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      avatar: user.avatar,
+      avatar,
       company: user.company,
       phone: user.phone,
       industry: user.industry,
@@ -214,13 +219,18 @@ export const getUserProfile = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to view this profile')
   }
 
+  let avatar = targetUser.avatar
+  if (avatar && isGcsAvatar(avatar)) {
+    avatar = await getSignedAvatarUrl(avatar)
+  }
+
   // Return public profile data
   res.json({
     _id: targetUser._id,
     name: targetUser.name,
     email: targetUser.email,
     role: targetUser.role,
-    avatar: targetUser.avatar,
+    avatar,
     company: targetUser.company,
     phone: targetUser.phone,
     industry: targetUser.industry,

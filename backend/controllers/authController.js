@@ -8,7 +8,7 @@ import { getWelcomeEmail, getPasswordResetEmail, getPasswordChangeEmail } from '
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import { uploadAvatarToGCS, deleteAvatarFromGCS, isGcsAvatar } from '../utils/avatarStorage.js'
+import { uploadAvatarToGCS, deleteAvatarFromGCS, isGcsAvatar, getSignedAvatarUrl } from '../utils/avatarStorage.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -271,13 +271,18 @@ export const loginUser = asyncHandler(async (req, res) => {
   user.lastSeen = new Date()
   await user.save()
 
+  let avatar = user.avatar
+  if (avatar && isGcsAvatar(avatar)) {
+    avatar = await getSignedAvatarUrl(avatar)
+  }
+
   res.json({
     _id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
     status: user.status,
-    avatar: user.avatar,
+    avatar,
     company: user.company,
     phone: user.phone,
     industry: user.industry,
@@ -301,13 +306,18 @@ export const getMe = asyncHandler(async (req, res) => {
     throw new Error('User not found')
   }
 
+  let avatar = user.avatar
+  if (avatar && isGcsAvatar(avatar)) {
+    avatar = await getSignedAvatarUrl(avatar)
+  }
+
   res.json({
     _id: user._id,
     name: user.name,
     email: user.email,
     role: user.role,
     status: user.status,
-    avatar: user.avatar,
+    avatar,
     company: user.company,
     phone: user.phone,
     industry: user.industry,
@@ -356,6 +366,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
             }
           }
           user.avatar = gcsUrl
+        } else {
+          // GCS failed - fallback to storing base64 data URL so avatar still saves
+          user.avatar = req.body.avatar
         }
       } else if (req.body.avatar === '' || req.body.avatar === null) {
         if (user.avatar) {
@@ -397,12 +410,17 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
   const updatedUser = await user.save()
 
+  let avatar = updatedUser.avatar
+  if (avatar && isGcsAvatar(avatar)) {
+    avatar = await getSignedAvatarUrl(avatar)
+  }
+
   res.json({
     _id: updatedUser._id,
     name: updatedUser.name,
     email: updatedUser.email,
     role: updatedUser.role,
-    avatar: updatedUser.avatar,
+    avatar,
     company: updatedUser.company,
     phone: updatedUser.phone,
     industry: updatedUser.industry,

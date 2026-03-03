@@ -98,16 +98,6 @@ const SettingsTab = ({
           {project.status === 'Open' && !project.clientMarkedReady && permissions.isClientOwner && (
             <p className="text-ink-muted text-sm">Mark ready once you&apos;ve reviewed the project; then programmers can create the timeline and confirm ready.</p>
           )}
-          {project.status === 'Open' && !project.clientMarkedReady && permissions.isProgrammerInProject && (
-            <Alert variant="info" className="text-sm">
-              Waiting for client to review project and mark ready first. Then you can create the timeline and confirm you&apos;re ready.
-            </Alert>
-          )}
-          {project.status === 'Open' && project.clientMarkedReady && (!project?.phases || project.phases.length === 0) && permissions.isProgrammerInProject && (
-            <Alert variant="info" className="text-sm">
-              Create the project timeline in the Workspace tab first, then you can mark ready.
-            </Alert>
-          )}
           <div className="flex flex-wrap gap-3">
             {permissions.canUnconfirmReady && onUnconfirmReady && (
               <Button

@@ -1755,10 +1755,36 @@ export const updateProject = asyncHandler(async (req, res) => {
 
   await project.save()
 
-  
-
   if (project.status !== previousStatus) {
     await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: previousStatus, toStatus: project.status })
+    if (isOpeningTeam && project.status === 'Open') {
+      const programmerIds = [
+        ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+        ...(project.assignedProgrammerIds || []),
+      ]
+      const seen = new Set()
+      for (const p of programmerIds) {
+        const id = (p?._id || p)?.toString()
+        if (id && !seen.has(id)) {
+          seen.add(id)
+          await createNotification(p._id || p, 'project_updated', 'Team Opened', `"${project.title}" is now open for recruitment.`, project._id)
+        }
+      }
+    }
+    if (isClosingTeam && project.status === 'Holding') {
+      const programmerIds = [
+        ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+        ...(project.assignedProgrammerIds || []),
+      ]
+      const seen = new Set()
+      for (const p of programmerIds) {
+        const id = (p?._id || p)?.toString()
+        if (id && !seen.has(id)) {
+          seen.add(id)
+          await createNotification(p._id || p, 'project_updated', 'Team Closed', `"${project.title}" has been set to On Hold.`, project._id)
+        }
+      }
+    }
   }
 
   const populated = await Project.findById(project._id)
@@ -1824,6 +1850,9 @@ export const confirmReady = asyncHandler(async (req, res) => {
       project.teamClosed = true
       project.status = 'Ready'
       await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
+      if (project.clientId) {
+        await createNotification(project.clientId, 'project_updated', 'Team Ready', `All programmers have confirmed ready for "${project.title}". The project is ready for development.`, project._id)
+      }
     }
     await project.save()
     await logProjectActivity(project._id, req.user._id, 'programmer.confirmed_ready', 'project', project._id, {})
@@ -1868,6 +1897,14 @@ export const markProjectReady = asyncHandler(async (req, res) => {
     project.clientMarkedReady = true
     await project.save()
     await logProjectActivity(project._id, req.user._id, 'project.client_marked_ready', 'project', project._id, {})
+    const programmerIds = [
+      ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+      ...(project.assignedProgrammerIds || []),
+    ]
+    const uniqueIds = [...new Set(programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean))]
+    for (const id of uniqueIds) {
+      await createNotification(id, 'project_updated', 'Client Reviewed Project', `The client has reviewed "${project.title}". You can now create the timeline in the Workspace tab and confirm ready.`, project._id)
+    }
   }
   // If client already marked ready and all programmers have confirmed, transition to Ready (e.g. client clicks again or late join)
   const teamIds = new Set()
@@ -1933,6 +1970,9 @@ export const unconfirmReady = asyncHandler(async (req, res) => {
     project.status = 'Open'
     project.teamClosed = false
     await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Open' })
+    if (project.clientId) {
+      await createNotification(project.clientId, 'project_updated', 'Programmer Unconfirmed', `A programmer has unconfirmed ready for "${project.title}". The project is back to Open.`, project._id)
+    }
   }
 
   await project.save()
@@ -1993,6 +2033,15 @@ export const unmarkProjectReady = asyncHandler(async (req, res) => {
   await project.save()
   await logProjectActivity(project._id, req.user._id, 'project.client_unmarked_ready', 'project', project._id, {})
 
+  const programmerIds = [
+    ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+    ...(project.assignedProgrammerIds || []),
+  ]
+  const uniqueIds = [...new Set(programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean))]
+  for (const id of uniqueIds) {
+    await createNotification(id, 'project_updated', 'Client Unmarked Ready', `The client has unmarked ready for "${project.title}". Please wait for review.`, project._id)
+  }
+
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
@@ -2035,6 +2084,9 @@ export const startDevelopment = asyncHandler(async (req, res) => {
   await project.save()
 
   await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Development' })
+  if (project.clientId) {
+    await createNotification(project.clientId, 'project_updated', 'Development Started', `Development has started for "${project.title}".`, project._id)
+  }
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
@@ -2072,15 +2124,36 @@ export const stopDevelopment = asyncHandler(async (req, res) => {
     throw new Error('Project must be in Development status to stop')
   }
 
-  project.status = 'Ready'
+  project.status = 'Open'
+  project.readyConfirmedBy = []
+  project.clientMarkedReady = false
+  project.teamClosed = false
   await project.save()
 
-  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Ready' })
+  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Open' })
+
+  const stopMessage = `Development has been stopped for "${project.title}". The project is back to Open. Everyone needs to confirm ready again.`
+  if (project.clientId && project.clientId.toString() !== userIdStr) {
+    await createNotification(project.clientId, 'project_updated', 'Development Stopped', stopMessage, project._id)
+  }
+  const programmerIds = [
+    ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+    ...(project.assignedProgrammerIds || []),
+  ]
+  const seen = new Set()
+  for (const p of programmerIds) {
+    const id = (p?._id || p)?.toString()
+    if (id && id !== userIdStr && !seen.has(id)) {
+      seen.add(id)
+      await createNotification(p._id || p, 'project_updated', 'Development Stopped', stopMessage, project._id)
+    }
+  }
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
     .populate('assignedProgrammerIds', 'name email')
+    .populate('readyConfirmedBy', 'name email')
 
   res.json(populated)
 })
@@ -2188,6 +2261,23 @@ export const markProjectCompleted = asyncHandler(async (req, res) => {
 
   await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Completed' })
 
+  const completedMessage = `"${project.title}" has been marked as completed.`
+  if (project.clientId) {
+    await createNotification(project.clientId, 'project_completed', 'Project Completed', completedMessage, project._id)
+  }
+  const completedProgrammerIds = [
+    ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+    ...(project.assignedProgrammerIds || []),
+  ]
+  const completedSeen = new Set()
+  for (const p of completedProgrammerIds) {
+    const id = (p?._id || p)?.toString()
+    if (id && !completedSeen.has(id)) {
+      completedSeen.add(id)
+      await createNotification(p._id || p, 'project_completed', 'Project Completed', completedMessage, project._id)
+    }
+  }
+
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
@@ -2227,6 +2317,23 @@ export const markProjectCancelled = asyncHandler(async (req, res) => {
   await project.save()
 
   await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { toStatus: 'Cancelled' })
+
+  const cancelledMessage = `"${project.title}" has been cancelled.`
+  if (project.clientId) {
+    await createNotification(project.clientId, 'project_updated', 'Project Cancelled', cancelledMessage, project._id)
+  }
+  const cancelledProgrammerIds = [
+    ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
+    ...(project.assignedProgrammerIds || []),
+  ]
+  const cancelledSeen = new Set()
+  for (const p of cancelledProgrammerIds) {
+    const id = (p?._id || p)?.toString()
+    if (id && !cancelledSeen.has(id)) {
+      cancelledSeen.add(id)
+      await createNotification(p._id || p, 'project_updated', 'Project Cancelled', cancelledMessage, project._id)
+    }
+  }
 
   const populated = await Project.findById(project._id)
     .populate('clientId', 'name email')

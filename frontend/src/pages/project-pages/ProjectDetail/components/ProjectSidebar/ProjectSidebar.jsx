@@ -93,7 +93,7 @@ const ProjectSidebar = ({
                 <div className="relative cursor-pointer">
                   <Avatar className="w-10 h-10 border border-white/10">
                     <AvatarImage src={getAvatarUrl(user?.avatar)} alt={user?.name} />
-                    <AvatarFallback>{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || '?'}</AvatarFallback>
                   </Avatar>
                   
                   <span 

@@ -27,6 +27,7 @@ import websocketService from './services/websocket.js'
 // Import Routes
 import authRoutes from './routes/authRoutes.js'
 import userRoutes from './routes/userRoutes.js'
+import avatarRoutes from './routes/avatarRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
 import assignmentRoutes from './routes/assignmentRoutes.js'
@@ -86,6 +87,7 @@ app.get('/api/vertex-ai/status', async (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/avatars', avatarRoutes)
 app.use('/api/projects', chatRoutes) // Chat routes must come before project routes
 app.use('/api/projects', projectRoutes)
 app.use('/api/assignments', assignmentRoutes)

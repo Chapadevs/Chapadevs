@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useRole } from '../../../hooks/useRole'
@@ -16,6 +16,7 @@ import {
   AvatarFallback 
 } from '../../../components/ui-components'
 import { getAvatarUrl } from '../../../utils/avatarUtils'
+import { Camera, Pencil } from 'lucide-react'
 import './EditProfile.css'
 
 const EditProfile = () => {
@@ -46,6 +47,7 @@ const EditProfile = () => {
   const [deleteError, setDeleteError] = useState('')
   const [editingBio, setEditingBio] = useState(false)
   const [bioValue, setBioValue] = useState('')
+  const fileInputRef = useRef(null)
 
   // Populate form with user data
   useEffect(() => {
@@ -158,11 +160,13 @@ const EditProfile = () => {
       const reader = new FileReader()
       reader.onloadend = () => {
         setAvatarPreview(reader.result)
+        if (fileInputRef.current) fileInputRef.current.value = ''
       }
       reader.readAsDataURL(compressedFile)
     } catch (err) {
       setProfileError('Failed to process image. Please try again.')
       console.error('Image compression error:', err)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -213,15 +217,14 @@ const EditProfile = () => {
     if (result.success) {
       setProfileSuccess('Profile updated successfully!')
       setAvatarFile(null)
-      
-      // Immediately update avatar preview with the returned avatar path from server
-      if (result.avatar) {
+
+      // Update avatar preview with the returned avatar from server; keep current preview if server didn't return one
+      if (result.avatar != null) {
         const avatarUrl = getAvatarUrl(result.avatar)
         setAvatarPreview(avatarUrl)
-      } else {
-        // If no avatar returned, clear preview
-        setAvatarPreview(null)
+        setFormData((prev) => ({ ...prev, avatar: result.avatar }))
       }
+      // If no avatar in response but we had one selected, keep the base64 preview (avatar upload may have failed silently)
     } else {
       setProfileError(result.error || 'Profile update failed')
     }
@@ -327,11 +330,26 @@ const EditProfile = () => {
           </Link>
           <div className="profile-header-with-avatar">
             <div className="profile-avatar-container">
-              <label htmlFor="avatar-upload" className="profile-avatar-label cursor-pointer group">
-                <div className="relative">
-                  {/* The New Avatar Component */}
-                  <Avatar className="w-24 h-24 border-2 border-primary/20">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => !loading && fileInputRef.current?.click()}
+                onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+                className="profile-avatar-label cursor-pointer group"
+                aria-label="Upload profile picture"
+              >
+                <div className="relative w-24 h-24 shrink-0">
+                  {/* The Upload Overlay - behind avatar when image exists, on top when no image */}
+                  <div
+                    className={`profile-avatar-overlay absolute inset-0 rounded-full overflow-hidden bg-gray-600/30 flex items-center justify-center transition-opacity duration-500 ease-in-out ${avatarPreview ? 'opacity-0 group-hover:opacity-100 z-20' : 'opacity-100 group-hover:opacity-0 z-10'}`}
+                  >
+                    <Camera className="w-8 h-8 text-white" aria-hidden />
+                  </div>
+
+                  {/* Avatar - on top when image exists so uploaded image replaces the placeholder */}
+                  <Avatar className={`absolute inset-0 w-full h-full border-2 border-primary/20 ${avatarPreview ? 'z-10' : 'z-0'}`}>
                     <AvatarImage 
+                      key={avatarPreview || 'fallback'}
                       src={avatarPreview} 
                       alt={user?.name} 
                     />
@@ -339,23 +357,19 @@ const EditProfile = () => {
                       {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-
-                  {/* The Upload Overlay (simplified) */}
-                  <div className="profile-avatar-overlay group-hover:opacity-100 transition-opacity">
-                    <span className="profile-avatar-icon text-white">📷</span>
-                  </div>
                 </div>
 
                 <input
+                  ref={fileInputRef}
                   type="file"
                   id="avatar-upload"
                   accept="image/*"
                   onChange={handleAvatarChange}
                   className="profile-avatar-input"
-                  hidden // Better to use hidden than a custom class if possible
+                  style={{ display: 'none' }}
                   disabled={loading}
                 />
-              </label>
+              </div>
             </div>
             <div className="profile-header">
               <h1>Profile Settings<NotificationBadge /></h1>
@@ -403,11 +417,11 @@ const EditProfile = () => {
                   )}
                   <button
                     type="button"
-                    className="profile-bio-edit-icon"
+                    className="profile-bio-edit-icon p-0.5 text-gray-500 hover:text-gray-700"
                     onClick={() => setEditingBio(true)}
                     title="Edit bio"
                   >
-                    ✏️
+                    <Pencil className="w-3 h-3" aria-hidden />
                   </button>
                 </div>
               )}
