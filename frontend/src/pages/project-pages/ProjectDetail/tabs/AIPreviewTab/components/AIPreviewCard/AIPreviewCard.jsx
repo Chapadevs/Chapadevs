@@ -191,7 +191,7 @@ const AIPreviewCard = ({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="text-xs h-7 px-2"
+                    className="text-xs px-2"
                     onClick={() => onCopyCode(previewId, effectiveAppCode)}
                   >
                     {copySuccessId === previewId ? 'Copied!' : 'Copy code'}
@@ -200,7 +200,7 @@ const AIPreviewCard = ({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="text-xs h-7 px-2"
+                    className="text-xs px-2"
                     onClick={() => onDownloadCode(effectiveAppCode)}
                   >
                     Download ZIP
@@ -211,7 +211,7 @@ const AIPreviewCard = ({
                   type="button"
                   variant="danger"
                   size="sm"
-                  className="text-xs h-8 w-full"
+                  className="text-xs w-full"
                   onClick={() => onDeletePreview(previewId)}
                 >
                   Delete preview

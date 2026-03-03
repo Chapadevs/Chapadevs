@@ -5,6 +5,7 @@ import { userAPI } from '../../../services/api'
 import { isClient, isProgrammer } from '../../../utils/roles'
 import Header from '../../../components/layout-components/Header/Header'
 import { Card, SectionTitle, Tag, Alert, Avatar, AvatarImage, AvatarFallback } from '../../../components/ui-components'
+import { getAvatarUrl } from '../../../utils/avatarUtils'
 import './DisplayProfile.css'
 
 const DisplayProfileModal = () => {
@@ -19,17 +20,6 @@ const DisplayProfileModal = () => {
     currentUser?._id === id ||
     currentUser?.id === id ||
     (currentUser && id && currentUser._id?.toString() === id.toString())
-
-  const getAvatarUrl = (avatar) => {
-    if (!avatar) return null
-    if (avatar.startsWith('data:image/')) return avatar
-    if (avatar.startsWith('/uploads/')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-      const baseUrl = backendUrl.replace('/api', '').replace(/\/$/, '')
-      return `${baseUrl}${avatar}`
-    }
-    return avatar
-  }
 
   useEffect(() => {
     // If it's the user's own profile, redirect to the private profile page

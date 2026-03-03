@@ -204,10 +204,6 @@
   padding-top: 0.25rem;
 }
 
-.profile-form-actions .profile-button {
-  margin-top: 0;
-}
-
 @media (max-width: 600px) {
   .profile-form-grid {
     grid-template-columns: 1fr;
@@ -236,28 +232,6 @@
 .form-group textarea {
   resize: vertical;
   min-height: 48px;
-}
-
-.profile-button {
-  padding: 0.5rem 1rem;
-  margin-top: 0.25rem;
-  transition: transform 0.2s;
-}
-
-.profile-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.profile-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.profile-button-danger:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.profile-button-danger:active:not(:disabled) {
-  transform: translateY(0);
 }
 
 @media (max-width: 480px) {

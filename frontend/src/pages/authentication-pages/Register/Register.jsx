@@ -114,7 +114,7 @@ const Register = () => {
             type="submit"
             variant="primary"
             size="lg"
-            className="w-full register-button"
+            className="w-full"
             disabled={loading}
           >
             {loading ? 'Creating Account...' : 'Create Account'}

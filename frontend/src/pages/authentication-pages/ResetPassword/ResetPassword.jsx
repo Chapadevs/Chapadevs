@@ -111,7 +111,7 @@ const ResetPassword = () => {
                 type="submit"
                 variant="primary"
                 size="lg"
-                className="w-full login-button"
+                className="w-full"
                 disabled={status === 'loading'}
               >
                 {status === 'loading' ? 'Resetting...' : 'Reset password'}

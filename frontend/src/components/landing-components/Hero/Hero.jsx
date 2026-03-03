@@ -33,7 +33,9 @@ const Hero = () => {
             onChange={(e) => handleChange('prompt', e.target.value)}
             placeholder="Describe the preview you want AI to generate..."
             required
-            className="min-h-[120px]"
+            autoExpand
+            minRows={5}
+            maxHeight="200px"
           >
             <div className="flex w-full items-center justify-between">
               <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block">
@@ -53,7 +55,7 @@ const Hero = () => {
                 <Button 
                   type="submit" 
                   size="sm"
-                  className="h-8 px-4 text-xs font-medium rounded-lg shadow-sm"
+                  className="rounded-lg shadow-sm"
                   to="/login"
                 >
                   Generate

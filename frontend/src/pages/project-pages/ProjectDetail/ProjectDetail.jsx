@@ -23,6 +23,8 @@ import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
 import ProgrammersTab from './tabs/ProgrammersTab/ProgrammersTab'
 import CommentsTab from './tabs/CommentsTab/CommentsTab'
 import ActivityTab from './tabs/ActivityTab/ActivityTab'
+import CalendarTab from './tabs/CalendarTab/CalendarTab'
+import AssetsTab from './tabs/AssetsTab/AssetsTab'
 
 const MAX_PREVIEWS_PER_PROJECT = 3
 
@@ -357,6 +359,12 @@ function ProjectDetail() {
                     onWorkspaceConfirmed={loadProject}
                     onSwitchToPreviews={() => handleTabChange('ai-preview')}
                   />
+                )}
+                {activeTab === 'calendar' && (
+                  <CalendarTab project={project} onPhaseUpdate={handlePhaseUpdate} />
+                )}
+                {activeTab === 'assets' && (
+                  <AssetsTab project={project} />
                 )}
                 {activeTab === 'activity' && (
                   <ActivityTab project={project} />

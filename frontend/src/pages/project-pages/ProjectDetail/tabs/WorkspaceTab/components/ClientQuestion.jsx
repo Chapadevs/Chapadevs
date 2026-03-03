@@ -46,10 +46,10 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
             rows={3}
           />
           <div className="question-actions">
-            <Button type="button"  size="sm" className="btn btn-sm" onClick={handleSave}>
+            <Button type="button" size="sm" onClick={handleSave}>
               Save
             </Button>
-            <Button type="button" variant="secondary" size="sm" className="btn btn-secondary btn-sm" onClick={handleCancel}>
+            <Button type="button" variant="secondary" size="sm" onClick={handleCancel}>
               Cancel
             </Button>
           </div>

@@ -17,6 +17,12 @@ import {
   approvePhase,
   uploadAttachment,
   deleteAttachment,
+  updateAttachment,
+  getAttachmentSignedUrls,
+  getProjectAttachmentSignedUrls,
+  uploadSubStepAttachment,
+  deleteSubStepAttachment,
+  updateSubStepAttachment,
   deleteProject,
   getMyProjects,
   getAssignedProjects,
@@ -59,6 +65,7 @@ router.put('/:id/stop-development', authorizeProjectAccess, stopDevelopment)
 router.put('/:id/complete', authorizeProjectAccess, markProjectCompleted)
 router.put('/:id/cancel', authorizeProjectAccess, markProjectCancelled)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
+router.post('/:id/attachments/signed-urls', authorizeProjectAccess, getProjectAttachmentSignedUrls)
 router.get('/:id/activity', authorizeProjectAccess, getProjectActivity)
 router.get('/:id/phases/proposal', authorizeProjectAccess, getPhaseProposal)
 router.patch('/:id/phases/proposal', authorizeProjectAccess, savePhaseProposal)
@@ -69,7 +76,12 @@ router.post('/:id/phases/:phaseId/sub-steps', authorizeProjectAccess, updateSubS
 router.post('/:id/phases/:phaseId/questions/:questionId/answer', authorizeProjectAccess, answerQuestion)
 router.post('/:id/phases/:phaseId/approve', authorizeProjectAccess, approvePhase)
 router.post('/:id/phases/:phaseId/attachments', authorizeProjectAccess, upload.single('file'), uploadAttachment)
+router.post('/:id/phases/:phaseId/attachments/signed-urls', authorizeProjectAccess, getAttachmentSignedUrls)
 router.delete('/:id/phases/:phaseId/attachments/:attachmentId', authorizeProjectAccess, deleteAttachment)
+router.patch('/:id/phases/:phaseId/attachments/:attachmentId', authorizeProjectAccess, updateAttachment)
+router.post('/:id/phases/:phaseId/sub-steps/:subStepId/attachments', authorizeProjectAccess, upload.single('file'), uploadSubStepAttachment)
+router.delete('/:id/phases/:phaseId/sub-steps/:subStepId/attachments/:attachmentId', authorizeProjectAccess, deleteSubStepAttachment)
+router.patch('/:id/phases/:phaseId/sub-steps/:subStepId/attachments/:attachmentId', authorizeProjectAccess, updateSubStepAttachment)
 router
   .route('/:id')
   .get(authorizeProjectAccess, getProjectById)

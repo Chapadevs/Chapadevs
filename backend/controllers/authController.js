@@ -8,6 +8,7 @@ import { getWelcomeEmail, getPasswordResetEmail, getPasswordChangeEmail } from '
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import { uploadAvatarToGCS, deleteAvatarFromGCS, isGcsAvatar } from '../utils/avatarStorage.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -333,30 +334,34 @@ export const updateProfile = asyncHandler(async (req, res) => {
   user.name = req.body.name || user.name
   user.email = req.body.email || user.email
 
-  // Handle avatar (base64 data URL - convert to file and save)
+  // Handle avatar (base64 data URL - upload to GCS chapadevs-website/assets/avatars/)
   if (req.body.avatar !== undefined && req.body.avatar) {
     try {
-      // Check if it's a base64 data URL
       if (req.body.avatar.startsWith('data:image/')) {
-        // Extract base64 data and image type
-        const matches = req.body.avatar.match(/^data:image\/(\w+);base64,(.+)$/)
-        if (matches) {
-          const imageType = matches[1] || 'jpeg'
-          const base64Data = matches[2]
-          
-          // Create uploads/avatars directory if it doesn't exist
-          const uploadDir = path.join(__dirname, '../uploads/avatars')
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true })
+        const gcsUrl = await uploadAvatarToGCS(req.body.avatar, user._id.toString())
+        if (gcsUrl) {
+          // Delete old avatar before storing new one
+          if (user.avatar) {
+            if (isGcsAvatar(user.avatar)) {
+              await deleteAvatarFromGCS(user.avatar)
+            } else if (user.avatar.startsWith('/uploads/avatars/')) {
+              const oldFilePath = path.join(__dirname, '..', user.avatar)
+              if (fs.existsSync(oldFilePath)) {
+                try {
+                  fs.unlinkSync(oldFilePath)
+                } catch (err) {
+                  console.error('Error deleting old avatar:', err)
+                }
+              }
+            }
           }
-
-          // Generate unique filename
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-          const filename = `${uniqueSuffix}.${imageType}`
-          const filePath = path.join(uploadDir, filename)
-
-          // Delete old avatar if it exists
-          if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
+          user.avatar = gcsUrl
+        }
+      } else if (req.body.avatar === '' || req.body.avatar === null) {
+        if (user.avatar) {
+          if (isGcsAvatar(user.avatar)) {
+            await deleteAvatarFromGCS(user.avatar)
+          } else if (user.avatar.startsWith('/uploads/avatars/')) {
             const oldFilePath = path.join(__dirname, '..', user.avatar)
             if (fs.existsSync(oldFilePath)) {
               try {
@@ -366,32 +371,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
               }
             }
           }
-
-          // Convert base64 to buffer and save file
-          const imageBuffer = Buffer.from(base64Data, 'base64')
-          fs.writeFileSync(filePath, imageBuffer)
-
-          // Store the URL path
-          user.avatar = `/uploads/avatars/${filename}`
-        } else {
-          // If it's not a valid base64 data URL, clear the avatar
-          user.avatar = null
-        }
-      } else if (req.body.avatar === '' || req.body.avatar === null) {
-        // Delete old avatar if clearing
-        if (user.avatar && user.avatar.startsWith('/uploads/avatars/')) {
-          const oldFilePath = path.join(__dirname, '..', user.avatar)
-          if (fs.existsSync(oldFilePath)) {
-            try {
-              fs.unlinkSync(oldFilePath)
-            } catch (err) {
-              console.error('Error deleting old avatar:', err)
-            }
-          }
         }
         user.avatar = null
       } else {
-        // If it's already a path, keep it
         user.avatar = req.body.avatar
       }
     } catch (error) {

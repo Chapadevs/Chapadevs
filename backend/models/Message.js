@@ -16,9 +16,19 @@ const messageSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: [true, 'Message content is required'],
+      default: '',
       maxlength: 5000,
       trim: true,
+    },
+    attachments: {
+      type: [
+        {
+          url: { type: String, required: true },
+          filename: { type: String, required: true },
+          type: { type: String, default: 'file' },
+        },
+      ],
+      default: [],
     },
     readBy: {
       type: [mongoose.Schema.Types.ObjectId],

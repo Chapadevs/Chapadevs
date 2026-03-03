@@ -9,11 +9,11 @@ const variants = {
 }
 
 const sizes = {
-  xs: 'px-2 py-1 text-[0.65rem] min-h-[24px]',
-  sm: 'px-3 py-1.5 text-xs min-h-[28px]',
-  md: 'px-4 py-2 text-sm min-h-[36px]',
-  lg: 'px-6 py-3 text-base min-h-[44px]',
-  hero: 'px-12 py-6 text-base min-w-[250px]',
+  xs: 'px-2 py-0 text-[0.65rem] min-h-[18px]',
+  sm: 'px-3 py-0 text-xs min-h-[22px]',
+  md: 'px-4 py-0 text-sm min-h-[26px]',
+  lg: 'px-6 py-px text-base min-h-[30px]',
+  hero: 'px-12 py-1 text-base min-w-[250px]',
 }
 
 const Button = forwardRef(({

@@ -74,7 +74,9 @@ const AIPreviewForm = ({
             onChange={(e) => handleChange('prompt', e.target.value)}
             placeholder="Describe the preview you want AI to generate..."
             required
-            className=""
+            autoExpand
+            minRows={5}
+            maxHeight="200px"
           >
 
             <div className="flex w-full items-center justify-between gap-4 sm:gap-8">
@@ -97,7 +99,7 @@ const AIPreviewForm = ({
                   type="submit"
                   disabled={!generateFormData.prompt}
                   size="sm"
-                  className="h-7 px-3 text-xs font-medium rounded-lg shadow-sm"
+                  className="rounded-lg shadow-sm"
                 >
                   Generate
                 </Button>

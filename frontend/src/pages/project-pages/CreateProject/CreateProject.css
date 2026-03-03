@@ -179,11 +179,6 @@
   padding-top: 1rem;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  display: inline-block;
-}
-
 @media (max-width: 768px) {
   .create-project-ai-input-row {
     flex-direction: column;
@@ -201,9 +196,5 @@
 
   .form-actions {
     flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
   }
 }

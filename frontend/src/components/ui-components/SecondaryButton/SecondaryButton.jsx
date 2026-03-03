@@ -15,9 +15,9 @@ const SecondaryButton = forwardRef(({
   }, ref) => {
     
     const sizeClasses = {
-      default: "h-9 px-4 py-2 text-sm",
-      sm: "h-8 px-3 text-xs", // Smaller height and padding
-      xs: "h-7 px-2 text-[10px]", 
+      default: "h-6 px-4 py-0 text-sm",
+      sm: "h-5 px-3 py-0 text-xs",
+      xs: "h-5 px-2 py-0 text-[10px]",
       icon: "h-9 w-9",
     }
   

@@ -1,3 +1,4 @@
+import { Paperclip } from 'lucide-react'
 import { Card } from '../../../../../../components/ui-components'
 import './SubStep.css'
 
@@ -27,6 +28,7 @@ const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
   const todosList = subStep.todos || []
   const completedTodos = todosList.filter((t) => t.completed).length
   const hasTodos = todosList.length > 0
+  const attachmentsCount = (subStep.attachments || []).length
 
   return (
     <Card
@@ -71,6 +73,12 @@ const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
         {hasTodos && (
           <div className="flex items-center gap-2 mt-1.5 font-body text-xs text-ink-muted">
             <span>{completedTodos}/{todosList.length} tasks</span>
+          </div>
+        )}
+        {attachmentsCount > 0 && (
+          <div className="flex items-center gap-1.5 mt-1.5 font-body text-xs text-ink-muted">
+            <Paperclip className="size-3.5 shrink-0" aria-hidden />
+            <span>{attachmentsCount} attachment{attachmentsCount !== 1 ? 's' : ''}</span>
           </div>
         )}
       </div>

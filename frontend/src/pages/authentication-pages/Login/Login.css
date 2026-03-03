@@ -87,13 +87,6 @@
   box-sizing: border-box;
 }
 
-.login-button {
-  padding: 0.875rem 2.25rem;
-  margin-top: 0.5rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 .login-forgot-link {
   margin: 0.5rem 0 0;
 }

@@ -113,6 +113,10 @@ function buildOutputSchemaSection(project) {
           "todos": [
             { "text": "Granular task 1", "order": 1 },
             { "text": "Granular task 2", "order": 2 }
+          ],
+          "requiredAttachments": [
+            { "label": "Logo (PNG or SVG)", "description": "Primary logo for header", "order": 1 },
+            { "label": "Brand colors", "description": "Hex codes or style guide", "order": 2 }
           ]
         }
       ]
@@ -131,5 +135,6 @@ RULES (project has ${totalDays} days total):
 - deliverables: high-level outputs; subSteps: granular tasks for the programmer.
 - order: 1-based for phases and sub-steps.
 - If no subSteps, omit the field or use empty array.
-- For each sub-step, output a "todos" array with 2–6 granular, actionable tasks. Base them on: (a) sub-step title, (b) phase duration (days = weeks×7), (c) phase deliverables. Tasks should be specific (e.g. "Create wireframe for main flow", "Implement API integration", "Run unit tests").`
+- For each sub-step, output a "todos" array with 2–6 granular, actionable tasks. Base them on: (a) sub-step title, (b) phase duration (days = weeks×7), (c) phase deliverables. Tasks should be specific (e.g. "Create wireframe for main flow", "Implement API integration", "Run unit tests").
+- For each sub-step, output a "requiredAttachments" array. Predict what files/images the client will need to provide (e.g. logo, brand assets, content images, copy). Use label (required) and optional description. Order by relevance. Use empty array if none needed.`
 }

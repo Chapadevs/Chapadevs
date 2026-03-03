@@ -322,6 +322,15 @@ class VertexAIService {
           todos: Array.isArray(s.todos)
             ? s.todos.map((t, k) => ({ text: typeof t.text === 'string' ? t.text.trim() : '', order: k + 1 })).filter((t) => t.text)
             : [],
+          requiredAttachments: Array.isArray(s.requiredAttachments)
+            ? s.requiredAttachments
+                .map((ra, k) => ({
+                  label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
+                  description: typeof ra.description === 'string' ? ra.description.trim() : '',
+                  order: typeof ra.order === 'number' ? ra.order : k + 1,
+                }))
+                .filter((ra) => ra.label)
+            : [],
         })) : [],
       }))
     } catch (error) {

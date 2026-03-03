@@ -167,26 +167,6 @@ input, select, textarea {
   position: relative;
 }
 
-.wizard-navigation .btn {
-  padding: 0.875rem 2.25rem;
-  min-width: 130px;
-  transition: transform 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.wizard-navigation .btn:disabled {
-  pointer-events: none;
-}
-
-.wizard-navigation .btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.wizard-navigation .btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
 .review-section {
   padding: 1.25rem;
   margin-bottom: 0.75rem;
@@ -240,9 +220,5 @@ input, select, textarea {
     flex-direction: column;
     gap: 0.375rem;
     padding-top: 0.875rem;
-  }
-
-  .wizard-navigation .btn {
-    width: 100%;
   }
 }

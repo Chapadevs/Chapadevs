@@ -544,10 +544,6 @@
   min-height: 200px;
 }
 
-.btn-sm {
-  padding: 0.4rem 0.75rem;
-}
-
 .phase-current-assignee {
   display: flex;
   align-items: center;

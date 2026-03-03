@@ -1,0 +1,254 @@
+import { useState, useMemo } from 'react'
+import { useAuth } from '../../../../../context/AuthContext'
+import { projectAPI } from '../../../../../services/api'
+import { calculatePermissions } from '../../utils/userPermissionsUtils'
+import { getCalendarItems, getItemsForDate, toDateKey } from '../../../../../utils/calendarDateUtils'
+import { formatDateOnly } from '../../../../../utils/dateUtils'
+import { Calendar, Card, Badge } from '../../../../../components/ui-components'
+import SubStepModal from '../../../../../components/modal-components/SubStepModal/SubStepModal'
+
+const STATUS_LABELS = {
+  pending: 'Pending',
+  waiting_client: 'Waiting on client',
+  in_progress: 'In progress',
+  completed: 'Completed',
+}
+
+const CalendarTab = ({ project, onPhaseUpdate }) => {
+  const { user } = useAuth()
+  const permissions = project && user ? calculatePermissions(user, project) : null
+  const canUpdateSubSteps = permissions?.canUpdateSubSteps ?? false
+  const canAnswerQuestion = permissions?.canAnswerQuestion ?? false
+  const canUploadAttachments = permissions?.canUploadAttachments ?? false
+
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
+  const [selectedSubStep, setSelectedSubStep] = useState(null)
+  const [selectedPhase, setSelectedPhase] = useState(null)
+
+  const calendarItems = useMemo(
+    () => (project ? getCalendarItems(project) : { phases: [], subSteps: [], daysWithItems: new Set() }),
+    [project]
+  )
+
+  const selectedDateKey = toDateKey(selectedDate)
+  const { subSteps: subStepsForDay, phaseMilestones } = useMemo(
+    () => getItemsForDate(selectedDateKey, calendarItems),
+    [selectedDateKey, calendarItems]
+  )
+
+  const handleSubStepUpdate = async (subStepId, updates) => {
+    if (!canUpdateSubSteps || !selectedPhase) return
+    try {
+      const updatedSubSteps = [...(selectedPhase.subSteps || [])]
+      const index = updatedSubSteps.findIndex(
+        (s) => (s._id || s.id)?.toString() === subStepId?.toString()
+      )
+      if (index >= 0) {
+        updatedSubSteps[index] = { ...updatedSubSteps[index], ...updates }
+      } else {
+        updatedSubSteps.push({ ...updates, order: updatedSubSteps.length + 1 })
+      }
+      const updated = await projectAPI.updatePhase(
+        project._id || project.id,
+        selectedPhase._id || selectedPhase.id,
+        { subSteps: updatedSubSteps }
+      )
+      if (onPhaseUpdate) onPhaseUpdate(updated)
+    } catch (_) {
+      /* keep modal open on error */
+    }
+  }
+
+  const handleQuestionAnswer = async (questionId, answer, subStepOrder = null) => {
+    if (!canAnswerQuestion || !selectedPhase) return
+    try {
+      const updated = await projectAPI.answerQuestion(
+        project._id || project.id,
+        selectedPhase._id || selectedPhase.id,
+        questionId,
+        answer,
+        subStepOrder
+      )
+      if (onPhaseUpdate) onPhaseUpdate(updated)
+    } catch (_) {}
+  }
+
+  const handleOpenSubStep = (phase, subStep) => {
+    setSelectedPhase(phase)
+    setSelectedSubStep(subStep)
+  }
+
+  const hasPhases = project?.phases && project.phases.length > 0
+  const hasAnyItems = calendarItems.subSteps.length > 0 || calendarItems.phases.length > 0
+
+  const CalendarDayWithItems = useMemo(() => {
+    const { daysWithItems, itemCountByDate } = calendarItems
+    return function DayButton({ day, modifiers, className, ...props }) {
+      const dateKey = toDateKey(day.date)
+      const hasItems = daysWithItems.has(dateKey)
+      const count = itemCountByDate?.get(dateKey) ?? 0
+      const isSelected = modifiers?.selected
+      const dotClass = isSelected ? 'bg-primary-foreground' : 'bg-primary'
+      return (
+        <button
+          type="button"
+          {...props}
+          className={`rdp-day_button flex aspect-square h-auto w-full min-w-[var(--cell-size)] flex-col gap-0.5 items-center justify-center rounded-none font-body text-sm font-normal leading-none hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 ${isSelected ? 'bg-primary text-primary-foreground' : ''} ${modifiers?.today && !isSelected ? 'bg-accent text-accent-foreground' : ''} ${className || ''}`}
+          data-day={day.date.toLocaleDateString()}
+        >
+          <span>{day.date.getDate()}</span>
+          {hasItems && (
+            <span className="flex gap-0.5 justify-center items-center">
+              {count > 1 ? (
+                <span className={`text-[10px] font-heading ${isSelected ? 'text-primary-foreground' : 'text-primary'}`}>{count}</span>
+              ) : (
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} aria-hidden />
+              )}
+            </span>
+          )}
+        </button>
+      )
+    }
+  }, [calendarItems])
+
+  if (!hasPhases) {
+    return (
+      <section className="project-section max-w-[1200px] mx-auto">
+        <div className="font-body text-ink-muted py-8 text-center">
+          <p className="mb-2">No phases yet. Set up your workspace first.</p>
+          <p className="text-sm">Go to the Workspace tab to create and confirm your project timeline.</p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="project-section project-phases max-w-[1200px] mx-auto w-full">
+      <h2 className="font-heading text-lg uppercase text-ink mb-6">Project Calendar</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,320px)] gap-8 items-start">
+        <div className="flex justify-center min-w-0">
+          <div className="border border-border rounded-none p-8 bg-surface">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => d && setSelectedDate(d)}
+              className="rounded-none [--cell-size:4rem] text-base"
+              components={{ DayButton: CalendarDayWithItems }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col min-w-0 border-l-2 border-primary pl-6">
+          <h3 className="font-heading text-sm uppercase text-ink mb-4">
+            {selectedDateKey ? formatDateOnly(selectedDate, '—') : 'Select a date'}
+          </h3>
+          <div className="flex flex-col gap-3">
+            {phaseMilestones.length > 0 && (
+              <div>
+                <span className="font-heading text-xs uppercase text-ink-muted block mb-2">Phase milestones</span>
+                <div className="flex flex-col gap-2">
+                  {phaseMilestones.map((item) => (
+                    <div
+                      key={item.phase._id || item.phase.id}
+                      className="flex items-center justify-between gap-3 py-2.5 px-3 border border-border bg-surface rounded-none font-body text-sm"
+                    >
+                      <span className="font-body text-sm truncate">{item.phase.title}</span>
+                      <div className="flex shrink-0 gap-1">
+                        {toDateKey(item.startDate) === selectedDateKey && (
+                          <Badge variant="neutral" className="text-xs">Start</Badge>
+                        )}
+                        {toDateKey(item.dueDate) === selectedDateKey && (
+                          <Badge variant="neutral" className="text-xs">Due</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {subStepsForDay.length > 0 ? (
+              <div>
+                <span className="font-heading text-xs uppercase text-ink-muted block mb-2">Tasks</span>
+                <div className="flex flex-col gap-2">
+                  {subStepsForDay.map((item) => {
+                    const status = item.subStep.status ?? (item.subStep.completed ? 'completed' : 'pending')
+                    return (
+                      <Card
+                        key={`${item.phase._id || item.phase.id}-${item.subStep.order}`}
+                        variant="default"
+                        className="p-3 cursor-pointer hover:border-primary transition-colors rounded-none"
+                        onClick={() => handleOpenSubStep(item.phase, item.subStep)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            handleOpenSubStep(item.phase, item.subStep)
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-body text-sm truncate">{item.subStep.title || 'Untitled'}</span>
+                          <Badge
+                            variant={
+                              status === 'completed' ? 'success' :
+                              status === 'in_progress' ? 'development' :
+                              status === 'waiting_client' ? 'holding' : 'neutral'
+                            }
+                            className="shrink-0"
+                          >
+                            {STATUS_LABELS[status] || status}
+                          </Badge>
+                        </div>
+                        <span className="font-body text-xs text-ink-muted block mt-1">
+                          {item.phase.title}
+                        </span>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              !hasAnyItems ? (
+                <p className="font-body text-sm text-ink-muted py-4">
+                  No tasks with dates yet. Add due dates to sub-steps in the Workspace.
+                </p>
+              ) : (
+                <p className="font-body text-sm text-ink-muted py-4">
+                  No tasks on this day.
+                </p>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+
+      <SubStepModal
+        open={selectedSubStep != null}
+        onClose={() => {
+          setSelectedSubStep(null)
+          setSelectedPhase(null)
+        }}
+        subStep={selectedSubStep}
+        phase={selectedPhase}
+        project={project}
+        canEdit={canUpdateSubSteps}
+        canUploadAttachments={canUploadAttachments}
+        canAnswerQuestion={canAnswerQuestion}
+        onUpdate={async (updates) => {
+          await handleSubStepUpdate(selectedSubStep?._id ?? selectedSubStep?.id ?? null, updates)
+          setSelectedSubStep(null)
+          setSelectedPhase(null)
+        }}
+        onPhaseUpdate={onPhaseUpdate}
+        onQuestionAnswer={handleQuestionAnswer}
+      />
+    </section>
+  )
+}
+
+export default CalendarTab

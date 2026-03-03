@@ -76,7 +76,7 @@ const OurServices = () => {
           </div>
 
           <div className="services-cta">
-            <Button to={isAuthenticated ? '/projects/create' : '/register'} variant="secondary" size="hero" className="btn btn--primary">
+            <Button to={isAuthenticated ? '/projects/create' : '/register'} variant="secondary" size="hero" >
               Get Started
             </Button>
           </div>

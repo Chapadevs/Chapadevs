@@ -23,10 +23,6 @@
   margin-top: 0.5rem;
 }
 
-.project-list-header .btn {
-  padding: 0.75rem 1.5rem;
-}
-
 .project-list-loading,
 .project-list-error,
 .project-list-empty {
@@ -107,10 +103,4 @@
 
 .project-dates-row .notification-badge {
   margin-left: auto;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  display: inline-block;
 }

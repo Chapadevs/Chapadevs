@@ -101,7 +101,6 @@ function ProjectSettingsModal({ basicInfo = {}, onClose }) {
           <Button
             type="button"
             variant="primary"
-            className="btn btn-primary"
             onClick={handleBackToAssignment}
           >
             Back to Available Projects
@@ -109,7 +108,6 @@ function ProjectSettingsModal({ basicInfo = {}, onClose }) {
           <Button
             type="button"
             variant="secondary"
-            className="btn btn-secondary"
             onClick={onClose}
           >
             Close

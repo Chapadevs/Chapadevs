@@ -208,45 +208,6 @@
   min-width: 0;
 }
 
-.assignment-actions .btn {
-  font-family: "Creato Display Medium", serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  font-size: 0.85rem;
-  padding: 0.6rem 1.25rem;
-  border-radius: 0;
-  border: 2px solid var(--primary-green);
-  transition: color 0.2s ease, background 0.2s ease;
-  min-width: 150px;
-  width: 150px;
-  max-width: 150px;
-  flex: 0 0 150px;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-.assignment-actions .btn-primary {
-  background: var(--primary-green);
-  color: #fff;
-}
-
-.assignment-actions .btn-primary:hover:not(:disabled) {
-  background: var(--primary-green-dark);
-  border-color: var(--primary-green-dark);
-  color: #fff;
-}
-
-.assignment-actions .btn-secondary {
-  background: var(--background);
-  color: var(--primary-green);
-}
-
-.assignment-actions .btn-secondary:hover {
-  background: rgba(5, 150, 105, 0.08);
-  color: var(--primary-green-dark);
-}
-
 .admin-assignment {
   display: flex;
   flex-direction: column;
@@ -279,44 +240,6 @@
   font-size: 0.875rem;
   color: var(--primary-green);
   font-style: italic;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background-color: var(--primary-green);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-green-dark);
-}
-
-.btn-secondary {
-  background-color: var(--background);
-  color: var(--text-primary);
-  border: 2px solid var(--border);
-}
-
-.btn-secondary:hover {
-  background-color: var(--background-gray);
-  border-color: var(--primary-green);
-  color: var(--primary-green);
 }
 
 .project-assigned-notice {

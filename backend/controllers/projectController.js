@@ -9,6 +9,8 @@ import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../u
 import { getProjectDurationFromDates } from '../utils/projectDuration.js'
 import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
 import { getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
+import { uploadProjectAttachment, deleteProjectAttachment, getSignedUrlsForAttachments } from '../utils/projectAttachmentStorage.js'
+import { validateAttachmentForRequired } from '../utils/attachmentValidation.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import { generateSubStepTodos } from '../utils/subStepTodoGenerator.js'
 import { createNotification } from './notificationController.js'
@@ -21,23 +23,9 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/phases')
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true })
-    }
-    cb(null, uploadDir)
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-    cb(null, uniqueSuffix + path.extname(file.originalname))
-  },
-})
-
+// Configure multer for file uploads (memory storage for GCS upload)
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 })
 
@@ -207,6 +195,8 @@ export const getProjectById = asyncHandler(async (req, res) => {
 
   let phases = await ProjectPhase.find({ projectId: project._id })
     .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
     .sort({ order: 1 })
     .lean()
 
@@ -230,6 +220,8 @@ export const getProjectById = asyncHandler(async (req, res) => {
 
   phases = await ProjectPhase.find({ projectId: project._id })
     .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
     .sort({ order: 1 })
     .lean()
 
@@ -574,6 +566,16 @@ export const confirmPhases = asyncHandler(async (req, res) => {
           const existingTodos = Array.isArray(s.todos) && s.todos.length > 0
             ? s.todos.map((t, k) => ({ text: (t.text ?? '').trim(), completed: false, order: k + 1 })).filter((t) => t.text)
             : []
+          const requiredAttachments = Array.isArray(s.requiredAttachments)
+            ? s.requiredAttachments
+                .map((ra, k) => ({
+                  label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
+                  description: typeof ra.description === 'string' ? ra.description.trim() : '',
+                  order: typeof ra.order === 'number' ? ra.order : k + 1,
+                  receivedAt: null,
+                }))
+                .filter((ra) => ra.label)
+            : []
           return {
             title: typeof s.title === 'string' ? s.title.trim() : `Task ${index + 1}`,
             completed: false,
@@ -581,6 +583,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
             notes: '',
             status: 'pending',
             todos: existingTodos,
+            requiredAttachments,
           }
         })
     } else {
@@ -591,6 +594,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
         notes: '',
         status: 'pending',
         todos: [],
+        requiredAttachments: [],
       }))
     }
 
@@ -603,6 +607,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
           notes: '',
           status: 'pending',
           todos: [],
+          requiredAttachments: [],
         },
       ]
     }
@@ -630,6 +635,17 @@ export const confirmPhases = asyncHandler(async (req, res) => {
       subStepOrder: (j % numSubSteps) + 1,
     }))
 
+    const phaseRequiredAttachments = Array.isArray(d.requiredAttachments)
+      ? d.requiredAttachments
+          .map((ra, k) => ({
+            label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
+            description: typeof ra.description === 'string' ? ra.description.trim() : '',
+            order: typeof ra.order === 'number' ? ra.order : k + 1,
+            receivedAt: null,
+          }))
+          .filter((ra) => ra.label)
+      : []
+
     phasesToCreate.push({
       projectId: project._id,
       title,
@@ -646,6 +662,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
       subSteps,
       notes: '',
       attachments: [],
+      requiredAttachments: phaseRequiredAttachments,
     })
 
     currentPhaseStart = new Date(phaseDueDate)
@@ -795,6 +812,21 @@ export const updatePhase = asyncHandler(async (req, res) => {
     if (req.body.deliverables !== undefined) {
       phase.deliverables = req.body.deliverables
     }
+    if (req.body.requiredAttachments !== undefined) {
+      phase.requiredAttachments = Array.isArray(req.body.requiredAttachments)
+        ? req.body.requiredAttachments.map((ra, k) => ({
+            label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
+            description: typeof ra.description === 'string' ? ra.description.trim() : '',
+            order: typeof ra.order === 'number' ? ra.order : k + 1,
+            receivedAt: ra.receivedAt ? new Date(ra.receivedAt) : null,
+            minWidth: typeof ra.minWidth === 'number' && ra.minWidth >= 0 ? ra.minWidth : null,
+            maxWidth: typeof ra.maxWidth === 'number' && ra.maxWidth >= 0 ? ra.maxWidth : null,
+            minHeight: typeof ra.minHeight === 'number' && ra.minHeight >= 0 ? ra.minHeight : null,
+            maxHeight: typeof ra.maxHeight === 'number' && ra.maxHeight >= 0 ? ra.maxHeight : null,
+            allowedTypes: Array.isArray(ra.allowedTypes) ? ra.allowedTypes.filter((t) => typeof t === 'string').map((t) => t.toLowerCase().trim()) : [],
+          })).filter((ra) => ra.label)
+        : []
+    }
   }
 
   if (req.body.completedAt !== undefined && (isProgrammer || req.user.role === 'admin')) {
@@ -850,6 +882,8 @@ export const updatePhase = asyncHandler(async (req, res) => {
 
   const updated = await ProjectPhase.findById(phase._id)
     .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -880,7 +914,7 @@ export const updateSubStep = asyncHandler(async (req, res) => {
     throw new Error('Phase not found')
   }
 
-  const { subStepId, title, completed, notes, order, status } = req.body
+  const { subStepId, title, completed, notes, order, status, requiredAttachments } = req.body
 
   const validSubStepStatuses = ['pending', 'waiting_client', 'in_progress', 'completed']
 
@@ -907,6 +941,21 @@ export const updateSubStep = asyncHandler(async (req, res) => {
       phase.subSteps[subStepIndex].status = status
       phase.subSteps[subStepIndex].completed = status === 'completed'
     }
+    if (requiredAttachments !== undefined) {
+      phase.subSteps[subStepIndex].requiredAttachments = Array.isArray(requiredAttachments)
+        ? requiredAttachments.map((ra, k) => ({
+            label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
+            description: typeof ra.description === 'string' ? ra.description.trim() : '',
+            order: typeof ra.order === 'number' ? ra.order : k + 1,
+            receivedAt: ra.receivedAt ? new Date(ra.receivedAt) : null,
+            minWidth: typeof ra.minWidth === 'number' && ra.minWidth >= 0 ? ra.minWidth : null,
+            maxWidth: typeof ra.maxWidth === 'number' && ra.maxWidth >= 0 ? ra.maxWidth : null,
+            minHeight: typeof ra.minHeight === 'number' && ra.minHeight >= 0 ? ra.minHeight : null,
+            maxHeight: typeof ra.maxHeight === 'number' && ra.maxHeight >= 0 ? ra.maxHeight : null,
+            allowedTypes: Array.isArray(ra.allowedTypes) ? ra.allowedTypes.filter((t) => typeof t === 'string').map((t) => t.toLowerCase().trim()) : [],
+          })).filter((ra) => ra.label)
+        : []
+    }
     phase.subSteps[subStepIndex].assignedTo = req.user._id
   } else {
     // Add new sub-step
@@ -927,6 +976,8 @@ export const updateSubStep = asyncHandler(async (req, res) => {
   await phase.save()
   const updated = await ProjectPhase.findById(phase._id)
     .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1011,6 +1062,8 @@ export const answerQuestion = asyncHandler(async (req, res) => {
   await phase.save()
   const updated = await ProjectPhase.findById(phase._id)
     .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1134,12 +1187,44 @@ export const uploadAttachment = asyncHandler(async (req, res) => {
     throw new Error('No file uploaded')
   }
 
+  const forRequiredIndex = req.body?.forRequiredIndex != null ? parseInt(req.body.forRequiredIndex, 10) : null
+  if (Number.isInteger(forRequiredIndex) && forRequiredIndex >= 0) {
+    const required = phase.requiredAttachments?.[forRequiredIndex]
+    if (required && (required.minWidth != null || required.maxWidth != null || required.minHeight != null || required.maxHeight != null || (required.allowedTypes?.length ?? 0) > 0)) {
+      const result = validateAttachmentForRequired(
+        req.file.buffer,
+        req.file.mimetype,
+        {
+          minWidth: required.minWidth,
+          maxWidth: required.maxWidth,
+          minHeight: required.minHeight,
+          maxHeight: required.maxHeight,
+          allowedTypes: required.allowedTypes,
+        }
+      )
+      if (!result.valid) {
+        res.status(400)
+        throw new Error(result.error)
+      }
+    }
+  }
+
+  const gcsUrl = await uploadProjectAttachment(
+    projectId,
+    phaseId,
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype || 'application/octet-stream'
+  )
+
   const attachment = {
     filename: req.file.originalname,
-    url: `/uploads/phases/${req.file.filename}`,
+    url: gcsUrl,
     uploadedBy: req.user._id,
     uploadedAt: new Date(),
     type: req.file.mimetype || 'file',
+    status: 'ok',
+    changesNeededFeedback: null,
   }
 
   if (!phase.attachments) {
@@ -1199,18 +1284,382 @@ export const deleteAttachment = asyncHandler(async (req, res) => {
     throw new Error('Not authorized to delete this attachment')
   }
 
-  // Delete file from filesystem
+  // Delete file: GCS or legacy filesystem
   if (attachment.url) {
-    const filePath = path.join(__dirname, '..', attachment.url)
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
+    if (attachment.url.startsWith('https://storage.googleapis.com/')) {
+      await deleteProjectAttachment(attachment.url)
+    } else if (attachment.url.startsWith('/uploads/')) {
+      const filePath = path.join(__dirname, '..', attachment.url)
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+      }
     }
   }
 
   phase.attachments.splice(attachmentIndex, 1)
   await phase.save()
 
-  const updated = await ProjectPhase.findById(phase._id).lean()
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
+    .lean()
+  res.json(updated)
+})
+
+// @desc    Update attachment status (changes needed / OK). Programmer or admin only.
+// @route   PATCH /api/projects/:id/phases/:phaseId/attachments/:attachmentId
+// @access  Private (assigned programmer or admin)
+export const updateAttachment = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const phaseId = req.params.phaseId
+  const attachmentId = req.params.attachmentId
+  const { status, changesNeededFeedback } = req.body
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Only the assigned programmer or admin can update attachment status')
+  }
+
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  if (!phase) {
+    res.status(404)
+    throw new Error('Phase not found')
+  }
+
+  const attachmentIndex = phase.attachments?.findIndex((a) => a._id?.toString() === attachmentId)
+  if (attachmentIndex === -1 || !phase.attachments?.[attachmentIndex]) {
+    res.status(404)
+    throw new Error('Attachment not found')
+  }
+
+  if (status !== undefined) {
+    if (!['ok', 'changes_needed'].includes(status)) {
+      res.status(400)
+      throw new Error('Invalid status. Must be "ok" or "changes_needed"')
+    }
+    phase.attachments[attachmentIndex].status = status
+  }
+  if (changesNeededFeedback !== undefined) {
+    phase.attachments[attachmentIndex].changesNeededFeedback =
+      typeof changesNeededFeedback === 'string' ? changesNeededFeedback.trim() || null : null
+  }
+
+  await phase.save()
+
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
+    .lean()
+  res.json(updated)
+})
+
+// @desc    Get signed URLs for GCS attachment URLs (for private bucket)
+// @route   POST /api/projects/:id/phases/:phaseId/attachments/signed-urls
+// @access  Private (project access)
+export const getAttachmentSignedUrls = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const phaseId = req.params.phaseId
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isClient = project.clientId?.toString() === req.user._id.toString()
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Not authorized')
+  }
+
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId }).lean()
+  if (!phase) {
+    res.status(404)
+    throw new Error('Phase not found')
+  }
+
+  const urls = Array.isArray(req.body?.urls) ? req.body.urls : []
+  const signedUrls = await getSignedUrlsForAttachments(urls, 3600000) // 1 hour
+  res.json({ urls: signedUrls })
+})
+
+// @desc    Get signed URLs for GCS attachment URLs (project-level, for Assets tab)
+// @route   POST /api/projects/:id/attachments/signed-urls
+// @access  Private (project access)
+export const getProjectAttachmentSignedUrls = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isClient = project.clientId?.toString() === req.user._id.toString()
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Not authorized')
+  }
+
+  const urls = Array.isArray(req.body?.urls) ? req.body.urls : []
+  const signedUrls = await getSignedUrlsForAttachments(urls, 3600000)
+  res.json({ urls: signedUrls })
+})
+
+// @desc    Upload attachment to a sub-step
+// @route   POST /api/projects/:id/phases/:phaseId/sub-steps/:subStepId/attachments
+// @access  Private (assigned programmer, client, or admin)
+export const uploadSubStepAttachment = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const phaseId = req.params.phaseId
+  const subStepId = req.params.subStepId
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isClient = project.clientId?.toString() === req.user._id.toString()
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Not authorized to upload attachments')
+  }
+
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  if (!phase) {
+    res.status(404)
+    throw new Error('Phase not found')
+  }
+
+  const subStepIndex = phase.subSteps?.findIndex(
+    (s) => (s._id?.toString() === subStepId) || (s.order?.toString() === subStepId)
+  )
+  if (subStepIndex === -1 || !phase.subSteps?.[subStepIndex]) {
+    res.status(404)
+    throw new Error('Sub-step not found')
+  }
+
+  if (!req.file) {
+    res.status(400)
+    throw new Error('No file uploaded')
+  }
+
+  const subStep = phase.subSteps[subStepIndex]
+  const subStepOrder = subStep.order ?? subStepIndex + 1
+
+  const forRequiredIndex = req.body?.forRequiredIndex != null ? parseInt(req.body.forRequiredIndex, 10) : null
+  if (Number.isInteger(forRequiredIndex) && forRequiredIndex >= 0) {
+    const required = subStep.requiredAttachments?.[forRequiredIndex]
+    if (required && (required.minWidth != null || required.maxWidth != null || required.minHeight != null || required.maxHeight != null || (required.allowedTypes?.length ?? 0) > 0)) {
+      const result = validateAttachmentForRequired(
+        req.file.buffer,
+        req.file.mimetype,
+        {
+          minWidth: required.minWidth,
+          maxWidth: required.maxWidth,
+          minHeight: required.minHeight,
+          maxHeight: required.maxHeight,
+          allowedTypes: required.allowedTypes,
+        }
+      )
+      if (!result.valid) {
+        res.status(400)
+        throw new Error(result.error)
+      }
+    }
+  }
+
+  const gcsUrl = await uploadProjectAttachment(
+    projectId,
+    phaseId,
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype || 'application/octet-stream',
+    subStepOrder
+  )
+
+  const attachment = {
+    filename: req.file.originalname,
+    url: gcsUrl,
+    uploadedBy: req.user._id,
+    uploadedAt: new Date(),
+    type: req.file.mimetype || 'file',
+    status: 'ok',
+    changesNeededFeedback: null,
+  }
+
+  if (!phase.subSteps[subStepIndex].attachments) {
+    phase.subSteps[subStepIndex].attachments = []
+  }
+  phase.subSteps[subStepIndex].attachments.push(attachment)
+  await phase.save()
+
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
+    .lean()
+  res.json(updated)
+})
+
+// @desc    Delete attachment from a sub-step
+// @route   DELETE /api/projects/:id/phases/:phaseId/sub-steps/:subStepId/attachments/:attachmentId
+// @access  Private (assigned programmer, client who uploaded, or admin)
+export const deleteSubStepAttachment = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const phaseId = req.params.phaseId
+  const subStepId = req.params.subStepId
+  const attachmentId = req.params.attachmentId
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  if (!phase) {
+    res.status(404)
+    throw new Error('Phase not found')
+  }
+
+  const subStepIndex = phase.subSteps?.findIndex(
+    (s) => (s._id?.toString() === subStepId) || (s.order?.toString() === subStepId)
+  )
+  if (subStepIndex === -1 || !phase.subSteps?.[subStepIndex]) {
+    res.status(404)
+    throw new Error('Sub-step not found')
+  }
+
+  const attachments = phase.subSteps[subStepIndex].attachments || []
+  const attachmentIndex = attachments.findIndex((a) => a._id?.toString() === attachmentId)
+  if (attachmentIndex === -1) {
+    res.status(404)
+    throw new Error('Attachment not found')
+  }
+
+  const attachment = attachments[attachmentIndex]
+  const isUploader = attachment.uploadedBy?.toString() === req.user._id.toString()
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isUploader && !isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Not authorized to delete this attachment')
+  }
+
+  if (attachment.url?.startsWith('https://storage.googleapis.com/')) {
+    await deleteProjectAttachment(attachment.url)
+  }
+
+  phase.subSteps[subStepIndex].attachments.splice(attachmentIndex, 1)
+  await phase.save()
+
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
+    .lean()
+  res.json(updated)
+})
+
+// @desc    Update sub-step attachment status (changes needed / OK). Programmer or admin only.
+// @route   PATCH /api/projects/:id/phases/:phaseId/sub-steps/:subStepId/attachments/:attachmentId
+// @access  Private (assigned programmer or admin)
+export const updateSubStepAttachment = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+  const phaseId = req.params.phaseId
+  const subStepId = req.params.subStepId
+  const attachmentId = req.params.attachmentId
+  const { status, changesNeededFeedback } = req.body
+
+  const project = await Project.findById(projectId).lean()
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Only the assigned programmer or admin can update attachment status')
+  }
+
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  if (!phase) {
+    res.status(404)
+    throw new Error('Phase not found')
+  }
+
+  const subStepIndex = phase.subSteps?.findIndex(
+    (s) => (s._id?.toString() === subStepId) || (s.order?.toString() === subStepId)
+  )
+  if (subStepIndex === -1 || !phase.subSteps?.[subStepIndex]) {
+    res.status(404)
+    throw new Error('Sub-step not found')
+  }
+
+  const attachments = phase.subSteps[subStepIndex].attachments || []
+  const attachmentIndex = attachments.findIndex((a) => a._id?.toString() === attachmentId)
+  if (attachmentIndex === -1) {
+    res.status(404)
+    throw new Error('Attachment not found')
+  }
+
+  if (status !== undefined) {
+    if (!['ok', 'changes_needed'].includes(status)) {
+      res.status(400)
+      throw new Error('Invalid status. Must be "ok" or "changes_needed"')
+    }
+    phase.subSteps[subStepIndex].attachments[attachmentIndex].status = status
+  }
+  if (changesNeededFeedback !== undefined) {
+    phase.subSteps[subStepIndex].attachments[attachmentIndex].changesNeededFeedback =
+      typeof changesNeededFeedback === 'string' ? changesNeededFeedback.trim() || null : null
+  }
+
+  await phase.save()
+
+  const updated = await ProjectPhase.findById(phase._id)
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
+    .lean()
   res.json(updated)
 })
 

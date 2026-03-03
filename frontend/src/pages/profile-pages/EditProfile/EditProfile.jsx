@@ -15,6 +15,7 @@ import {
   AvatarImage, 
   AvatarFallback 
 } from '../../../components/ui-components'
+import { getAvatarUrl } from '../../../utils/avatarUtils'
 import './EditProfile.css'
 
 const EditProfile = () => {
@@ -45,23 +46,6 @@ const EditProfile = () => {
   const [deleteError, setDeleteError] = useState('')
   const [editingBio, setEditingBio] = useState(false)
   const [bioValue, setBioValue] = useState('')
-
-  // Helper function to get avatar URL
-  const getAvatarUrl = (avatar) => {
-    if (!avatar) return null
-    // If it's a base64 data URL, return as is
-    if (avatar.startsWith('data:image/')) {
-      return avatar
-    }
-    // If it's a file path, construct the full URL
-    if (avatar.startsWith('/uploads/')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-      const baseUrl = backendUrl.replace('/api', '').replace(/\/$/, '')
-      return `${baseUrl}${avatar}`
-    }
-    // Return as is if it's already a full URL
-    return avatar
-  }
 
   // Populate form with user data
   useEffect(() => {
@@ -499,7 +483,6 @@ const EditProfile = () => {
                     type="submit"
                     variant="primary"
                     size="lg"
-                    className="profile-button"
                     disabled={loading}
                   >
                     {loading ? 'Sending confirmation email...' : 'Request Password Change'}
@@ -523,7 +506,6 @@ const EditProfile = () => {
                 type="button"
                 variant="danger"
                 size="lg"
-                className="profile-button profile-button-danger"
                 onClick={handleDeleteProfile}
                 disabled={deleting || loading}
               >
@@ -538,7 +520,6 @@ const EditProfile = () => {
                 form="profile-form"
                 variant="primary"
                 size="lg"
-                className="profile-button"
                 disabled={loading}
               >
                 {loading ? 'Saving...' : 'Save'}

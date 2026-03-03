@@ -176,4 +176,56 @@ export const projectAPI = {
     )
     return response.data
   },
+
+  updateAttachment: async (projectId, phaseId, attachmentId, { status, changesNeededFeedback }) => {
+    const response = await api.patch(
+      `/projects/${projectId}/phases/${phaseId}/attachments/${attachmentId}`,
+      { status, changesNeededFeedback }
+    )
+    return response.data
+  },
+
+  getAttachmentSignedUrls: async (projectId, phaseId, urls) => {
+    const response = await api.post(
+      `/projects/${projectId}/phases/${phaseId}/attachments/signed-urls`,
+      { urls }
+    )
+    return response.data
+  },
+
+  getProjectAttachmentSignedUrls: async (projectId, urls) => {
+    const response = await api.post(
+      `/projects/${projectId}/attachments/signed-urls`,
+      { urls }
+    )
+    return response.data
+  },
+
+  uploadSubStepAttachment: async (projectId, phaseId, subStepId, formData) => {
+    const response = await api.post(
+      `/projects/${projectId}/phases/${phaseId}/sub-steps/${subStepId}/attachments`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return response.data
+  },
+
+  deleteSubStepAttachment: async (projectId, phaseId, subStepId, attachmentId) => {
+    const response = await api.delete(
+      `/projects/${projectId}/phases/${phaseId}/sub-steps/${subStepId}/attachments/${attachmentId}`
+    )
+    return response.data
+  },
+
+  updateSubStepAttachment: async (projectId, phaseId, subStepId, attachmentId, { status, changesNeededFeedback }) => {
+    const response = await api.patch(
+      `/projects/${projectId}/phases/${phaseId}/sub-steps/${subStepId}/attachments/${attachmentId}`,
+      { status, changesNeededFeedback }
+    )
+    return response.data
+  },
 }

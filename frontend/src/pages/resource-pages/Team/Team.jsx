@@ -53,11 +53,10 @@ const Team = () => {
                 to={isAuthenticated ? '/projects/create' : '/register'}
                 variant="primary"
                 size="lg"
-                className="btn btn-primary team-page-cta-btn"
               >
                 {isAuthenticated ? 'Create Project' : 'Get Started'}
               </Button>
-              <Button to="/contact" variant="secondary" size="lg" className="btn btn-secondary team-page-cta-btn">
+              <Button to="/contact" variant="secondary" size="lg" >
                 Contact Us
               </Button>
             </div>

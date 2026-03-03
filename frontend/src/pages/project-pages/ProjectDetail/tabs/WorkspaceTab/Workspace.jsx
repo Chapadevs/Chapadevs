@@ -323,7 +323,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
                       aria-selected={isActive}
                       aria-label={`Phase ${idx + 1}`}
                       onClick={() => setReviewPhaseIndex(idx)}
-                      className="min-w-[1.75rem] h-7 px-1.5 text-xs"
+                      className="min-w-[1.75rem] px-1.5 text-xs"
                     >
                       {idx + 1}
                     </Button>

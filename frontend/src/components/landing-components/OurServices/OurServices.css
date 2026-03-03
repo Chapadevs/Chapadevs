@@ -135,12 +135,6 @@
   margin-top: 0.5rem;
 }
 
-.services-cta .btn {
-  padding: 1.5rem 3rem;
-  display: inline-block;
-  min-width: 200px;
-}
-
 @media (min-width: 768px) {
   .services-section {
     padding: 5rem 0;
@@ -176,10 +170,3 @@
   }
 }
 
-@media (max-width: 767px) {
-  .services-cta .btn {
-    width: 100%;
-    min-width: unset;
-    padding: 1.25rem 2rem;
-  }
-}

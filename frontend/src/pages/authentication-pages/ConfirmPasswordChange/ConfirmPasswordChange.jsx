@@ -111,7 +111,7 @@ const ConfirmPasswordChange = () => {
                 type="submit"
                 variant="primary"
                 size="lg"
-                className="w-full login-button"
+                className="w-full"
                 disabled={status === 'loading'}
               >
                 {status === 'loading' ? 'Changing password...' : 'Confirm password change'}

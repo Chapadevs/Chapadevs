@@ -51,12 +51,6 @@
   margin-bottom: 1.5rem;
 }
 
-.btn {
-  padding: 1.5rem 3rem;
-  display: inline-block;
-  min-width: 250px;
-}
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -107,10 +101,5 @@
     flex-direction: column;
     width: 100%;
     gap: 1.5rem;
-  }
-
-  .btn {
-    width: 100%;
-    padding: 1.5rem 2rem;
   }
 }

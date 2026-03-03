@@ -70,64 +70,10 @@
   gap: 0.4rem;
 }
 
-.header-btn {
-  padding: 0.25rem 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  width: 100px;
-  min-width: 100px;
-  height: 36px;
-  white-space: nowrap;
-  margin: 0;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-button.header-btn {
-  -webkit-appearance: none;
-  appearance: none;
-  padding: 0.25rem 0.5rem;
-  min-height: 36px;
-  max-height: 36px;
-}
-
-.header-btn--profile {
-  width: auto;
-  min-width: 72px;
-}
-
-.header-btn--logout {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
-  max-height: 32px;
-  padding: 0 0.35rem;
-}
-
-.header-btn-logout-icon {
-  display: block;
-  width: 20px;
-  height: 20px;
-}
-
-.header-btn--login {
-  padding: 0.25rem 0.5rem;
-  width: auto;
-  min-width: 72px;
-  height: 36px;
-}
-
 /* Platform dropdown */
 .platform-wrapper {
   position: relative;
   display: inline-block;
-}
-
-.header-btn--platform {
-  appearance: none;
 }
 
 .platform-dropdown {
@@ -159,10 +105,6 @@ button.header-btn {
 .resources-wrapper {
   position: relative;
   display: inline-block;
-}
-
-.header-btn--resources {
-  appearance: none;
 }
 
 .resources-dropdown {
@@ -217,10 +159,6 @@ button.header-btn {
   display: inline-block;
 }
 
-.header-btn--explore {
-  appearance: none;
-}
-
 .explore-dropdown {
   position: absolute;
   top: 100%;
@@ -270,11 +208,6 @@ button.header-btn {
     left: 0;
   }
 
-  .header-btn--platform {
-    width: 88px;
-    min-width: 88px;
-  }
-
   .logo-section {
     gap: 0.75rem;
   }
@@ -286,25 +219,6 @@ button.header-btn {
   .header-navigation {
     gap: 0.5rem;
     flex-wrap: wrap;
-  }
-
-  .header-btn {
-    padding: 0.4rem 0.75rem;
-    width: 88px;
-    min-width: 88px;
-    height: 38px;
-  }
-
-  .header-btn--resources {
-    width: 88px;
-    min-width: 88px;
-  }
-
-  .header-btn--login {
-    padding: 0.4rem 0.75rem;
-    width: auto;
-    min-width: 80px;
-    height: 38px;
   }
 }
 
@@ -328,11 +242,6 @@ button.header-btn {
     padding: 0.5rem 0;
   }
 
-  .header-btn--platform {
-    width: 72px;
-    min-width: 72px;
-  }
-
   .resources-dropdown-link {
     padding: 0.35rem 0.5rem;
   }
@@ -348,24 +257,5 @@ button.header-btn {
   .header-navigation {
     gap: 0.375rem;
     flex-wrap: wrap;
-  }
-
-  .header-btn {
-    padding: 0.35rem 0.6rem;
-    width: 72px;
-    min-width: 72px;
-    height: 34px;
-  }
-
-  .header-btn--resources {
-    width: 72px;
-    min-width: 72px;
-  }
-
-  .header-btn--login {
-    padding: 0.35rem 0.6rem;
-    width: auto;
-    min-width: 65px;
-    height: 34px;
   }
 }

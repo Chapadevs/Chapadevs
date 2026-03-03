@@ -104,7 +104,7 @@ const Login = () => {
             type="submit"
             variant="primary"
             size="lg"
-            className="w-full login-button"
+            className="w-full"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}

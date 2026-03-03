@@ -705,7 +705,7 @@ const InquiryForm = () => {
             )}
 
             <div className="wizard-navigation">
-              <Button variant="ghost" size="md" type="button" onClick={prevStep} disabled={step === 0} className="btn">
+              <Button variant="ghost" size="md" type="button" onClick={prevStep} disabled={step === 0} >
                 Back
               </Button>
               {step < steps.length - 1 ? (
@@ -713,7 +713,6 @@ const InquiryForm = () => {
                   variant="primary"
                   size="md"
                   type="button"
-                  className="btn btn-primary"
                   onClick={(e) => {
                     e.preventDefault()
                     console.log('Next button clicked, current step:', step)
@@ -760,7 +759,7 @@ const InquiryForm = () => {
                   Next
                 </Button>
               ) : (
-                <Button variant="primary" size="md" type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                <Button variant="primary" size="md" type="submit"  disabled={isSubmitting}>
                   {isSubmitting ? 'Sending...' : 'Submit Inquiry'}
                 </Button>
               )}

@@ -105,17 +105,18 @@ export const useProjectChat = (projectId) => {
     }
   }, [projectId])
 
-  // Send message
-  const sendMessage = useCallback(async (content) => {
-    if (!projectId || !content || !content.trim()) {
-      return { success: false, error: 'Message content is required' }
+  // Send message (content and/or attachments)
+  const sendMessage = useCallback(async (content, attachments = []) => {
+    const hasContent = content && String(content).trim().length > 0
+    const hasAttachments = Array.isArray(attachments) && attachments.length > 0
+    if (!projectId || (!hasContent && !hasAttachments)) {
+      return { success: false, error: 'Message content or at least one attachment is required' }
     }
 
     try {
       setSending(true)
       setError(null)
       
-      // Optimistically add message to state (will be replaced by server response via WebSocket)
       const tempMessage = {
         _id: `temp-${Date.now()}`,
         projectId,
@@ -125,13 +126,14 @@ export const useProjectChat = (projectId) => {
           email: user.email,
           role: user.role,
         },
-        content: content.trim(),
+        content: (content || '').trim(),
+        attachments: attachments || [],
         readBy: [user._id],
         createdAt: new Date(),
       }
       setMessages((prev) => [...prev, tempMessage])
 
-      const message = await chatAPI.sendMessage(projectId, content.trim())
+      const message = await chatAPI.sendMessage(projectId, content || '', attachments)
       
       // Remove temp message and add real one (or let WebSocket handle it)
       setMessages((prev) => {

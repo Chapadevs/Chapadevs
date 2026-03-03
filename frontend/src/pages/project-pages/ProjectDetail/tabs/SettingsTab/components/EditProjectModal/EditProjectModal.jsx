@@ -165,7 +165,7 @@ export default function EditProjectModal({ project, onSave, onClose }) {
           <h2 id="edit-project-modal-title" className="edit-project-modal-title font-heading uppercase">
             Edit project
           </h2>
-          <Button type="button" variant="ghost" className="edit-project-modal-close" onClick={onClose} aria-label="Close">
+          <Button type="button" variant="ghost"  onClick={onClose} aria-label="Close">
             ×
           </Button>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProjectChat } from '../../hooks/useProjectChat'
+import { projectAPI, chatAPI } from '../../../../../services/api'
 import { 
   Button, 
   Alert, 
@@ -10,26 +11,38 @@ import {
   AvatarImage, 
   AvatarFallback 
 } from '../../../../../components/ui-components'
+import { getAvatarUrl } from '../../../../../utils/avatarUtils'
 import './CommentsTab.css'
+
+const isGcsUrl = (url) => url && typeof url === 'string' && url.startsWith('https://storage.googleapis.com/')
+
+const isImageFile = (file) => file?.type?.startsWith('image/')
 
 const CommentsTab = ({ project, user }) => {
   const navigate = useNavigate()
   const projectId = project?._id || project?.id
   const { messages, loading, error, sending, sendMessage, markAsRead } = useProjectChat(projectId)
   const [messageContent, setMessageContent] = useState('')
+  const [pendingFile, setPendingFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [signedUrls, setSignedUrls] = useState({})
   const messagesEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
+  const fileInputRef = useRef(null)
 
-  // Helper to resolve avatar URLs (Consistent with Header/Profile)
-  const getAvatarUrl = (avatar) => {
-    if (!avatar) return null
-    if (avatar.startsWith('data:image/')) return avatar
-    if (avatar.startsWith('/uploads/')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-      const baseUrl = backendUrl.replace('/api', '').replace(/\/$/, '')
-      return `${baseUrl}${avatar}`
+  const [previewUrl, setPreviewUrl] = useState(null)
+  useEffect(() => {
+    if (pendingFile && isImageFile(pendingFile)) {
+      const url = URL.createObjectURL(pendingFile)
+      setPreviewUrl(url)
+      return () => URL.revokeObjectURL(url)
     }
-    return avatar
+    setPreviewUrl(null)
+  }, [pendingFile])
+
+  const removeAttachment = () => {
+    setPendingFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   useEffect(() => {
@@ -44,11 +57,50 @@ const CommentsTab = ({ project, user }) => {
     }
   }, [projectId, markAsRead])
 
+  // Fetch signed URLs for GCS attachments in messages
+  useEffect(() => {
+    const gcsUrls = []
+    for (const msg of messages || []) {
+      for (const att of msg.attachments || []) {
+        if (isGcsUrl(att.url)) gcsUrls.push(att.url)
+      }
+    }
+    const unique = [...new Set(gcsUrls)]
+    if (unique.length === 0 || !projectId) return
+    projectAPI
+      .getProjectAttachmentSignedUrls(projectId, unique)
+      .then(({ urls }) => {
+        const map = {}
+        unique.forEach((orig, i) => {
+          map[orig] = urls[i] || orig
+        })
+        setSignedUrls(map)
+      })
+      .catch(() => {})
+  }, [messages, projectId])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!messageContent.trim() || sending) return
+    if ((!messageContent.trim() && !pendingFile) || sending || uploading) return
 
-    const result = await sendMessage(messageContent)
+    let attachments = []
+    if (pendingFile) {
+      setUploading(true)
+      try {
+        const formData = new FormData()
+        formData.append('file', pendingFile)
+        const uploaded = await chatAPI.uploadAttachment(projectId, formData)
+        attachments = [{ url: uploaded.url, filename: uploaded.filename, type: uploaded.type }]
+      } catch (err) {
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+      setPendingFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
+    const result = await sendMessage(messageContent, attachments)
     if (result.success) {
       setMessageContent('')
     }
@@ -89,7 +141,7 @@ const CommentsTab = ({ project, user }) => {
     <div className="project-tab-panel chat-container">
       <SectionTitle className="project-tab-panel-title mb-4">Comments</SectionTitle>
 
-      {error && <Alert variant="error" className="chat-error">{error}</Alert>}
+      {error && <Alert variant="error" className="mb-4">{error}</Alert>}
 
       <div className="chat-messages-container" ref={messagesContainerRef}>
         {loading ? (
@@ -139,7 +191,41 @@ const CommentsTab = ({ project, user }) => {
                         <span className="chat-message-role">{sender.role}</span>
                       )}
                     </div>
-                    <div className="chat-message-text">{message.content}</div>
+                    {message.content && (
+                      <div className="chat-message-text">{message.content}</div>
+                    )}
+                    {(message.attachments || []).length > 0 && (
+                      <div className="chat-message-attachments flex flex-wrap gap-2 mt-1">
+                        {(message.attachments || []).map((att, i) => {
+                          const isImg = att.type && String(att.type).includes('image')
+                          const displayUrl = isImg && isGcsUrl(att.url)
+                            ? (signedUrls[att.url] || att.url)
+                            : att.url
+                          const fallbackUrl = att.url?.startsWith('http') ? att.url : ''
+                          return (
+                            <a
+                              key={i}
+                              href={displayUrl || fallbackUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="chat-attachment-link"
+                            >
+                              {isImg ? (
+                                <img
+                                  src={displayUrl || fallbackUrl}
+                                  alt={att.filename}
+                                  className="max-w-[120px] max-h-[120px] object-cover border border-border rounded-none"
+                                />
+                              ) : (
+                                <span className="text-xs font-body text-primary hover:underline truncate max-w-[120px] block">
+                                  {att.filename}
+                                </span>
+                              )}
+                            </a>
+                          )
+                        })}
+                      </div>
+                    )}
                     <span className="chat-message-time">{formatTime(message.createdAt)}</span>
                   </div>
                 </div>
@@ -150,31 +236,73 @@ const CommentsTab = ({ project, user }) => {
         )}
       </div>
 
-      {/* Form section remains mostly the same */}
-      <form className="chat-input-form" onSubmit={handleSubmit}>
-        <div className="chat-input-wrapper">
-          <Textarea
-            className="chat-input"
-            value={messageContent}
-            onChange={(e) => setMessageContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message"
-            rows={3}
-            disabled={sending}
-            maxLength={5000}
-          />
-          <div className="chat-input-footer">
-            <span className="chat-input-counter">{messageContent.length}/5000</span>
+      <form className="flex flex-col gap-2 mt-auto" onSubmit={handleSubmit}>
+        <Textarea
+          wrapperClassName="mt-auto"
+          value={messageContent}
+          onChange={(e) => setMessageContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message"
+          rows={3}
+          disabled={sending || uploading}
+          maxLength={5000}
+          autoExpand
+          minRows={3}
+          maxHeight="200px"
+          previewSlot={pendingFile ? (
+            <div className="flex items-center gap-2 px-4 py-2">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={pendingFile.name}
+                  className="max-w-[80px] max-h-[80px] object-cover border border-border rounded-none shrink-0"
+                />
+              ) : null}
+              <span className="font-body text-sm truncate flex-1 min-w-0">{pendingFile.name}</span>
+              <button
+                type="button"
+                onClick={removeAttachment}
+                className="text-ink-muted hover:text-ink text-sm shrink-0 px-1 font-body"
+                aria-label="Remove attachment"
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
+        >
+          <div className="flex items-center justify-between w-full gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f && f.size <= 10 * 1024 * 1024) setPendingFile(f)
+                e.target.value = ''
+              }}
+              className="hidden"
+              aria-label="Attach file"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sending || uploading}
+              className="text-sm font-body text-ink-muted hover:text-ink px-2 py-1 shrink-0"
+              aria-label="Attach file"
+            >
+              + Attach
+            </button>
+            <span className="text-xs font-body text-ink-muted">{messageContent.length}/5000</span>
             <Button
               type="submit"
               variant="primary"
               size="sm"
-              disabled={!messageContent.trim() || sending}
+              disabled={(!messageContent.trim() && !pendingFile) || sending || uploading}
             >
-              {sending ? 'Sending...' : 'Send'}
+              {uploading ? 'Uploading...' : sending ? 'Sending...' : 'Send'}
             </Button>
           </div>
-        </div>
+        </Textarea>
       </form>
     </div>
   )

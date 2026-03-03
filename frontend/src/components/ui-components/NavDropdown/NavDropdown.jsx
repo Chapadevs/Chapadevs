@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Button from '../Button/Button';
 
-const NavDropdown = ({ label, children, trigger, triggerClassName = "" }) => {
+const NavDropdown = ({ label, children, trigger }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -30,7 +30,7 @@ const NavDropdown = ({ label, children, trigger, triggerClassName = "" }) => {
       ) : (
         <Button
           variant="ghost"
-          className={`header-btn ${triggerClassName}`}
+          size="sm"
           onClick={() => setIsOpen(!isOpen)}
         >
           {label}

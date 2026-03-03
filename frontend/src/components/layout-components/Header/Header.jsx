@@ -4,22 +4,12 @@ import { useAuth } from '../../../context/AuthContext'
 import RoleGate from '../RoleGate/RoleGate'
 import NotificationBell from '../../ui-components/NotificationBell/NotificationBell'
 import { Button, NavDropdown, StatusDropdown, Avatar, AvatarImage, AvatarFallback } from '../../ui-components'
+import { getAvatarUrl } from '../../../utils/avatarUtils'
 import './Header.css'
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
-
-  const getAvatarUrl = (avatar) => {
-    if (!avatar) return null
-    if (avatar.startsWith('data:image/')) return avatar
-    if (avatar.startsWith('/uploads/')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-      const baseUrl = backendUrl.replace('/api', '').replace(/\/$/, '')
-      return `${baseUrl}${avatar}`
-    }
-    return avatar
-  }
 
   const handleLogout = async () => {
     await logout()
@@ -40,7 +30,7 @@ const Header = () => {
             </Link>
           </div>
 
-          <NavDropdown label="PLATFORM" triggerClassName="header-btn--platform">
+          <NavDropdown label="PLATFORM">
             <div className="resources-dropdown-group">
               <span className="resources-dropdown-label">About the business</span>
               <Link to="/#about" className="resources-dropdown-link">Our Business</Link>
@@ -49,7 +39,7 @@ const Header = () => {
             </div>
           </NavDropdown>
 
-          <NavDropdown label="RESOURCES" triggerClassName="header-btn--resources">
+          <NavDropdown label="RESOURCES">
             <div className="resources-dropdown-group">
               <span className="resources-dropdown-label">Get in touch</span>
               <Link to="/contact" className="resources-dropdown-link">Contact</Link>
@@ -59,7 +49,6 @@ const Header = () => {
 
           <Button
             variant="ghost"
-            className="header-btn header-btn--explore"
             to="/assignments"
           >
             EXPLORE
@@ -68,20 +57,20 @@ const Header = () => {
 
         <nav className="header-navigation" aria-label="Account and actions">
           {!isAuthenticated ? (
-            <Button to="/login" variant="primary" size="sm" className="header-btn header-btn--login">
+            <Button to="/login" variant="primary" size="sm">
               LOGIN
             </Button>
           ) : (
             <div className="user-menu flex items-center gap-2">
               <RoleGate allow={['admin']}>
-                <Button to="/admin" variant="ghost" size="sm" className="header-btn--admin">
+                <Button to="/admin" variant="ghost" size="sm">
                   ADMIN
                 </Button>
               </RoleGate>
               
               <NotificationBell />
               
-              <Button to="/projects" variant="ghost" size="sm" className="header-btn--profile">
+              <Button to="/projects" variant="ghost" size="sm">
                 PROJECTS
               </Button>
 
@@ -109,7 +98,6 @@ const Header = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="header-btn--logout"
                 onClick={handleLogout}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

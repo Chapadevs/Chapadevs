@@ -4,7 +4,9 @@ import {
   Users, 
   FolderKanban, 
   MessageSquare,
-  History
+  History,
+  Calendar,
+  Image
 } from "lucide-react";
 
 import {
@@ -22,6 +24,7 @@ import NotificationBadge from "../../../../../components/ui-components/Notificat
 import StatusDropdown from "../../../../../components/ui-components/StatusDropdown/StatusDropdown";
 import { Avatar, AvatarImage, AvatarFallback } from "../../../../../components/shadcn-components/shadcn-avatar/avatar";
 import { useAuth } from "../../../../../context/AuthContext";
+import { getAvatarUrl } from "../../../../../utils/avatarUtils";
 const ProjectSidebar = ({
   activeTab,
   onTabChange,
@@ -37,20 +40,12 @@ const ProjectSidebar = ({
     { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
     { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
     { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasWorkspaceNotifications, show: true },
+    { id: "assets", label: "Assets", icon: Image, hasNotification: false, show: true },
+    { id: "calendar", label: "Calendar", icon: Calendar, hasNotification: false, show: true },
     { id: "activity", label: "Activity", icon: History, hasNotification: hasActivityNotifications, show: true },
     { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
     { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },
   ];
-  const getAvatarUrl = (avatar) => {
-    if (!avatar) return null
-    if (avatar.startsWith('data:image/')) return avatar
-    if (avatar.startsWith('/uploads/')) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-      const baseUrl = backendUrl.replace('/api', '').replace(/\/$/, '')
-      return `${baseUrl}${avatar}`
-    }
-    return avatar
-  }
   const { user } = useAuth()
   return (
 <Sidebar 

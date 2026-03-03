@@ -12,6 +12,7 @@ import SubStepModal from '../../../../../../components/modal-components/SubStepM
 import AttachmentManager from './AttachmentManager'
 import { isPendingApproval } from '../../../../../../utils/phaseApprovalUtils'
 import { Button, Alert, Avatar, AvatarImage, AvatarFallback } from '../../../../../../components/ui-components'
+import { getAvatarUrl } from '../../../../../../utils/avatarUtils'
 import './CycleDetail.css'
 
 const CycleDetail = ({
@@ -356,7 +357,7 @@ const CycleDetail = ({
                           aria-label={`View ${assignee.name}'s profile`}
                         >
                           <Avatar className="assignee-avatar">
-                            <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                            <AvatarImage src={getAvatarUrl(assignee.avatar)} alt={assignee.name} />
                             <AvatarFallback>
                               {assignee.name?.charAt(0)?.toUpperCase() || 'U'}
                             </AvatarFallback>
@@ -415,7 +416,6 @@ const CycleDetail = ({
                     <Button
                       type="button"
                       variant="primary"
-                      className="btn btn-primary"
                       disabled={loading}
                       onClick={() => handleStatusChange('in_progress')}
                     >
@@ -428,7 +428,6 @@ const CycleDetail = ({
                     <Button
                       type="button"
                       variant="primary"
-                      className=""
                       disabled={loading}
                       onClick={() => handleStatusChange('completed')}
                     >
@@ -458,7 +457,6 @@ const CycleDetail = ({
                       <Button
                         type="button"
                         variant="secondary"
-                        className="btn dark:btn-primary-dark"
                         disabled={loading}
                         onClick={() => {
                           const feedback = window.prompt('Optional: Add feedback for the programmer')
@@ -526,7 +524,7 @@ const CycleDetail = ({
                                   aria-label={`View ${assignee.name}'s profile`}
                                 >
                                   <Avatar className="assignee-avatar">
-                                    <AvatarImage src={assignee.avatar} alt={assignee.name} />
+                                    <AvatarImage src={getAvatarUrl(assignee.avatar)} alt={assignee.name} />
                                     <AvatarFallback>
                                       {assignee.name?.charAt(0)?.toUpperCase() || 'U'}
                                     </AvatarFallback>
@@ -547,7 +545,6 @@ const CycleDetail = ({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="btn btn-secondary btn-sm"
                   onClick={() =>
                     setSelectedSubStep({
                       title: 'New sub-step',
@@ -571,11 +568,17 @@ const CycleDetail = ({
         onClose={() => setSelectedSubStep(null)}
         subStep={selectedSubStep}
         phase={localPhase}
+        project={project}
         canEdit={canUpdateSubSteps}
+        canUploadAttachments={canUploadAttachments}
         canAnswerQuestion={canAnswerQuestion}
         onUpdate={async (updates) => {
           await handleSubStepUpdate(selectedSubStep?._id ?? selectedSubStep?.id ?? null, updates)
           setSelectedSubStep(null)
+        }}
+        onPhaseUpdate={(updated) => {
+          setLocalPhase(updated)
+          onUpdate?.(updated)
         }}
         onQuestionAnswer={handleQuestionAnswer}
       />

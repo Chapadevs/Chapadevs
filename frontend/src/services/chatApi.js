@@ -6,8 +6,18 @@ export const chatAPI = {
     return response.data
   },
 
-  sendMessage: async (projectId, content) => {
-    const response = await api.post(`/projects/${projectId}/messages`, { content })
+  uploadAttachment: async (projectId, formData) => {
+    const response = await api.post(`/projects/${projectId}/chat-attachments`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  sendMessage: async (projectId, content, attachments = []) => {
+    const response = await api.post(`/projects/${projectId}/messages`, {
+      content: content || '',
+      attachments: attachments.length > 0 ? attachments : undefined,
+    })
     return response.data
   },
 
