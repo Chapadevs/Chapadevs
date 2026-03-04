@@ -1,28 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { projectAPI } from '../../../../../services/api'
 import { PageTitle, Badge } from '../../../../../components/ui-components'
-
-const isGcsUrl = (url) => url && typeof url === 'string' && url.startsWith('https://storage.googleapis.com/')
-
-function getFileUrl(url) {
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-  return `${backendUrl.replace('/api', '')}${url}`
-}
-
-function getFileIcon(type) {
-  if (!type) return '📄'
-  if (type.includes('image')) return '🖼️'
-  if (type.includes('pdf')) return '📕'
-  if (type.includes('word') || type.includes('document')) return '📝'
-  if (type.includes('zip') || type.includes('archive')) return '📦'
-  return '📄'
-}
-
-function isImage(type) {
-  return type && String(type).includes('image')
-}
+import { isGcsUrl, getFileUrl, getFileIcon, isImage, getFileFormat } from '../../utils/attachmentUtils'
 
 const AssetsTab = ({ project }) => {
   const [phaseFilter, setPhaseFilter] = useState('')
@@ -184,13 +163,19 @@ const AssetsTab = ({ project }) => {
             const itemId = item._id || item.url
             const isImg = isImage(item.type)
             const copied = copySuccessId === itemId
+            const format = getFileFormat(item)
 
             return (
               <div
                 key={itemId}
                 className="flex flex-col border border-border bg-surface overflow-hidden"
               >
-                <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden relative">
+                  {format && (
+                    <span className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] font-heading uppercase tracking-wide bg-black/60 text-white rounded-none">
+                      {format}
+                    </span>
+                  )}
                   {isImg ? (
                     <button
                       type="button"
@@ -212,6 +197,11 @@ const AssetsTab = ({ project }) => {
                     <span className="font-body text-sm font-medium truncate" title={item.filename}>
                       {item.filename}
                     </span>
+                    {format && (
+                      <span className="font-heading text-[10px] uppercase tracking-wide text-ink-muted shrink-0">
+                        {format}
+                      </span>
+                    )}
                     {(item.status || 'ok') === 'changes_needed' && (
                       <Badge variant="warning" className="shrink-0">
                         Changes needed

@@ -201,6 +201,7 @@ export const getProjectById = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .sort({ order: 1 })
     .lean()
 
@@ -226,6 +227,7 @@ export const getProjectById = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .sort({ order: 1 })
     .lean()
 
@@ -637,6 +639,7 @@ export const confirmPhases = asyncHandler(async (req, res) => {
     const clientQuestionsWithSubStep = clientQuestions.map((q, j) => ({
       ...q,
       subStepOrder: (j % numSubSteps) + 1,
+      createdBy: req.user._id,
     }))
 
     const phaseRequiredAttachments = Array.isArray(d.requiredAttachments)
@@ -763,7 +766,11 @@ export const updatePhase = asyncHandler(async (req, res) => {
   // Allow client to update questions and approval
   if (isClient || isProgrammer || req.user.role === 'admin') {
     if (req.body.clientQuestions !== undefined) {
-      phase.clientQuestions = req.body.clientQuestions
+      const incoming = req.body.clientQuestions || []
+      phase.clientQuestions = incoming.map((q) => ({
+        ...q,
+        createdBy: q.createdBy ?? req.user._id,
+      }))
     }
     if (req.body.clientApproved !== undefined && (isClient || req.user.role === 'admin')) {
       phase.clientApproved = req.body.clientApproved
@@ -950,6 +957,7 @@ export const updatePhase = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1053,6 +1061,7 @@ export const updateSubStep = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1139,6 +1148,7 @@ export const answerQuestion = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1372,6 +1382,7 @@ export const deleteAttachment = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1431,6 +1442,7 @@ export const updateAttachment = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1596,6 +1608,7 @@ export const uploadSubStepAttachment = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1659,6 +1672,7 @@ export const deleteSubStepAttachment = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })
@@ -1728,6 +1742,7 @@ export const updateSubStepAttachment = asyncHandler(async (req, res) => {
     .populate('subSteps.assignedTo', 'name email avatar')
     .populate('subSteps.attachments.uploadedBy', 'name')
     .populate('attachments.uploadedBy', 'name')
+    .populate('clientQuestions.createdBy', 'name')
     .lean()
   res.json(updated)
 })

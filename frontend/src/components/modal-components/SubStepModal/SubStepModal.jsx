@@ -55,8 +55,11 @@ function SubStepModal({
   phase,
   project,
   canEdit,
+  canEditRequiredAttachments = false,
   canUploadAttachments = true,
   canAnswerQuestion,
+  canAddQuestion = false,
+  userId,
   onUpdate,
   onPhaseUpdate,
   onQuestionAnswer,
@@ -72,6 +75,7 @@ function SubStepModal({
   const [editingTodoIndex, setEditingTodoIndex] = useState(null)
   const [editingTodoValue, setEditingTodoValue] = useState('')
   const [editingRequired, setEditingRequired] = useState(false)
+  const [editingRequiredIndex, setEditingRequiredIndex] = useState(null)
   const [newRequiredLabel, setNewRequiredLabel] = useState('')
   const [newRequiredDesc, setNewRequiredDesc] = useState('')
   const [newRequiredMinW, setNewRequiredMinW] = useState('')
@@ -86,6 +90,8 @@ function SubStepModal({
   const [attachmentError, setAttachmentError] = useState(null)
   const [attachmentSignedUrls, setAttachmentSignedUrls] = useState({})
   const [saveValidationError, setSaveValidationError] = useState(null)
+  const [newQuestionText, setNewQuestionText] = useState('')
+  const [addingQuestion, setAddingQuestion] = useState(false)
   const todoInputRef = useRef(null)
 
   const subStepOrder = subStep?.order != null ? subStep.order : null
@@ -329,6 +335,7 @@ function SubStepModal({
   const handleAddRequiredAttachment = async () => {
     const label = newRequiredLabel.trim()
     if (!label || !onUpdate) return
+    setEditingRequiredIndex(null)
     const list = [...subStepRequiredAttachments]
     list.push({
       label,
@@ -359,6 +366,53 @@ function SubStepModal({
     const list = subStepRequiredAttachments.filter((_, i) => i !== index)
     try {
       await Promise.resolve(onUpdate({ requiredAttachments: list }))
+      setEditingRequiredIndex(null)
+    } catch (_) {}
+  }
+
+  const handleStartEditRequiredAttachment = (index) => {
+    const ra = subStepRequiredAttachments[index]
+    if (!ra) return
+    setEditingRequired(false)
+    setEditingRequiredIndex(index)
+    setNewRequiredLabel(ra.label || '')
+    setNewRequiredDesc(ra.description || '')
+    setNewRequiredMinW(ra.minWidth != null ? String(ra.minWidth) : '')
+    setNewRequiredMaxW(ra.maxWidth != null ? String(ra.maxWidth) : '')
+    setNewRequiredMinH(ra.minHeight != null ? String(ra.minHeight) : '')
+    setNewRequiredMaxH(ra.maxHeight != null ? String(ra.maxHeight) : '')
+    setNewRequiredTypes((ra.allowedTypes || []).join(', '))
+  }
+
+  const handleCancelEditRequiredAttachment = () => {
+    setEditingRequiredIndex(null)
+    setEditingRequired(false)
+    setNewRequiredLabel('')
+    setNewRequiredDesc('')
+    setNewRequiredMinW('')
+    setNewRequiredMaxW('')
+    setNewRequiredMinH('')
+    setNewRequiredMaxH('')
+    setNewRequiredTypes('')
+  }
+
+  const handleUpdateRequiredAttachment = async () => {
+    const label = newRequiredLabel.trim()
+    if (!label || !onUpdate || editingRequiredIndex == null) return
+    const list = [...subStepRequiredAttachments]
+    list[editingRequiredIndex] = {
+      ...list[editingRequiredIndex],
+      label,
+      description: newRequiredDesc.trim() || '',
+      minWidth: parseNum(newRequiredMinW),
+      maxWidth: parseNum(newRequiredMaxW),
+      minHeight: parseNum(newRequiredMinH),
+      maxHeight: parseNum(newRequiredMaxH),
+      allowedTypes: parseTypes(newRequiredTypes),
+    }
+    try {
+      await Promise.resolve(onUpdate({ requiredAttachments: list }))
+      handleCancelEditRequiredAttachment()
     } catch (_) {}
   }
 
@@ -380,9 +434,9 @@ function SubStepModal({
     {}
   )
   const allQuestions = phase?.clientQuestions || []
-  const questionsForThisTask = allQuestions.filter(
-    (q) => q.subStepOrder == null || q.subStepOrder === subStepOrder
-  )
+  const questionsForThisTask = canAnswerQuestion
+    ? allQuestions.filter((q) => q.subStepOrder == null || q.subStepOrder === subStepOrder)
+    : allQuestions
   const sortedQuestions = [...questionsForThisTask].sort((a, b) => (a.order || 0) - (b.order || 0))
   const isSubStepCompleted = currentSubStep?.status === 'completed' || currentSubStep?.completed === true
   const canEditDates = canEdit && !isSubStepCompleted
@@ -391,6 +445,37 @@ function SubStepModal({
     ...q,
     answer: questionAnswersByOrder[q.order] !== undefined ? questionAnswersByOrder[q.order] : (q.answer || ''),
   })
+
+  const handleAddQuestion = async () => {
+    const text = newQuestionText?.trim()
+    if (!text || !project || !phase || !onPhaseUpdate) return
+    const existing = phase.clientQuestions || []
+    const maxOrder = existing.length > 0 ? Math.max(...existing.map((q) => q.order ?? 0)) : 0
+    const newQuestion = {
+      question: text,
+      required: false,
+      order: maxOrder + 1,
+      subStepOrder: subStepOrder ?? null,
+      createdBy: userId,
+    }
+    try {
+      setAddingQuestion(true)
+      const updated = await projectAPI.updatePhase(
+        project._id || project.id,
+        phase._id || phase.id,
+        { clientQuestions: [...existing, newQuestion] }
+      )
+      onPhaseUpdate(updated)
+      setNewQuestionText('')
+    } catch (_) {
+      /* error handled by parent */
+    } finally {
+      setAddingQuestion(false)
+    }
+  }
+
+  const phaseCompleted = phase?.status === 'completed'
+  const showAddQuestion = canAddQuestion && !phaseCompleted
 
   if (!open) return null
 
@@ -659,33 +744,55 @@ function SubStepModal({
             )}
           </section>
 
-          {sortedQuestions.length > 0 ? (
-            <section className="substep-modal-section">
-              <h3 className="substep-modal-section-title">Questions for this task</h3>
-              <p className="substep-modal-section-hint">Answer these to specify progress for this task.</p>
-              <div className="substep-modal-questions">
-                {sortedQuestions.map((question, index) => (
-                  <ClientQuestion
-                    key={question._id || index}
-                    question={getQuestionWithEffectiveAnswer(question)}
-                    canAnswer={canAnswerQuestion}
-                    onAnswer={(answer) =>
-                      onQuestionAnswer?.(
-                        String(question._id ?? question.order),
-                        answer,
-                        question.subStepOrder != null ? subStepOrder : null
-                      ) ?? Promise.resolve()
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-          ) : (
-            <section className="substep-modal-section">
-              <h3 className="substep-modal-section-title">Questions for this task</h3>
+          <section className="substep-modal-section">
+            <h3 className="substep-modal-section-title">Questions for this task</h3>
+            {sortedQuestions.length > 0 ? (
+              <>
+                <p className="substep-modal-section-hint">Answer these to specify progress for this task.</p>
+                <div className="substep-modal-questions flex flex-col gap-2">
+                  {sortedQuestions.map((question, index) => (
+                    <ClientQuestion
+                      key={question._id || index}
+                      question={getQuestionWithEffectiveAnswer(question)}
+                      canAnswer={canAnswerQuestion}
+                      onAnswer={(answer) =>
+                        onQuestionAnswer?.(
+                          String(question._id ?? question.order),
+                          answer,
+                          question.subStepOrder != null ? subStepOrder : null
+                        ) ?? Promise.resolve()
+                      }
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
               <p className="substep-modal-section-hint">No questions assigned to this task.</p>
-            </section>
-          )}
+            )}
+            {showAddQuestion && (
+              <div className="flex gap-2 mt-1 min-w-0 items-center">
+                <Input
+                  type="text"
+                  value={newQuestionText}
+                  onChange={(e) => setNewQuestionText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
+                  placeholder="Add a question"
+                  wrapperClassName="flex-1 min-w-0 gap-0"
+                  className="!py-1 !px-2 !text-sm !min-h-0 !border"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleAddQuestion}
+                  disabled={!newQuestionText.trim() || addingQuestion}
+                  className="!py-1 !px-2 text-xs"
+                >
+                  {addingQuestion ? 'Adding...' : 'Add'}
+                </Button>
+              </div>
+            )}
+          </section>
 
           {project && phase && (
             <section className="substep-modal-section">
@@ -716,67 +823,148 @@ function SubStepModal({
                             .filter(Boolean)
                             .join(' · ')
                         : null
+                      const isEditing = editingRequiredIndex === idx
                       return (
-                      <li key={idx} className="flex items-center justify-between gap-2 p-2 border border-border bg-surface rounded-none">
-                        <div className="min-w-0 flex-1">
-                          <span className="font-body text-sm">{ra.label}</span>
-                          {ra.description && (
-                            <span className="text-xs text-muted-foreground font-body block truncate" title={ra.description}>
-                              {ra.description}
-                            </span>
-                          )}
-                          {constraintStr && (
-                            <span className="text-xs text-muted-foreground font-body block" title={constraintStr}>
-                              {constraintStr}
-                            </span>
-                          )}
-                          {ra.receivedAt && (
-                            <span className="text-xs text-primary font-body">
-                              Received {new Date(ra.receivedAt).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="shrink-0 flex items-center gap-1">
-                          {canUploadAttachments && (
-                            <label className="inline-block cursor-pointer">
-                              <input
-                                type="file"
-                                accept={
-                                  hasConstraints && (ra.allowedTypes?.length ?? 0) > 0
-                                    ? (ra.allowedTypes || [])
-                                        .map((t) => {
-                                          const ext = String(t).toLowerCase()
-                                          if (ext === 'png') return 'image/png'
-                                          if (ext === 'jpeg' || ext === 'jpg') return 'image/jpeg'
-                                          if (ext === 'svg') return 'image/svg+xml'
-                                          if (ext === 'webp') return 'image/webp'
-                                          if (ext === 'gif') return 'image/gif'
-                                          return `image/${ext}`
-                                        })
-                                        .join(',')
-                                    : 'image/*,.pdf,.doc,.docx'
-                                }
-                                onChange={(ev) => handleAttachmentUpload(ev, idx)}
-                                disabled={attachmentUploading}
-                                className="hidden"
+                      <li key={idx} className="flex flex-col gap-2 p-2 border border-border bg-surface rounded-none">
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2">
+                            <Input
+                              value={newRequiredLabel}
+                              onChange={(e) => setNewRequiredLabel(e.target.value)}
+                              placeholder="Label (e.g. Logo PNG/SVG)"
+                              className="text-sm"
+                            />
+                            <Input
+                              value={newRequiredDesc}
+                              onChange={(e) => setNewRequiredDesc(e.target.value)}
+                              placeholder="Description (optional)"
+                              className="text-sm"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                type="number"
+                                min={0}
+                                value={newRequiredMinW}
+                                onChange={(e) => setNewRequiredMinW(e.target.value)}
+                                placeholder="Min width (px)"
+                                className="text-sm"
                               />
-                              <span className="inline-block px-3 py-1.5 text-xs font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity">
-                                {attachmentUploading ? 'Uploading...' : '+ Upload'}
-                              </span>
-                            </label>
-                          )}
-                          {canEdit && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="px-2 py-1 text-xs text-ink-muted hover:text-ink shrink-0"
-                              onClick={() => handleRemoveRequiredAttachment(idx)}
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </div>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={newRequiredMaxW}
+                                onChange={(e) => setNewRequiredMaxW(e.target.value)}
+                                placeholder="Max width (px)"
+                                className="text-sm"
+                              />
+                              <Input
+                                type="number"
+                                min={0}
+                                value={newRequiredMinH}
+                                onChange={(e) => setNewRequiredMinH(e.target.value)}
+                                placeholder="Min height (px)"
+                                className="text-sm"
+                              />
+                              <Input
+                                type="number"
+                                min={0}
+                                value={newRequiredMaxH}
+                                onChange={(e) => setNewRequiredMaxH(e.target.value)}
+                                placeholder="Max height (px)"
+                                className="text-sm"
+                              />
+                            </div>
+                            <Input
+                              value={newRequiredTypes}
+                              onChange={(e) => setNewRequiredTypes(e.target.value)}
+                              placeholder="Allowed types (e.g. png, jpeg)"
+                              className="text-sm"
+                            />
+                            <div className="flex gap-2">
+                              <Button type="button" variant="primary" size="sm" onClick={handleUpdateRequiredAttachment} disabled={!newRequiredLabel.trim()}>
+                                Save
+                              </Button>
+                              <Button type="button" variant="secondary" size="sm" onClick={handleCancelEditRequiredAttachment}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <span className="font-body text-sm">{ra.label}</span>
+                                {ra.description && (
+                                  <span className="text-xs text-muted-foreground font-body block truncate" title={ra.description}>
+                                    {ra.description}
+                                  </span>
+                                )}
+                                {constraintStr && (
+                                  <span className="text-xs text-muted-foreground font-body block" title={constraintStr}>
+                                    {constraintStr}
+                                  </span>
+                                )}
+                                {ra.receivedAt && (
+                                  <span className="text-xs text-primary font-body">
+                                    Received {new Date(ra.receivedAt).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="shrink-0 flex items-center gap-1">
+                                {canEditRequiredAttachments && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="px-2 py-1 text-xs text-ink-muted hover:text-ink shrink-0"
+                                    onClick={() => handleStartEditRequiredAttachment(idx)}
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
+                                {canUploadAttachments && (
+                                  <label className="inline-block cursor-pointer">
+                                    <input
+                                      type="file"
+                                      accept={
+                                        hasConstraints && (ra.allowedTypes?.length ?? 0) > 0
+                                          ? (ra.allowedTypes || [])
+                                              .map((t) => {
+                                                const ext = String(t).toLowerCase()
+                                                if (ext === 'png') return 'image/png'
+                                                if (ext === 'jpeg' || ext === 'jpg') return 'image/jpeg'
+                                                if (ext === 'svg') return 'image/svg+xml'
+                                                if (ext === 'webp') return 'image/webp'
+                                                if (ext === 'gif') return 'image/gif'
+                                                return `image/${ext}`
+                                              })
+                                              .join(',')
+                                          : 'image/*,.pdf,.doc,.docx'
+                                      }
+                                      onChange={(ev) => handleAttachmentUpload(ev, idx)}
+                                      disabled={attachmentUploading}
+                                      className="hidden"
+                                    />
+                                    <span className="inline-block px-3 py-1.5 text-xs font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity">
+                                      {attachmentUploading ? 'Uploading...' : '+ Upload'}
+                                    </span>
+                                  </label>
+                                )}
+                                {canEditRequiredAttachments && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="px-2 py-1 text-xs text-ink-muted hover:text-ink shrink-0"
+                                    onClick={() => handleRemoveRequiredAttachment(idx)}
+                                  >
+                                    Remove
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </li>
                     )})}
                   </ul>
@@ -786,7 +974,7 @@ function SubStepModal({
                 {subStepRequiredAttachments.length > 0 && (
                   <p className="mt-1 text-xs text-muted-foreground font-body">Max 10MB per file</p>
                 )}
-                {canEdit && (
+                {canEditRequiredAttachments && (
                   editingRequired ? (
                     <div className="flex flex-col gap-2 mt-2 p-2 border border-border bg-surface rounded-none">
                       <Input
@@ -942,32 +1130,32 @@ function SubStepModal({
                                 <Button
                                   type="button"
                                   variant="secondary"
-                                  size="sm"
-                                  className="px-2 py-1 text-xs"
+                                  size="xs"
+                                  className="!px-2 !py-0.5 !min-h-0"
                                   onClick={() => handleUpdateAttachmentStatus(attId, 'ok', null)}
                                   disabled={attachmentUpdatingStatusId === attId}
                                 >
-                                  {attachmentUpdatingStatusId === attId ? '...' : 'Mark as OK'}
+                                  {attachmentUpdatingStatusId === attId ? '...' : 'Mark OK'}
                                 </Button>
                               ) : (
                                 <Button
                                   type="button"
                                   variant="secondary"
-                                  size="sm"
-                                  className="px-2 py-1 text-xs"
+                                  size="xs"
+                                  className="!px-2 !py-0.5 !min-h-0"
                                   onClick={() => {
                                     const feedback = window.prompt('Optional: Add feedback for the client (e.g. "Logo needs higher resolution")')
                                     handleUpdateAttachmentStatus(attId, 'changes_needed', feedback?.trim() || null)
                                   }}
                                   disabled={attachmentUpdatingStatusId === attId}
                                 >
-                                  {attachmentUpdatingStatusId === attId ? '...' : 'Changes needed'}
+                                  {attachmentUpdatingStatusId === attId ? '...' : 'Request changes'}
                                 </Button>
                               )}
                             </>
                           )}
                           {canDelete && (
-                            <Button type="button" variant="danger" size="sm" className="px-2 py-1 text-xs" onClick={() => handleAttachmentDelete(attId)} disabled={attachmentDeletingId === attId}>
+                            <Button type="button" variant="danger" size="xs" className="!px-2 !py-0.5 !min-h-0" onClick={() => handleAttachmentDelete(attId)} disabled={attachmentDeletingId === attId}>
                               {attachmentDeletingId === attId ? '...' : 'Delete'}
                             </Button>
                           )}

@@ -1,19 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState } from 'react'
 import { DndContext, closestCenter, useSensors, useSensor, PointerSensor, KeyboardSensor } from '@dnd-kit/core'
-import { SortableContext, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useAuth } from '../../../../../context/AuthContext'
 import { calculatePermissions } from '../../utils/userPermissionsUtils'
-import { projectAPI } from '../../../../../services/api'
 import CycleDetail from './components/CycleDetail'
 import ProposalSubStepCard from './components/ProposalSubStepCard/ProposalSubStepCard'
 import { getPhasesPendingApproval } from '../../../../../utils/phaseApprovalUtils'
 import { Button, Alert, Input } from '../../../../../components/ui-components'
-import './Workspace.css'
-
-const STORAGE_KEY_PREFIX = 'workspace-create-steps-'
-const DEBOUNCE_SAVE_MS = 500
-
 import { formatDateOnly, getProjectDurationFromDates } from '../../../../../utils/dateUtils'
+import { usePhaseProposal } from './hooks/usePhaseProposal'
+import './Workspace.css'
 
 const formatDate = (d) => formatDateOnly(d, '—')
 
@@ -27,185 +23,35 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
   const canConfirmWorkspace = permissions?.canConfirmWorkspace ?? true
 
   const projectId = project?._id || project?.id
-  const storageKey = projectId ? `${STORAGE_KEY_PREFIX}${projectId}` : null
-  const [userRequestedCreateSteps, setUserRequestedCreateStepsState] = useState(() => {
-    if (!storageKey || typeof sessionStorage === 'undefined') return false
-    return sessionStorage.getItem(storageKey) === 'true'
-  })
-  const setUserRequestedCreateSteps = useCallback(
-    (value) => {
-      setUserRequestedCreateStepsState(value)
-      if (storageKey && typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem(storageKey, value ? 'true' : '')
-      }
-    },
-    [storageKey]
-  )
-
-  const [proposal, setProposal] = useState([])
-  const [proposalLoading, setProposalLoading] = useState(false)
-  const [proposalError, setProposalError] = useState(null)
-  const [confirming, setConfirming] = useState(false)
-  const [regenerating, setRegenerating] = useState(false)
-  const [editingProposal, setEditingProposal] = useState([])
-  const [reviewPhaseIndex, setReviewPhaseIndex] = useState(0)
-  const saveTimeoutRef = useRef(null)
-
   const hasNoPhases = !project?.phases || project.phases.length === 0
   const canCreateSteps = permissions?.canCreateSteps ?? false
   const showCreateStepsArea = hasNoPhases && canConfirmWorkspace
-  const showReviewWorkspace = hasNoPhases && canCreateSteps && userRequestedCreateSteps
+  const showReviewWorkspace = hasNoPhases && canCreateSteps
 
-  useEffect(() => {
-    if (!showReviewWorkspace || !projectId) return
-    let cancelled = false
-    setProposalLoading(true)
-    setProposalError(null)
-    projectAPI
-      .getPhaseProposal(projectId)
-      .then((data) => {
-        if (!cancelled) {
-          const arr = Array.isArray(data) ? data : []
-          setProposal(arr)
-          setEditingProposal(arr.map((p) => ({ ...p })))
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setProposalError(err.response?.data?.message || err.message || 'Failed to load proposal')
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setProposalLoading(false)
-      })
-    return () => { cancelled = true }
-  }, [showReviewWorkspace, projectId])
-
-  const saveProposal = useCallback(
-    (payload) => {
-      if (!projectId || !payload?.length) return
-      projectAPI.savePhaseProposal(projectId, payload).catch(() => {})
-    },
-    [projectId]
-  )
-
-  useEffect(() => {
-    if (editingProposal.length > 0 && reviewPhaseIndex >= editingProposal.length) {
-      setReviewPhaseIndex(Math.max(0, editingProposal.length - 1))
-    }
-  }, [editingProposal.length, reviewPhaseIndex])
-
-  useEffect(() => {
-    if (!projectId || editingProposal.length === 0) return
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(() => {
-      saveProposal(editingProposal)
-      saveTimeoutRef.current = null
-    }, DEBOUNCE_SAVE_MS)
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    }
-  }, [editingProposal, projectId, saveProposal])
-
-  const handleProposalFieldChange = (index, field, value) => {
-    setEditingProposal((prev) => {
-      const next = prev.map((p, i) => (i === index ? { ...p, [field]: value } : p))
-      return next
-    })
-  }
-
-  const handleSubStepTitleChange = (phaseIndex, subStepIndex, newTitle) => {
-    handleSubStepChange(phaseIndex, subStepIndex, { title: newTitle })
-  }
-
-  const handleSubStepChange = (phaseIndex, subStepIndex, updates) => {
-    setEditingProposal((prev) =>
-      prev.map((p, i) => {
-        if (i !== phaseIndex) return p
-        const subSteps = [...(p.subSteps || [])]
-        if (subStepIndex >= subSteps.length) return p
-        subSteps[subStepIndex] = { ...subSteps[subStepIndex], ...updates }
-        return { ...p, subSteps }
-      })
-    )
-  }
-
-  const handleSubStepsReorder = (phaseIndex, activeId, overId) => {
-    if (!overId || activeId === overId) return
-    const match = (id) => {
-      const m = String(id).match(/^phase-(\d+)-substep-(\d+)$/)
-      return m ? { phaseIdx: parseInt(m[1], 10), subIdx: parseInt(m[2], 10) } : null
-    }
-    const active = match(activeId)
-    const over = match(overId)
-    if (!active || !over || active.phaseIdx !== over.phaseIdx || active.phaseIdx !== phaseIndex) return
-    setEditingProposal((prev) =>
-      prev.map((p, i) => {
-        if (i !== phaseIndex) return p
-        const subSteps = [...(p.subSteps || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        const reordered = arrayMove(subSteps, active.subIdx, over.subIdx)
-        return { ...p, subSteps: reordered.map((s, idx) => ({ ...s, order: idx + 1 })) }
-      })
-    )
-  }
-
-  const handleRegenerateProposal = async () => {
-    if (!window.confirm('This will replace your current proposal with an AI-generated timeline. Continue?')) return
-    if (!projectId) return
-    setRegenerating(true)
-    setProposalError(null)
-    try {
-      const data = await projectAPI.regeneratePhaseProposal(projectId, editingProposal)
-      const arr = Array.isArray(data) ? data : []
-      setProposal(arr)
-      setEditingProposal(arr.map((p) => ({ ...p })))
-      setReviewPhaseIndex(0)
-    } catch (err) {
-      setProposalError(err.response?.data?.message || err.message || 'Failed to regenerate proposal')
-    } finally {
-      setRegenerating(false)
-    }
-  }
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event
-    const match = (id) => {
-      const m = String(id).match(/^phase-(\d+)-substep-(\d+)$/)
-      return m ? parseInt(m[1], 10) : null
-    }
-    const phaseIndex = match(active?.id)
-    if (phaseIndex != null) handleSubStepsReorder(phaseIndex, active?.id, over?.id)
-  }
+  const proposalState = usePhaseProposal(projectId, hasNoPhases, canCreateSteps)
+  const {
+    userRequestedCreateSteps,
+    setUserRequestedCreateSteps,
+    proposalLoading,
+    proposalError,
+    editingProposal,
+    reviewPhaseIndex,
+    setReviewPhaseIndex,
+    confirming,
+    regenerating,
+    handleProposalFieldChange,
+    handleSubStepTitleChange,
+    handleSubStepChange,
+    handleSubStepsReorder,
+    handleRegenerateProposal,
+    handleDragEnd,
+    handleConfirmWorkspace,
+  } = proposalState
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
-
-  const handleConfirmWorkspace = async () => {
-    if (!projectId || editingProposal.length === 0) return
-    setConfirming(true)
-    setProposalError(null)
-    try {
-      const payload = editingProposal.map((p, idx) => ({
-        title: p.title || '',
-        description: p.description ?? null,
-        order: idx + 1,
-        deliverables: Array.isArray(p.deliverables) ? p.deliverables : [],
-        weeks: p.weeks != null ? p.weeks : null,
-        dueDate: p.dueDate || null,
-        subSteps: (Array.isArray(p.subSteps) ? p.subSteps : [])
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-          .map((s, i) => ({ ...s, order: i + 1 })),
-      }))
-      await projectAPI.confirmPhases(projectId, payload)
-      onWorkspaceConfirmed?.()
-    } catch (err) {
-      setProposalError(err.response?.data?.message || err.message || 'Failed to confirm timeline')
-    } finally {
-      setConfirming(false)
-    }
-  }
 
   if (hasNoPhases && !canConfirmWorkspace) {
     return (
@@ -499,7 +345,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
             <Button
               type="button"
               variant="primary"
-              onClick={handleConfirmWorkspace}
+              onClick={() => handleConfirmWorkspace(onWorkspaceConfirmed)}
               disabled={confirming}
               className="mt-4"
             >
@@ -624,8 +470,10 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
           canChangePhaseStatus={permissions.canChangePhaseStatus}
           canUpdateSubSteps={permissions.canUpdateSubSteps}
           canAnswerQuestion={permissions.canAnswerQuestion}
+          canAddQuestion={permissions.canAddQuestion}
           canSaveNotes={permissions.canSaveNotes}
           canUploadAttachments={permissions.canUploadAttachments}
+          canEditRequiredAttachments={permissions.canEditRequiredAttachments}
           isProgrammerOrAdmin={permissions.isProgrammerOrAdmin}
           userId={user?._id || user?.id}
           onUpdate={handlePhaseUpdate}

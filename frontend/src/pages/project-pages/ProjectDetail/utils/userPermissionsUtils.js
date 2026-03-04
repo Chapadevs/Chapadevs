@@ -194,8 +194,10 @@ export const calculatePermissions = (user, project) => {
   const canChangePhaseStatus = isAssignedProgrammer || isInTeam || admin
   const canUpdateSubSteps = isAssignedProgrammer || isInTeam || admin
   const canSaveNotes = isAssignedProgrammer || isInTeam || admin
-  const canAnswerQuestion = isClientOwner || admin
+  const canAnswerQuestion = isClientOwner || isProgrammerInProject || admin
+  const canAddQuestion = canAnswerQuestion || canUpdateSubSteps
   const canUploadAttachments = isAssignedProgrammer || isInTeam || isClientOwner || admin
+  const canEditRequiredAttachments = canUpdateSubSteps || isClientOwner || admin
   const isProgrammerOrAdmin = isAssignedProgrammer || admin
 
   return {
@@ -226,7 +228,9 @@ export const calculatePermissions = (user, project) => {
     canUpdateSubSteps,
     canSaveNotes,
     canAnswerQuestion,
+    canAddQuestion,
     canUploadAttachments,
+    canEditRequiredAttachments,
     isProgrammerOrAdmin,
   }
 }

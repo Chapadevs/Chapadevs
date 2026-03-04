@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button, Textarea } from '../../../../../../components/ui-components'
-import './ClientQuestion.css'
 
 const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
   const [answer, setAnswer] = useState(question.answer || '')
@@ -44,29 +43,32 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
     setIsEditing(false)
   }
 
-  if (!canAnswer && !question.answer) {
-    return null // Don't show unanswered questions to non-clients
-  }
+  const creatorName =
+    question.createdBy && typeof question.createdBy === 'object' && question.createdBy.name
+      ? question.createdBy.name
+      : null
 
   return (
-    <div className={`client-question-item ${question.required ? 'required' : ''}`}>
-      <div className="question-header">
-        <label className="question-label">
-          {question.question}
-          {question.required && <span className="required-indicator">*</span>}
-        </label>
+    <div className="p-4 border border-border bg-surface">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <label className="block font-body text-sm text-ink flex-1">{question.question}</label>
+        {creatorName && (
+          <span className="font-body text-xs text-ink-muted shrink-0">
+            Added by {creatorName}
+          </span>
+        )}
       </div>
 
       {isEditing && canAnswer ? (
-        <div className="question-answer-edit">
+        <div className="flex flex-col gap-3">
           <Textarea
-            className="question-answer-input"
+            className="w-full p-3 resize-y min-h-[80px] border border-border rounded-none font-body"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             placeholder="Your answer..."
             rows={3}
           />
-          <div className="question-actions">
+          <div className="flex gap-2 justify-end">
             <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : 'Save'}
             </Button>
@@ -76,17 +78,20 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
           </div>
         </div>
       ) : (
-        <div className="question-answer-display">
-          {question.answer ? (
-            <div className="answer-text">{question.answer}</div>
-          ) : (
-            <div className="answer-placeholder">No answer yet</div>
-          )}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 font-body text-sm text-ink-secondary">
+            {question.answer ? (
+              <span className="whitespace-pre-wrap">{question.answer}</span>
+            ) : (
+              <span className="text-ink-muted">No answer yet</span>
+            )}
+          </div>
           {canAnswer && (
             <Button
               type="button"
               variant="ghost"
-              className="question-edit-btn"
+              size="sm"
+              className="shrink-0 py-1 px-2 text-xs"
               onClick={() => setIsEditing(true)}
             >
               {question.answer ? 'Edit' : 'Answer'}

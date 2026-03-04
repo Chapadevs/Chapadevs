@@ -136,6 +136,7 @@ const projectPhaseSchema = new mongoose.Schema(
           required: { type: Boolean, default: false },
           order: { type: Number, required: true },
           subStepOrder: { type: Number, default: null },
+          createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
         },
       ],
       default: [],

@@ -6,19 +6,14 @@ import { getCalendarItems, getItemsForDate, toDateKey } from '../../../../../uti
 import { formatDateOnly } from '../../../../../utils/dateUtils'
 import { Calendar, Card, Badge } from '../../../../../components/ui-components'
 import SubStepModal from '../../../../../components/modal-components/SubStepModal/SubStepModal'
-
-const STATUS_LABELS = {
-  pending: 'Pending',
-  waiting_client: 'Waiting on client',
-  in_progress: 'In progress',
-  completed: 'Completed',
-}
+import { TASK_STATUS_LABELS } from '../../utils/workspaceConstants'
 
 const CalendarTab = ({ project, onPhaseUpdate }) => {
   const { user } = useAuth()
   const permissions = project && user ? calculatePermissions(user, project) : null
   const canUpdateSubSteps = permissions?.canUpdateSubSteps ?? false
   const canAnswerQuestion = permissions?.canAnswerQuestion ?? false
+  const canAddQuestion = permissions?.canAddQuestion ?? false
   const canUploadAttachments = permissions?.canUploadAttachments ?? false
 
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -224,7 +219,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
                             }
                             className="shrink-0"
                           >
-                            {STATUS_LABELS[status] || status}
+                            {TASK_STATUS_LABELS[status] || status}
                           </Badge>
                         </div>
                         <span className="font-body text-xs text-ink-muted block mt-1">
@@ -263,13 +258,21 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
         project={project}
         canEdit={canUpdateSubSteps}
         canUploadAttachments={canUploadAttachments}
+        canEditRequiredAttachments={permissions?.canEditRequiredAttachments ?? false}
         canAnswerQuestion={canAnswerQuestion}
+        canAddQuestion={canAddQuestion}
+        userId={user?._id || user?.id}
         onUpdate={async (updates) => {
           await handleSubStepUpdate(selectedSubStep?._id ?? selectedSubStep?.id ?? null, updates)
           setSelectedSubStep(null)
           setSelectedPhase(null)
         }}
-        onPhaseUpdate={onPhaseUpdate}
+        onPhaseUpdate={(updated) => {
+          if (selectedPhase && (updated._id || updated.id) === (selectedPhase._id || selectedPhase.id)) {
+            setSelectedPhase(updated)
+          }
+          onPhaseUpdate?.(updated)
+        }}
         onQuestionAnswer={handleQuestionAnswer}
       />
     </section>

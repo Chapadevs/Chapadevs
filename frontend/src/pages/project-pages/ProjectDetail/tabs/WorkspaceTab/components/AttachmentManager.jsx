@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
+import { Download, RefreshCw, Trash2 } from 'lucide-react'
 import { projectAPI } from '../../../../../../services/api'
 import { Button, Alert, Badge, Input } from '../../../../../../components/ui-components'
-
-const isGcsUrl = (url) => url && typeof url === 'string' && url.startsWith('https://storage.googleapis.com/')
+import { isGcsUrl, getFileIcon, getFileUrl, isImage, parseNum, parseTypes } from '../../../utils/attachmentUtils'
 
 function ImageWithFallback({ src, alt, fallbackIcon }) {
   const [errored, setErrored] = useState(false)
@@ -146,16 +146,6 @@ const AttachmentManager = ({
     }
   }
 
-  const parseNum = (v) => {
-    const n = parseInt(String(v).trim(), 10)
-    return Number.isInteger(n) && n >= 0 ? n : null
-  }
-  const parseTypes = (v) =>
-    String(v)
-      .split(/[,;\s]+/)
-      .map((t) => t.toLowerCase().trim())
-      .filter(Boolean)
-
   const handleAddRequiredAttachment = async () => {
     const label = newRequiredLabel.trim()
     if (!label) return
@@ -203,22 +193,6 @@ const AttachmentManager = ({
     }
   }
 
-  const getFileIcon = (type) => {
-    if (!type) return '📄'
-    if (type.includes('image')) return '🖼️'
-    if (type.includes('pdf')) return '📕'
-    if (type.includes('word') || type.includes('document')) return '📝'
-    if (type.includes('zip') || type.includes('archive')) return '📦'
-    return '📄'
-  }
-
-  const getFileUrl = (url) => {
-    if (url.startsWith('http')) return url
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api'
-    return `${backendUrl.replace('/api', '')}${url}`
-  }
-
-  const isImage = (type) => type && String(type).includes('image')
   const sortedAttachments = [...attachments].sort((a, b) => {
     const aImg = isImage(a.type)
     const bImg = isImage(b.type)
@@ -449,77 +423,30 @@ const AttachmentManager = ({
       {attachments.length === 0 ? (
         <p className="font-body text-muted-foreground">No attachments yet.</p>
       ) : (
-        <div className="flex flex-col gap-3">
-          {sortedAttachments.map((attachment) => {
-            const attachmentId = attachment._id || attachment.id
-            const canDelete =
-              (attachment.uploadedBy?.toString() === userIdStr) ||
-              isProgrammerOrAdmin
-            const attachmentIsImage = isImage(attachment.type)
-            const fileUrl = getFileUrl(attachment.url)
-            const displayUrl = attachmentIsImage && isGcsUrl(attachment.url)
-              ? (signedUrls[attachment.url] || fileUrl)
-              : fileUrl
-            const status = attachment.status || 'ok'
-            const isChangesNeeded = status === 'changes_needed'
+        <div className="flex flex-col gap-6">
+          {(() => {
+            const imageAttachments = sortedAttachments.filter((a) => isImage(a.type))
+            const nonImageAttachments = sortedAttachments.filter((a) => !isImage(a.type))
 
-            return (
-              <div
-                key={attachmentId}
-                className="flex items-center gap-3 p-3 border border-border bg-surface min-w-0"
-              >
-                {attachmentIsImage ? (
-                  <a
-                    href={displayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 relative block size-12 overflow-hidden rounded-none border border-border bg-muted"
-                  >
-                    <ImageWithFallback
-                      src={displayUrl}
-                      alt={attachment.filename}
-                      fallbackIcon={getFileIcon(attachment.type)}
-                    />
-                  </a>
-                ) : (
-                  <div className="shrink-0 flex size-12 items-center justify-center rounded-none border border-border bg-muted text-lg">
-                    {getFileIcon(attachment.type)}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-body text-sm font-medium truncate" title={attachment.filename}>
-                      {attachment.filename}
-                    </span>
-                    {isChangesNeeded && (
-                      <Badge variant="warning" className="shrink-0">
-                        Changes needed
-                      </Badge>
-                    )}
-                  </div>
-                  {isChangesNeeded && attachment.changesNeededFeedback && (
-                    <p className="text-xs text-amber-700 font-body" title={attachment.changesNeededFeedback}>
-                      {attachment.changesNeededFeedback}
-                    </p>
-                  )}
-                  <div className="text-xs text-muted-foreground font-body">
-                    {attachment.uploadedAt && `Uploaded ${new Date(attachment.uploadedAt).toLocaleDateString()}`}
-                    {attachment.uploadedBy && (
-                      <span>
-                        {attachment.uploadedAt ? ' by ' : 'Uploaded by '}
-                        {typeof attachment.uploadedBy === 'object' && attachment.uploadedBy?.name
-                          ? attachment.uploadedBy.name
-                          : 'Unknown'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="shrink-0 flex flex-col sm:flex-row gap-1 sm:gap-2 items-end sm:items-center">
+            const renderAttachmentCard = (attachment, isGallery = false) => {
+              const attachmentId = attachment._id || attachment.id
+              const canDelete =
+                (attachment.uploadedBy?.toString() === userIdStr) || isProgrammerOrAdmin
+              const attachmentIsImage = isImage(attachment.type)
+              const fileUrl = getFileUrl(attachment.url)
+              const displayUrl = attachmentIsImage && isGcsUrl(attachment.url)
+                ? (signedUrls[attachment.url] || fileUrl)
+                : fileUrl
+              const status = attachment.status || 'ok'
+              const isChangesNeeded = status === 'changes_needed'
+
+              const actions = (
+                <div className="flex flex-wrap gap-2 items-center">
                   <a
                     href={attachmentIsImage && isGcsUrl(attachment.url) ? displayUrl : fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-button text-primary hover:underline whitespace-nowrap"
+                    className="text-xs font-button text-primary hover:underline"
                     download
                   >
                     Download
@@ -530,30 +457,26 @@ const AttachmentManager = ({
                         <Button
                           type="button"
                           variant="secondary"
-                          size="sm"
-                          className="px-2 py-1 text-xs whitespace-nowrap"
+                          size="xs"
+                          className="!px-2 !py-0.5 !min-h-0 whitespace-nowrap"
                           onClick={() => handleUpdateAttachmentStatus(attachmentId, 'ok', null)}
                           disabled={updatingStatusId === attachmentId}
                         >
-                          {updatingStatusId === attachmentId ? '...' : 'Mark as OK'}
+                          {updatingStatusId === attachmentId ? '...' : 'Mark OK'}
                         </Button>
                       ) : (
                         <Button
                           type="button"
                           variant="secondary"
-                          size="sm"
-                          className="px-2 py-1 text-xs whitespace-nowrap"
+                          size="xs"
+                          className="!px-2 !py-0.5 !min-h-0 whitespace-nowrap"
                           onClick={() => {
                             const feedback = window.prompt('Optional: Add feedback for the client (e.g. "Logo needs higher resolution")')
-                            handleUpdateAttachmentStatus(
-                              attachmentId,
-                              'changes_needed',
-                              feedback?.trim() || null
-                            )
+                            handleUpdateAttachmentStatus(attachmentId, 'changes_needed', feedback?.trim() || null)
                           }}
                           disabled={updatingStatusId === attachmentId}
                         >
-                          {updatingStatusId === attachmentId ? '...' : 'Mark as changes needed'}
+                          {updatingStatusId === attachmentId ? '...' : 'Request changes'}
                         </Button>
                       )}
                     </>
@@ -562,7 +485,8 @@ const AttachmentManager = ({
                     <Button
                       type="button"
                       variant="danger"
-                      className="px-3 py-1.5 text-sm whitespace-nowrap"
+                      size="xs"
+                      className="!px-2 !py-0.5 !min-h-0 whitespace-nowrap"
                       onClick={() => handleDelete(attachmentId)}
                       disabled={deletingId === attachmentId}
                     >
@@ -570,9 +494,152 @@ const AttachmentManager = ({
                     </Button>
                   )}
                 </div>
-              </div>
+              )
+
+              if (isGallery && attachmentIsImage) {
+                return (
+                  <div
+                    key={attachmentId}
+                    className="flex min-w-0 flex-col border border-border bg-surface overflow-hidden"
+                  >
+                    <a
+                      href={displayUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative block aspect-square w-full overflow-hidden bg-muted"
+                    >
+                      <ImageWithFallback
+                        src={displayUrl}
+                        alt={attachment.filename}
+                        fallbackIcon={getFileIcon(attachment.type)}
+                      />
+                      <div
+                        className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
+                      >
+                        <a
+                          href={attachmentIsImage && isGcsUrl(attachment.url) ? displayUrl : fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex size-9 items-center justify-center bg-white/90 text-primary hover:bg-white"
+                          download
+                          title="Download"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Download className="size-4" />
+                        </a>
+                        {isProgrammerOrAdmin && (
+                          <>
+                            {isChangesNeeded ? (
+                              <button
+                                type="button"
+                                className="flex size-9 items-center justify-center bg-white/90 text-primary hover:bg-white"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleUpdateAttachmentStatus(attachmentId, 'ok', null)
+                                }}
+                                disabled={updatingStatusId === attachmentId}
+                                title="Mark OK"
+                              >
+                                <RefreshCw className="size-4" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="flex size-9 items-center justify-center bg-white/90 text-primary hover:bg-white"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  const feedback = window.prompt('Optional: Add feedback for the client (e.g. "Logo needs higher resolution")')
+                                  handleUpdateAttachmentStatus(attachmentId, 'changes_needed', feedback?.trim() || null)
+                                }}
+                                disabled={updatingStatusId === attachmentId}
+                                title="Request changes"
+                              >
+                                <RefreshCw className="size-4" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            className="flex size-9 items-center justify-center bg-white/90 text-red-600 hover:bg-white"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleDelete(attachmentId)
+                            }}
+                            disabled={deletingId === attachmentId}
+                            title="Delete"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        )}
+                      </div>
+                    </a>
+                  </div>
+                )
+              }
+
+              return (
+                <div
+                  key={attachmentId}
+                  className="flex items-center gap-4 p-4 border border-border bg-surface"
+                >
+                  <div className="shrink-0 flex size-12 items-center justify-center rounded-none border border-border bg-muted text-lg">
+                    {getFileIcon(attachment.type)}
+                  </div>
+                  <div className="min-w-0 flex-1 flex flex-col gap-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-body text-sm font-medium truncate" title={attachment.filename}>
+                        {attachment.filename}
+                      </span>
+                      {isChangesNeeded && (
+                        <Badge variant="warning" className="shrink-0">Changes needed</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground font-body">
+                      {attachment.uploadedAt && `Uploaded ${new Date(attachment.uploadedAt).toLocaleDateString()}`}
+                      {attachment.uploadedBy && (
+                        <span>
+                          {attachment.uploadedAt ? ' by ' : 'Uploaded by '}
+                          {typeof attachment.uploadedBy === 'object' && attachment.uploadedBy?.name
+                            ? attachment.uploadedBy.name
+                            : 'Unknown'}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {actions}
+                </div>
+              )
+            }
+
+            return (
+              <>
+                {imageAttachments.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <h4 className="font-heading text-xs uppercase tracking-wide text-ink">Images</h4>
+                    <div className="attachment-gallery border border-border bg-surface p-4" role="region" aria-label="Image gallery">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {imageAttachments.map((a) => renderAttachmentCard(a, true))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {nonImageAttachments.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <h4 className="font-heading text-xs uppercase tracking-wide text-ink">Files</h4>
+                    <div className="flex flex-col gap-3">
+                      {nonImageAttachments.map((a) => renderAttachmentCard(a, false))}
+                    </div>
+                  </div>
+                )}
+              </>
             )
-          })}
+          })()}
         </div>
       )}
     </div>

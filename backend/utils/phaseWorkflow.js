@@ -161,83 +161,31 @@ export function getDefaultQuestionsForPhase(phaseTitle) {
 
   if (title.includes('design')) {
     questions.push(
-      {
-        question: 'Do you approve the design mockups?',
-        required: true,
-        order: 1,
-      },
-      {
-        question: 'Are there any color or style changes you would like?',
-        required: false,
-        order: 2,
-      },
-      {
-        question: 'Does the design match your brand guidelines?',
-        required: false,
-        order: 3,
-      }
+      { question: 'Do you approve the design mockups?', required: false, order: 1 },
+      { question: 'Are there any color or style changes you would like?', required: false, order: 2 },
+      { question: 'Does the design match your brand guidelines?', required: false, order: 3 }
     )
   } else if (title.includes('development') || title.includes('build')) {
     questions.push(
-      {
-        question: 'Are the features working as expected?',
-        required: true,
-        order: 1,
-      },
-      {
-        question: 'Have you noticed any bugs or issues?',
-        required: false,
-        order: 2,
-      },
-      {
-        question: 'Does the functionality meet your requirements?',
-        required: false,
-        order: 3,
-      }
+      { question: 'Are the features working as expected?', required: false, order: 1 },
+      { question: 'Have you noticed any bugs or issues?', required: false, order: 2 },
+      { question: 'Does the functionality meet your requirements?', required: false, order: 3 }
     )
   } else if (title.includes('testing') || title.includes('qa')) {
     questions.push(
-      {
-        question: 'Have you tested all the features?',
-        required: true,
-        order: 1,
-      },
-      {
-        question: 'Are there any issues that need to be fixed?',
-        required: false,
-        order: 2,
-      }
+      { question: 'Have you tested all the features?', required: false, order: 1 },
+      { question: 'Are there any issues that need to be fixed?', required: false, order: 2 }
     )
   } else if (title.includes('launch') || title.includes('handoff')) {
     questions.push(
-      {
-        question: 'Is the site ready for launch?',
-        required: true,
-        order: 1,
-      },
-      {
-        question: 'Are there any final changes needed before going live?',
-        required: false,
-        order: 2,
-      },
-      {
-        question: 'Do you have all the necessary credentials and documentation?',
-        required: false,
-        order: 3,
-      }
+      { question: 'Is the site ready for launch?', required: false, order: 1 },
+      { question: 'Are there any final changes needed before going live?', required: false, order: 2 },
+      { question: 'Do you have all the necessary credentials and documentation?', required: false, order: 3 }
     )
   } else if (title.includes('planning') || title.includes('discovery')) {
     questions.push(
-      {
-        question: 'Do you have any additional requirements or changes?',
-        required: false,
-        order: 1,
-      },
-      {
-        question: 'Is the project scope clear and agreed upon?',
-        required: true,
-        order: 2,
-      }
+      { question: 'Do you have any additional requirements or changes?', required: false, order: 1 },
+      { question: 'Is the project scope clear and agreed upon?', required: false, order: 2 }
     )
   }
 
