@@ -276,16 +276,11 @@ export function generateMockAnalysis(prompt, userInputs, cache) {
     logoIconConcept: 'abstract geometric mark',
     overview: `This comprehensive ${userInputs.projectType || 'web'} project addresses your requirements: "${prompt.substring(0, 100)}..." Our analysis suggests a modern, scalable solution with focus on user experience and business goals.`,
     features: [
-      'Responsive design optimized for all devices and screen sizes',
-      'User authentication and role-based authorization system',
-      'Admin dashboard with comprehensive management tools',
-      'Real-time notifications and live updates',
-      'Advanced search functionality with filtering options',
-      'Data analytics and reporting capabilities',
+      'Responsive design optimized for all devices',
+      'User authentication and role-based access',
+      'Admin dashboard with core management tools',
       'API integration with third-party services',
       'SEO optimization and performance tuning',
-      'Secure payment processing integration',
-      'Multi-language support and localization',
     ],
     techStack: {
       frontend: ['React 18', 'TypeScript', 'Tailwind CSS', 'React Router'],
@@ -295,49 +290,22 @@ export function generateMockAnalysis(prompt, userInputs, cache) {
       other: ['Git', 'GitHub Actions', 'Jest', 'ESLint', 'Prettier'],
     },
     timeline: {
-      totalWeeks: parseInt(userInputs.timeline) || 10,
+      totalWeeks: parseInt(userInputs.timeline) || 4,
       phases: [
         {
           phase: 'Planning & Design',
+          weeks: 1,
+          deliverables: ['Requirements documentation', 'Wireframes and mockups'],
+        },
+        {
+          phase: 'Development',
           weeks: 2,
-          deliverables: [
-            'Requirements documentation',
-            'User flow diagrams',
-            'Wireframes and mockups',
-            'Technical architecture design',
-            'Database schema design',
-          ],
-        },
-        {
-          phase: 'Development Sprint 1',
-          weeks: 3,
-          deliverables: [
-            'Core feature development',
-            'API implementation',
-            'Database setup',
-            'Authentication system',
-          ],
-        },
-        {
-          phase: 'Development Sprint 2',
-          weeks: 3,
-          deliverables: [
-            'Advanced features',
-            'Third-party integrations',
-            'Admin dashboard',
-            'Payment processing',
-          ],
+          deliverables: ['Core features', 'API implementation', 'Authentication'],
         },
         {
           phase: 'Testing & Launch',
-          weeks: 2,
-          deliverables: [
-            'Unit and integration testing',
-            'User acceptance testing',
-            'Performance optimization',
-            'Production deployment',
-            'Documentation and training',
-          ],
+          weeks: 1,
+          deliverables: ['QA testing', 'Production deployment'],
         },
       ],
     },
@@ -372,22 +340,14 @@ export function generateMockAnalysis(prompt, userInputs, cache) {
       ],
     },
     risks: [
-      'Scope creep - Mitigated through clear requirements documentation and change request process with defined timelines and costs',
-      'Third-party API dependencies - Mitigated by implementing fallback mechanisms, thorough testing, and choosing reliable service providers',
-      'Timeline delays due to unforeseen complexities - Mitigated through agile methodology with regular check-ins and buffer time in estimates',
-      'Performance issues at scale - Mitigated through load testing, optimization during development, and scalable architecture design',
-      'Security vulnerabilities - Mitigated by following security best practices, regular security audits, and using proven security libraries',
-      'Browser compatibility issues - Mitigated through cross-browser testing and using modern, well-supported technologies',
+      'Scope creep - Mitigated through clear requirements and change request process',
+      'Third-party API dependencies - Mitigated by fallback mechanisms and reliable providers',
+      'Timeline delays - Mitigated through agile methodology with regular check-ins',
     ],
     recommendations: [
-      'Start with MVP approach to validate core features and gather user feedback before full-scale development',
-      'Implement CI/CD pipeline early for faster iterations, automated testing, and reliable deployments',
-      'Plan for regular security audits and updates to protect user data and maintain system integrity',
-      'Build with modular architecture to facilitate easier future enhancements and maintenance',
-      'Prioritize mobile-first design approach for better user experience across all devices',
-      'Set up comprehensive monitoring and analytics from day one to track performance and user behavior',
-      'Create detailed documentation for both users and developers to ensure smooth handoff and maintenance',
-      'Consider scalability from the start to accommodate future growth without major refactoring',
+      'Start with MVP approach to validate core features before full-scale development',
+      'Implement CI/CD pipeline early for faster iterations and reliable deployments',
+      'Prioritize mobile-first design for better user experience',
     ],
   };
 
@@ -791,18 +751,17 @@ export function generateMockProjectRequirements(prompt, cache) {
     description: `A professional ${projectType.toLowerCase()} project based on your requirements: "${(prompt || '').substring(0, 120)}...". This solution will deliver modern UI/UX, scalable architecture, and best practices.`,
     projectType,
     budget: '$10,000 - $25,000',
-    timeline: '8',
+    timeline: '4',
     goals: [
       'Deliver a modern, responsive user experience',
-      'Implement scalable architecture for future growth',
-      'Ensure security and performance best practices',
+      'Implement scalable architecture',
+      'Ensure security and performance',
     ],
     features: [
       'Responsive design for all devices',
-      'User authentication and authorization',
+      'User authentication',
       'Admin dashboard or management interface',
-      'API integration capabilities',
-      'SEO optimization',
+      'API integration',
     ],
     designStyles: ['Modern', 'Clean', 'Professional'],
     techStack: {
@@ -845,7 +804,7 @@ export function generateMockWorkspaceProposal(project, context = {}) {
   const { analysis = {}, codeStructure = {} } = context
   const dateDuration = getProjectDurationFromDates(project)
   const totalDaysFromDates = dateDuration?.totalDays ?? null
-  const timelineWeeks = parseInt(project?.timeline, 10) || 8
+  const timelineWeeks = parseInt(project?.timeline, 10) || 5
   const totalDays = totalDaysFromDates ?? timelineWeeks * 7
   const pages = codeStructure?.pages || []
   const components = codeStructure?.components || []
@@ -903,14 +862,14 @@ export function generateMockWorkspaceProposal(project, context = {}) {
     }))
 
   const developmentSubSteps = []
+  const maxPages = 3
   if (pages.length > 0) {
-    pages.forEach((p, i) => developmentSubSteps.push({ title: `Implement ${p}`, order: i + 1 }))
+    pages.slice(0, maxPages).forEach((p, i) => developmentSubSteps.push({ title: `Implement ${p}`, order: i + 1 }))
   }
-  developmentSubSteps.push({ title: 'Set up routing and state management', order: developmentSubSteps.length + 1 })
-  if (components.length > 0) {
-    developmentSubSteps.push({ title: `Build shared components (${components.slice(0, 3).join(', ')})`, order: developmentSubSteps.length + 1 })
+  if (developmentSubSteps.length === 0) {
+    developmentSubSteps.push({ title: 'Implement core features', order: 1 })
   }
-  developmentSubSteps.push({ title: 'Integration and API wiring', order: developmentSubSteps.length + 1 })
+  developmentSubSteps.push({ title: 'Set up routing and integration', order: developmentSubSteps.length + 1 })
 
   if (totalDays <= 7) {
     const sprintSubSteps = developmentSubSteps.length > 0 ? developmentSubSteps : [
@@ -940,10 +899,9 @@ export function generateMockWorkspaceProposal(project, context = {}) {
     devDays = Math.max(2, devDays + (totalDays - currentSum))
   }
 
-  const devSubSteps = developmentSubSteps.length > 0 ? developmentSubSteps : [
+  const devSubSteps = developmentSubSteps.length > 0 ? developmentSubSteps.slice(0, 4) : [
     { title: 'Implement core features', order: 1 },
     { title: 'Integration and testing', order: 2 },
-    { title: 'Deploy and handoff', order: 3 },
   ]
 
   return [

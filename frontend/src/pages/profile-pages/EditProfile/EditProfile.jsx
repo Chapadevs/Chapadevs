@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useRole } from '../../../hooks/useRole'
 import Header from '../../../components/layout-components/Header/Header'
@@ -16,10 +16,11 @@ import {
   AvatarFallback 
 } from '../../../components/ui-components'
 import { getAvatarUrl } from '../../../utils/avatarUtils'
-import { Camera, Pencil } from 'lucide-react'
+import { Camera, Pencil, Trash2 } from 'lucide-react'
 import './EditProfile.css'
 
 const EditProfile = () => {
+  const navigate = useNavigate()
   const { user, updateProfile, changePassword, deleteProfile, logout, loading, error: authError } = useAuth()
   const { isClient, isProgrammer } = useRole()
 
@@ -325,9 +326,9 @@ const EditProfile = () => {
       <Header />
       <div className="profile-container">
         <Card variant="outline" className="profile-card p-8">
-          <Link to={-1} className="profile-back">
+          <button type="button" onClick={() => navigate(-1)} className="profile-back bg-transparent border-none cursor-pointer p-0 text-left font-body text-primary hover:underline">
             ← Go back
-          </Link>
+          </button>
           <div className="profile-header-with-avatar">
             <div className="profile-avatar-container">
               <div
@@ -522,7 +523,9 @@ const EditProfile = () => {
                 size="lg"
                 onClick={handleDeleteProfile}
                 disabled={deleting || loading}
+                className="gap-2"
               >
+                <Trash2 className="size-4 shrink-0" aria-hidden />
                 {deleting ? 'Deleting Account...' : 'Delete My Account'}
               </Button>
             </div>

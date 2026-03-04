@@ -377,7 +377,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
                         <label className="timeline-proposal-label">
                           <span className="font-heading text-xs uppercase text-ink-muted">Phase {phaseNum}</span>
                           <div className="flex items-baseline gap-1.5 mt-0.5">
-                            <span className="font-heading text-lg uppercase text-ink shrink-0">Phase {phaseNum}:</span>
+                            <span className="font-heading text-lg uppercase text-ink shrink-0">Phase {phaseNum}</span>
                             <Input
                               type="text"
                               value={phaseName}

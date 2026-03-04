@@ -41,7 +41,7 @@ export const getMessages = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit
 
   const messages = await Message.find({ projectId })
-    .populate('senderId', 'name email role')
+    .populate('senderId', 'name email avatar role')
     .sort({ createdAt: -1 })
     .limit(limit)
     .skip(skip)
@@ -90,7 +90,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   // Populate sender info
   const populatedMessage = await Message.findById(message._id).populate(
     'senderId',
-    'name email role'
+    'name email avatar role'
   )
 
   // Get project to find all participants

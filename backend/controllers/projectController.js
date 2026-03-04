@@ -10,8 +10,10 @@ import { getProjectDurationFromDates } from '../utils/projectDuration.js'
 import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
 import { getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
 import { uploadProjectAttachment, deleteProjectAttachment, getSignedUrlsForAttachments } from '../utils/projectAttachmentStorage.js'
+import { deleteProjectFully } from '../utils/projectDeletion.js'
 import { validateAttachmentForRequired } from '../utils/attachmentValidation.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
+import { derivePhaseDatesFromSubSteps } from '../utils/phaseDateUtils.js'
 import { generateSubStepTodos } from '../utils/subStepTodoGenerator.js'
 import { createNotification } from './notificationController.js'
 import asyncHandler from 'express-async-handler'
@@ -140,7 +142,9 @@ export const getProjects = asyncHandler(async (req, res) => {
     .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
     .sort({ createdAt: -1 })
 
-  res.json(projects)
+  // Exclude orphaned projects (client deleted but project still in DB)
+  const validProjects = projects.filter((p) => p.clientId != null)
+  res.json(validProjects)
 })
 
 // @desc    Get current user's projects
@@ -716,6 +720,14 @@ export const updatePhase = asyncHandler(async (req, res) => {
 
   const previousStatus = phase.status
 
+  // Cycle unlock - revert completed to in_progress (programmer/admin only)
+  if (req.body.unlock === true && (isProgrammer || req.user.role === 'admin')) {
+    if (phase.status === 'completed') {
+      phase.status = 'in_progress'
+      await logProjectActivity(projectId, req.user._id, 'phase.unlocked', 'phase', phase._id, { phaseTitle: phase.title })
+    }
+  }
+
   // Status updates - only programmer/admin
   if (req.body.status !== undefined) {
     if (!isProgrammer && req.user.role !== 'admin') {
@@ -731,9 +743,11 @@ export const updatePhase = asyncHandler(async (req, res) => {
     const oldStatus = phase.status
     phase.status = req.body.status
     
-    // Set startedAt when moving to in_progress
+    // Set startedAt when moving to in_progress (preserve handoff from previous phase completion)
     if (oldStatus === 'not_started' && req.body.status === 'in_progress') {
-      phase.startedAt = new Date()
+      if (!phase.startedAt) {
+        phase.startedAt = new Date()
+      }
     }
     
     // Set completedAt when moving to completed
@@ -761,6 +775,10 @@ export const updatePhase = asyncHandler(async (req, res) => {
   let subStepStatusesBefore = null
   if (isProgrammer || req.user.role === 'admin') {
     if (req.body.subSteps !== undefined) {
+      if (phase.status === 'completed') {
+        res.status(400)
+        throw new Error('Cannot update sub-steps of a completed cycle.')
+      }
       const existingSubSteps = phase.subSteps || []
       subStepStatusesBefore = existingSubSteps.map((s) => ({
         id: (s._id || s.id)?.toString(),
@@ -797,6 +815,19 @@ export const updatePhase = asyncHandler(async (req, res) => {
         if (changed) {
           normalized.assignedTo = req.user._id
         }
+        const newStatus = normalized.status ?? (normalized.completed ? 'completed' : 'pending')
+        if (newStatus === 'completed') {
+          normalized.completedAt = normalized.completedAt ? new Date(normalized.completedAt) : new Date()
+        } else {
+          normalized.completedAt = null
+        }
+        if (normalized.startDate && normalized.dueDate) {
+          const start = new Date(normalized.startDate)
+          const due = new Date(normalized.dueDate)
+          if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due.getTime() < start.getTime()) {
+            normalized.dueDate = normalized.startDate
+          }
+        }
         return normalized
       })
     }
@@ -827,6 +858,29 @@ export const updatePhase = asyncHandler(async (req, res) => {
           })).filter((ra) => ra.label)
         : []
     }
+
+    // Phase reset: set status to not_started, clear dates, reset sub-step status
+    if (req.body.reset === true) {
+      phase.status = 'not_started'
+      phase.startedAt = null
+      phase.completedAt = null
+      phase.actualDurationDays = null
+      if (phase.subSteps?.length > 0) {
+        phase.subSteps = phase.subSteps.map((s) => ({
+          ...s,
+          status: 'pending',
+          completed: false,
+          completedAt: null,
+        }))
+      }
+    }
+
+    // Derive phase dates from sub-steps when sub-steps have dates
+    if (phase.subSteps?.length > 0) {
+      const derived = derivePhaseDatesFromSubSteps(phase.subSteps)
+      if (derived.startedAt != null) phase.startedAt = derived.startedAt
+      if (derived.dueDate != null) phase.dueDate = derived.dueDate
+    }
   }
 
   if (req.body.completedAt !== undefined && (isProgrammer || req.user.role === 'admin')) {
@@ -834,7 +888,19 @@ export const updatePhase = asyncHandler(async (req, res) => {
   }
 
   await phase.save()
-  
+
+  // Set next phase startedAt when this phase completes (only handoff between cycles)
+  if (phase.status === 'completed' && previousStatus !== 'completed' && (isProgrammer || req.user.role === 'admin')) {
+    const nextPhase = await ProjectPhase.findOne({
+      projectId,
+      order: phase.order + 1,
+    })
+    if (nextPhase && (nextPhase.status === 'not_started' || !nextPhase.startedAt)) {
+      nextPhase.startedAt = phase.completedAt ?? new Date()
+      await nextPhase.save()
+    }
+  }
+
   // Recalculate duration if needed
   if (phase.startedAt && phase.completedAt) {
     phase.actualDurationDays = calculatePhaseDuration(phase)
@@ -930,7 +996,10 @@ export const updateSubStep = asyncHandler(async (req, res) => {
       throw new Error('Sub-step not found')
     }
     if (title !== undefined) phase.subSteps[subStepIndex].title = title
-    if (completed !== undefined) phase.subSteps[subStepIndex].completed = completed
+    if (completed !== undefined) {
+      phase.subSteps[subStepIndex].completed = completed
+      phase.subSteps[subStepIndex].completedAt = completed ? new Date() : null
+    }
     if (notes !== undefined) phase.subSteps[subStepIndex].notes = notes
     if (order !== undefined) phase.subSteps[subStepIndex].order = order
     if (status !== undefined) {
@@ -940,6 +1009,7 @@ export const updateSubStep = asyncHandler(async (req, res) => {
       }
       phase.subSteps[subStepIndex].status = status
       phase.subSteps[subStepIndex].completed = status === 'completed'
+      phase.subSteps[subStepIndex].completedAt = status === 'completed' ? new Date() : null
     }
     if (requiredAttachments !== undefined) {
       phase.subSteps[subStepIndex].requiredAttachments = Array.isArray(requiredAttachments)
@@ -970,8 +1040,13 @@ export const updateSubStep = asyncHandler(async (req, res) => {
       order: order !== undefined ? order : maxOrder + 1,
       status: newStatus,
       assignedTo: req.user._id,
+      completedAt: newStatus === 'completed' ? new Date() : null,
     })
   }
+
+  const derived = derivePhaseDatesFromSubSteps(phase.subSteps)
+  if (derived.startedAt != null) phase.startedAt = derived.startedAt
+  if (derived.dueDate != null) phase.dueDate = derived.dueDate
 
   await phase.save()
   const updated = await ProjectPhase.findById(phase._id)
@@ -1104,17 +1179,11 @@ export const approvePhase = asyncHandler(async (req, res) => {
   phase.clientApprovedAt = phase.clientApproved ? new Date() : null
   phase.clientApprovalFeedback = approved === false ? (feedback || null) : null
 
-  // If approved and phase is in_progress, can mark as completed (if all other requirements met)
+  // If approved and phase is in_progress, can mark as completed (client questions requirement removed for now)
   if (phase.clientApproved && phase.status === 'in_progress') {
-    // Check if all required questions are answered
-    const requiredQuestions = phase.clientQuestions?.filter((q) => q.required) || []
-    const allAnswered = requiredQuestions.every((q) => q.answer && q.answer.trim() !== '')
-    
-    if (allAnswered) {
-      phase.status = 'completed'
-      phase.completedAt = new Date()
-      phase.actualDurationDays = calculatePhaseDuration(phase)
-    }
+    phase.status = 'completed'
+    phase.completedAt = new Date()
+    phase.actualDurationDays = calculatePhaseDuration(phase)
   }
 
   await phase.save()
@@ -2176,8 +2245,7 @@ export const deleteProject = asyncHandler(async (req, res) => {
     }
   }
 
-  await ProjectPhase.deleteMany({ projectId: project._id })
-  await project.deleteOne()
+  await deleteProjectFully(project._id.toString())
 
   res.json({ message: 'Project removed' })
 })
@@ -2379,5 +2447,29 @@ export const getProjectActivity = asyncHandler(async (req, res) => {
       total,
       pages: Math.ceil(total / limit) || 1,
     },
+  })
+})
+
+// @desc    Cleanup orphaned projects (client deleted but project still in DB) - Admin only
+// @route   POST /api/projects/cleanup-orphaned
+// @access  Private/Admin
+export const cleanupOrphanedProjects = asyncHandler(async (req, res) => {
+  const User = (await import('../models/User.js')).default
+  const projects = await Project.find({}).select('_id clientId title').lean()
+  const userIds = [...new Set(projects.map((p) => p.clientId?.toString()).filter(Boolean))]
+  const existingUsers = await User.find({ _id: { $in: userIds } }).select('_id').lean()
+  const existingIds = new Set(existingUsers.map((u) => u._id.toString()))
+
+  const orphaned = projects.filter((p) => p.clientId && !existingIds.has(p.clientId.toString()))
+  let deleted = 0
+  for (const p of orphaned) {
+    await deleteProjectFully(p._id.toString())
+    deleted++
+  }
+
+  res.json({
+    message: `Cleaned up ${deleted} orphaned project(s)`,
+    deleted,
+    orphanedIds: orphaned.map((p) => p._id),
   })
 })

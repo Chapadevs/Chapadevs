@@ -1,6 +1,7 @@
 import User from '../models/User.js'
 import asyncHandler from 'express-async-handler'
 import { isGcsAvatar, getSignedAvatarUrl } from '../utils/avatarStorage.js'
+import { deleteUserFully } from '../services/userDeletionService.js'
 
 // @desc    Get all users (Admin only)
 // @route   GET /api/users
@@ -77,7 +78,9 @@ export const deleteUser = asyncHandler(async (req, res) => {
     throw new Error('User not found')
   }
 
-  await user.deleteOne()
+  // Full cascade: projects, notifications, messages, assets, avatar, user
+  await deleteUserFully(req.params.id)
+
   res.json({ message: 'User removed' })
 })
 

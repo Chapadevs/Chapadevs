@@ -142,7 +142,7 @@ function ProjectDetail() {
 
   const handleToggleTeamClosed = async () => {
     const newStatus = !project.teamClosed
-    if (!window.confirm(newStatus ? 'Close team?' : 'Open team?')) return
+    if (!window.confirm(newStatus ? 'Close Project?' : 'Open Project?')) return
     try {
       setTogglingTeamClosed(true); setError(null)
       const updatedProject = await projectAPI.toggleTeamClosed(id, newStatus)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { userAPI } from '../../../services/api'
 import { isClient, isProgrammer } from '../../../utils/roles'
@@ -24,7 +24,7 @@ const DisplayProfileModal = () => {
   useEffect(() => {
     // If it's the user's own profile, redirect to the private profile page
     if (isOwnProfile) {
-      navigate('/profile')
+      navigate('/profile', { replace: true })
       return
     }
 
@@ -66,7 +66,7 @@ const DisplayProfileModal = () => {
         <div className="profile-view-container">
           <Card variant="outline" className="profile-card p-8">
             <Alert variant="error">{error || 'User not found'}</Alert>
-            <Link to={-1} className="profile-back">← Go back</Link>
+            <button type="button" onClick={() => navigate(-1)} className="profile-back bg-transparent border-none cursor-pointer p-0 text-left font-body text-primary hover:underline">← Go back</button>
           </Card>
         </div>
       </>
@@ -81,7 +81,7 @@ const DisplayProfileModal = () => {
       <Header />
       <div className="profile-view-container">
         <Card variant="outline" className="profile-card p-8">
-          <Link to={-1} className="profile-back">← Go back</Link>
+          <button type="button" onClick={() => navigate(-1)} className="profile-back bg-transparent border-none cursor-pointer p-0 text-left font-body text-primary hover:underline">← Go back</button>
 
           <div className="profile-header-with-avatar">
             <div className="profile-avatar-container">

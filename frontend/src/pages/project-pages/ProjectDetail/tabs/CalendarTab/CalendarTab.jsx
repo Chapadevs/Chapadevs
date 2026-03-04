@@ -43,7 +43,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
   const handleSubStepUpdate = async (subStepId, updates) => {
     if (!canUpdateSubSteps || !selectedPhase) return
     try {
-      const updatedSubSteps = [...(selectedPhase.subSteps || [])]
+      let updatedSubSteps = [...(selectedPhase.subSteps || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       const index = updatedSubSteps.findIndex(
         (s) => (s._id || s.id)?.toString() === subStepId?.toString()
       )
@@ -85,6 +85,9 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
   const hasPhases = project?.phases && project.phases.length > 0
   const hasAnyItems = calendarItems.subSteps.length > 0 || calendarItems.phases.length > 0
 
+  const projectStartDateKey = project?.startDate ? toDateKey(project.startDate) : null
+  const projectDueDateKey = project?.dueDate ? toDateKey(project.dueDate) : null
+
   const CalendarDayWithItems = useMemo(() => {
     const { daysWithItems, itemCountByDate } = calendarItems
     return function DayButton({ day, modifiers, className, ...props }) {
@@ -92,19 +95,37 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
       const hasItems = daysWithItems.has(dateKey)
       const count = itemCountByDate?.get(dateKey) ?? 0
       const isSelected = modifiers?.selected
+      const isProjectStartDate = projectStartDateKey && dateKey === projectStartDateKey
+      const isProjectDueDate = projectDueDateKey && dateKey === projectDueDateKey
+      const isProjectMilestone = isProjectStartDate || isProjectDueDate
       const dotClass = isSelected ? 'bg-primary-foreground' : 'bg-primary'
+      const bgClass = isProjectMilestone
+        ? ''
+        : isSelected
+          ? 'bg-primary text-primary-foreground'
+          : modifiers?.today
+            ? 'bg-accent text-accent-foreground'
+            : ''
+      const countClass = isSelected ? 'text-primary-foreground' : 'text-primary'
+      const numberClass = isProjectStartDate ? 'text-primary' : isProjectDueDate ? 'text-red-600' : ''
+      const ariaLabel = isProjectStartDate
+        ? `${day.date.toLocaleDateString()} (Project start date)`
+        : isProjectDueDate
+          ? `${day.date.toLocaleDateString()} (Project end date)`
+          : undefined
       return (
         <button
           type="button"
           {...props}
-          className={`rdp-day_button flex aspect-square h-auto w-full min-w-[var(--cell-size)] flex-col gap-0.5 items-center justify-center rounded-none font-body text-sm font-normal leading-none hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 ${isSelected ? 'bg-primary text-primary-foreground' : ''} ${modifiers?.today && !isSelected ? 'bg-accent text-accent-foreground' : ''} ${className || ''}`}
+          className={`rdp-day_button flex aspect-square h-auto w-full min-w-[var(--cell-size)] flex-col gap-0.5 items-center justify-center rounded-none font-body text-sm font-normal leading-none transition-colors hover:bg-accent/60 hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset disabled:opacity-50 ${bgClass} ${className || ''}`}
           data-day={day.date.toLocaleDateString()}
+          aria-label={ariaLabel}
         >
-          <span>{day.date.getDate()}</span>
-          {hasItems && (
+          <span className={numberClass}>{day.date.getDate()}</span>
+          {hasItems && !isProjectMilestone && (
             <span className="flex gap-0.5 justify-center items-center">
               {count > 1 ? (
-                <span className={`text-[10px] font-heading ${isSelected ? 'text-primary-foreground' : 'text-primary'}`}>{count}</span>
+                <span className={`text-[10px] font-heading ${countClass}`}>{count}</span>
               ) : (
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} aria-hidden />
               )}
@@ -113,7 +134,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
         </button>
       )
     }
-  }, [calendarItems])
+  }, [calendarItems, projectStartDateKey, projectDueDateKey])
 
   if (!hasPhases) {
     return (
@@ -136,7 +157,9 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
               mode="single"
               selected={selectedDate}
               onSelect={(d) => d && setSelectedDate(d)}
+              defaultMonth={project?.dueDate ? new Date(project.dueDate) : undefined}
               className="rounded-none [--cell-size:4rem] text-base"
+              classNames={{ today: 'rounded-none' }}
               components={{ DayButton: CalendarDayWithItems }}
             />
           </div>
@@ -213,7 +236,9 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
                 </div>
               </div>
             ) : (
-              !hasAnyItems ? (
+              selectedDateKey === projectDueDateKey ? (
+                <p className="font-body text-sm text-red-700 py-4">Project ending</p>
+              ) : !hasAnyItems ? (
                 <p className="font-body text-sm text-ink-muted py-4">
                   No tasks with dates yet. Add due dates to sub-steps in the Workspace.
                 </p>

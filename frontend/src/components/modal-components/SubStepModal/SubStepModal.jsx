@@ -4,7 +4,20 @@ import { Button, Input, Textarea, Avatar, AvatarImage, AvatarFallback, Alert, Ba
 import ClientQuestion from '../../../pages/project-pages/ProjectDetail/tabs/WorkspaceTab/components/ClientQuestion'
 import { projectAPI } from '../../../services/api'
 import { getAvatarUrl } from '../../../utils/avatarUtils'
+import { toDateInputValue, formatDateOnly } from '../../../utils/dateUtils'
 import './SubStepModal.css'
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+function getSubStepStartDate(source) {
+  if (source?.startDate) return toDateInputValue(source.startDate)
+  if (source?.dueDate && source?.estimatedDurationDays != null && source.estimatedDurationDays > 0) {
+    const due = new Date(source.dueDate)
+    const start = new Date(due.getTime() - source.estimatedDurationDays * MS_PER_DAY)
+    return toDateInputValue(start)
+  }
+  return ''
+}
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -52,6 +65,8 @@ function SubStepModal({
   const [notes, setNotes] = useState(subStep?.notes ?? '')
   const [status, setStatus] = useState(subStep?.status ?? (subStep?.completed ? 'completed' : 'pending'))
   const [completed, setCompleted] = useState(subStep?.completed ?? false)
+  const [startDate, setStartDate] = useState(() => getSubStepStartDate(subStep))
+  const [dueDate, setDueDate] = useState(() => toDateInputValue(subStep?.dueDate))
   const [todos, setTodos] = useState(() => (subStep?.todos || []).map((t) => ({ ...t, order: t.order ?? 0 })).sort((a, b) => a.order - b.order))
   const [newTodoText, setNewTodoText] = useState('')
   const [editingTodoIndex, setEditingTodoIndex] = useState(null)
@@ -70,6 +85,7 @@ function SubStepModal({
   const [attachmentUpdatingStatusId, setAttachmentUpdatingStatusId] = useState(null)
   const [attachmentError, setAttachmentError] = useState(null)
   const [attachmentSignedUrls, setAttachmentSignedUrls] = useState({})
+  const [saveValidationError, setSaveValidationError] = useState(null)
   const todoInputRef = useRef(null)
 
   const subStepOrder = subStep?.order != null ? subStep.order : null
@@ -84,7 +100,10 @@ function SubStepModal({
       setNotes(source.notes ?? '')
       setStatus(source.status ?? (source.completed ? 'completed' : 'pending'))
       setCompleted(source.completed ?? false)
+      setStartDate(getSubStepStartDate(source))
+      setDueDate(toDateInputValue(source.dueDate))
       setTodos((source.todos || []).map((t) => ({ ...t, order: t.order ?? 0 })).sort((a, b) => a.order - b.order))
+      setSaveValidationError(null)
     }
   }, [currentSubStep, subStep])
 
@@ -120,6 +139,30 @@ function SubStepModal({
   }, [subStepAttachments, project?._id, phase?._id])
 
   const handleSave = async () => {
+    setSaveValidationError(null)
+    const isCompleted = currentSubStep?.status === 'completed' || currentSubStep?.completed === true
+    const isWaitingClient = status === 'waiting_client'
+    const startIso = startDate ? new Date(startDate).toISOString() : null
+    const dueIso = dueDate ? new Date(dueDate).toISOString() : null
+    if (!isCompleted && !isWaitingClient && startIso && dueIso) {
+      const start = new Date(startIso)
+      const due = new Date(dueIso)
+      if (due.getTime() < start.getTime()) {
+        setSaveValidationError('Due date must be on or after start date.')
+        return
+      }
+    }
+    let estimatedDurationDays = currentSubStep?.estimatedDurationDays ?? null
+    if (!isCompleted && !isWaitingClient && startIso && dueIso) {
+      const start = new Date(startIso)
+      const due = new Date(dueIso)
+      estimatedDurationDays = Math.max(1, Math.round((due.getTime() - start.getTime()) / MS_PER_DAY))
+    }
+    const datePayload = isCompleted
+      ? {}
+      : isWaitingClient
+        ? { dueDate: dueIso }
+        : { startDate: startIso, dueDate: dueIso, estimatedDurationDays }
     const payload = {
       title,
       notes,
@@ -127,6 +170,7 @@ function SubStepModal({
       completed: status === 'completed' || completed,
       order: subStep?.order,
       todos: todos.map((t, i) => ({ text: t.text, completed: t.completed ?? false, order: i + 1 })),
+      ...datePayload,
     }
     try {
       setSaving(true)
@@ -340,6 +384,8 @@ function SubStepModal({
     (q) => q.subStepOrder == null || q.subStepOrder === subStepOrder
   )
   const sortedQuestions = [...questionsForThisTask].sort((a, b) => (a.order || 0) - (b.order || 0))
+  const isSubStepCompleted = currentSubStep?.status === 'completed' || currentSubStep?.completed === true
+  const canEditDates = canEdit && !isSubStepCompleted
 
   const getQuestionWithEffectiveAnswer = (q) => ({
     ...q,
@@ -400,10 +446,18 @@ function SubStepModal({
                   <select
                     className="substep-modal-select"
                     value={status}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const v = e.target.value
                       setStatus(v)
                       setCompleted(v === 'completed')
+                      if (onUpdate) {
+                        try {
+                          await Promise.resolve(onUpdate({
+                            status: v,
+                            completed: v === 'completed',
+                          }))
+                        } catch (_) {}
+                      }
                     }}
                   >
                     {STATUS_OPTIONS.map((opt) => (
@@ -424,12 +478,78 @@ function SubStepModal({
                   />
                   <span>Mark as complete</span>
                 </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {canEditDates ? (
+                    status === 'waiting_client' ? (
+                      <label className="substep-modal-field col-span-2">
+                        <span className="substep-modal-label">Client approval due</span>
+                        <input
+                          type="date"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                          className="substep-modal-select w-full rounded-none border border-border bg-surface px-3 py-2 font-body text-sm"
+                        />
+                      </label>
+                    ) : (
+                      <>
+                        <label className="substep-modal-field">
+                          <span className="substep-modal-label">Start date</span>
+                          <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="substep-modal-select w-full rounded-none border border-border bg-surface px-3 py-2 font-body text-sm"
+                          />
+                        </label>
+                        <label className="substep-modal-field">
+                          <span className="substep-modal-label">Due date</span>
+                          <input
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="substep-modal-select w-full rounded-none border border-border bg-surface px-3 py-2 font-body text-sm"
+                          />
+                        </label>
+                      </>
+                    )
+                  ) : (
+                    <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-muted font-body">
+                      {status === 'waiting_client' ? (
+                        dueDate && <span>Approve by: {formatDateOnly(dueDate)}</span>
+                      ) : (
+                        <>
+                          {startDate && <span>Start: {formatDateOnly(startDate)}</span>}
+                          {dueDate && <span>Due: {formatDateOnly(dueDate)}</span>}
+                          {isSubStepCompleted && currentSubStep?.completedAt && (
+                            <span className="text-primary">Completed: {formatDateOnly(currentSubStep.completedAt)}</span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <div className="substep-modal-readonly">
                 <p><strong>Title:</strong> {subStep?.title || '—'}</p>
                 {subStep?.notes && <p><strong>Notes:</strong> {subStep.notes}</p>}
                 <p><strong>Status:</strong> {STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}</p>
+                {(status === 'waiting_client' ? dueDate : startDate || dueDate || (currentSubStep?.completedAt && (currentSubStep?.status === 'completed' || currentSubStep?.completed))) && (
+                  <p className="mt-1 text-sm text-ink-muted font-body">
+                    {status === 'waiting_client' ? (
+                      dueDate && `Approve by: ${formatDateOnly(dueDate)}`
+                    ) : (
+                      <>
+                        {startDate && `Start: ${formatDateOnly(startDate)}`}
+                        {startDate && dueDate && ' · '}
+                        {dueDate && `Due: ${formatDateOnly(dueDate)}`}
+                        {currentSubStep?.completedAt && (currentSubStep?.status === 'completed' || currentSubStep?.completed) && (
+                          <span className="text-primary"> · Completed: {formatDateOnly(currentSubStep.completedAt)}</span>
+                        )}
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
             )}
             {assignedUser && (
@@ -550,7 +670,11 @@ function SubStepModal({
                     question={getQuestionWithEffectiveAnswer(question)}
                     canAnswer={canAnswerQuestion}
                     onAnswer={(answer) =>
-                      onQuestionAnswer?.(String(question._id ?? question.order), answer, subStepOrder)
+                      onQuestionAnswer?.(
+                        String(question._id ?? question.order),
+                        answer,
+                        question.subStepOrder != null ? subStepOrder : null
+                      ) ?? Promise.resolve()
                     }
                   />
                 ))}
@@ -858,6 +982,9 @@ function SubStepModal({
         </div>
 
         <div className="substep-modal-footer">
+          {saveValidationError && (
+            <p className="text-amber-700 text-sm font-body mb-2">{saveValidationError}</p>
+          )}
           {canEdit && (
             <Button type="button" variant="secondary" className="" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save task'}

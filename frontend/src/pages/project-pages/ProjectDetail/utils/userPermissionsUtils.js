@@ -1,5 +1,91 @@
 import { isAdmin } from '../../../../utils/roles'
 
+/**
+ * Checks if all project phases/cycles and requirements are complete so the project can be marked as Completed.
+ * Returns { ready: boolean, reason?: string }.
+ */
+export function isProjectReadyForCompletion(project) {
+  const phases = project?.phases || []
+  if (phases.length === 0) {
+    return { ready: false, reason: 'Complete all project phases first' }
+  }
+
+  for (const phase of phases) {
+    // Phase must be completed
+    if (phase.status !== 'completed') {
+      return { ready: false, reason: `Complete phase "${phase.title || 'Untitled'}" before marking the project as completed` }
+    }
+    // If phase requires client approval, it must be approved
+    if (phase.requiresClientApproval && !phase.clientApproved) {
+      return { ready: false, reason: `Phase "${phase.title || 'Untitled'}" requires client approval before completion` }
+    }
+    // All sub-steps must be completed
+    const subSteps = phase.subSteps || []
+    for (const subStep of subSteps) {
+      const isCompleted = subStep.status === 'completed' || subStep.completed === true
+      if (!isCompleted) {
+        return { ready: false, reason: `Complete all sub-steps in phase "${phase.title || 'Untitled'}" before marking the project as completed` }
+      }
+    }
+    // All required attachments (phase-level) must be received
+    const phaseRequired = phase.requiredAttachments || []
+    const missingPhaseAttachments = phaseRequired.filter((ra) => !ra.receivedAt)
+    if (missingPhaseAttachments.length > 0) {
+      return { ready: false, reason: `Provide all required attachments for phase "${phase.title || 'Untitled'}" before marking the project as completed` }
+    }
+    // All required attachments (sub-step level) must be received
+    for (const subStep of subSteps) {
+      const subRequired = subStep.requiredAttachments || []
+      const missingSubAttachments = subRequired.filter((ra) => !ra.receivedAt)
+      if (missingSubAttachments.length > 0) {
+        return { ready: false, reason: `Provide all required attachments for sub-steps in phase "${phase.title || 'Untitled'}" before marking the project as completed` }
+      }
+    }
+  }
+
+  return { ready: true }
+}
+
+/**
+ * Checks if a single phase/cycle is ready to be marked as completed.
+ * Returns { ready: boolean, reason?: string }.
+ */
+export function isPhaseReadyForCompletion(phase) {
+  if (!phase) {
+    return { ready: false, reason: 'Phase not found' }
+  }
+
+  if (phase.requiresClientApproval && !phase.clientApproved) {
+    return { ready: false, reason: `Client approval required before marking complete` }
+  }
+
+  const subSteps = phase.subSteps || []
+  for (const subStep of subSteps) {
+    const isCompleted = subStep.status === 'completed' || subStep.completed === true
+    if (!isCompleted) {
+      return { ready: false, reason: `Complete all sub-steps before marking complete` }
+    }
+  }
+
+  const phaseRequired = phase.requiredAttachments || []
+  const missingPhaseAttachments = phaseRequired.filter((ra) => !ra.receivedAt)
+  if (missingPhaseAttachments.length > 0) {
+    return { ready: false, reason: `Provide all required attachments for this phase before marking complete` }
+  }
+
+  for (const subStep of subSteps) {
+    const subRequired = subStep.requiredAttachments || []
+    const missingSubAttachments = subRequired.filter((ra) => !ra.receivedAt)
+    if (missingSubAttachments.length > 0) {
+      return { ready: false, reason: `Provide all required attachments for sub-steps before marking complete` }
+    }
+  }
+
+  // Client questions requirement removed for now
+
+  return { ready: true }
+}
+
 export const getStatusBadgeClass = (status) => {
   const statusMap = {
     'Holding': 'status-holding',
@@ -48,7 +134,7 @@ export const calculatePermissions = (user, project) => {
   const canDelete = (user?.role === 'client' || user?.role === 'user') && isClientOwner && ['Holding', 'Open', 'Ready', 'Development'].includes(project.status)
 
 
-  // Open/Close team: Holding (show Open) or Open (show Close)
+  // Open/Close Project: Holding (show Open) or Open (show Close)
   const canToggleTeamClosed = (user?.role === 'client' || user?.role === 'user' || user?.role === 'admin') &&
     isClientOwner &&
     (project.status === 'Holding' || project.status === 'Open')
@@ -92,8 +178,12 @@ export const calculatePermissions = (user, project) => {
     project.status === 'Ready'
 
   // Mark as Completed: client or programmer in project, when Development
-  const canMarkCompleted = project.status === 'Development' &&
+  // Button is locked until ALL phases/cycles and requirements are done (see isProjectReadyForCompletion)
+  const hasMarkCompletedPermission = project.status === 'Development' &&
     (isClientOwner || isProgrammerInProject || admin)
+  const completionReadiness = isProjectReadyForCompletion(project)
+  const canMarkCompleted = hasMarkCompletedPermission && completionReadiness.ready
+  const markCompletedBlockedReason = hasMarkCompletedPermission && !completionReadiness.ready ? completionReadiness.reason : null
   // Cancel project: client or admin, when not Completed and not already Cancelled
   const canCancel = (isClientOwner || admin) &&
     project.status !== 'Completed' &&
@@ -127,6 +217,8 @@ export const calculatePermissions = (user, project) => {
     canStopDevelopment,
     canSetToHolding,
     canMarkCompleted,
+    showMarkCompleted: hasMarkCompletedPermission,
+    markCompletedBlockedReason,
     canCancel,
     canConfirmWorkspace,
     canCreateSteps,

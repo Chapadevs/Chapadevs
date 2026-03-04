@@ -1,4 +1,15 @@
 /**
+ * Convert date to YYYY-MM-DD for use in input[type="date"].
+ * @param {string|Date} d - ISO date string or Date
+ * @returns {string}
+ */
+export const toDateInputValue = (d) => {
+  if (!d) return ''
+  const date = typeof d === 'string' ? new Date(d) : d
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
+/**
  * Format a date-only value (e.g. project startDate, dueDate) for display.
  * Uses UTC to avoid off-by-one when the stored value is midnight UTC
  * and the user is in a timezone behind UTC.

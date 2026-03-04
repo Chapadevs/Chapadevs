@@ -97,7 +97,7 @@ const ProjectSidebar = ({
                   </Avatar>
                   
                   <span 
-                    className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black"
+                    className="absolute bottom-0 right-0 z-20 w-3 h-3 rounded-full border-2 border-black"
                     style={{ 
                       backgroundColor: user?.status === 'online' ? '#4caf50' : 
                                       user?.status === 'busy' ? '#f44336' : 

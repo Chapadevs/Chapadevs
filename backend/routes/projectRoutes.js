@@ -24,6 +24,7 @@ import {
   deleteSubStepAttachment,
   updateSubStepAttachment,
   deleteProject,
+  cleanupOrphanedProjects,
   getMyProjects,
   getAssignedProjects,
   updateProjectStatus,
@@ -37,12 +38,15 @@ import {
   markProjectCancelled,
   upload,
 } from '../controllers/projectController.js'
-import { protect, authorizeProjectAccess } from '../middleware/authMiddleware.js'
+import { protect, authorize, authorizeProjectAccess } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
 // All routes are protected
 router.use(protect)
+
+// Admin: cleanup orphaned projects (client deleted but project still in DB)
+router.post('/cleanup-orphaned', authorize('admin'), cleanupOrphanedProjects)
 
 // Client routes - get their own projects
 router.get('/my-projects', getMyProjects)

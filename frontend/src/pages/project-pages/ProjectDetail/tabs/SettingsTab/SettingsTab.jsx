@@ -62,6 +62,7 @@ const SettingsTab = ({
     permissions.canStopDevelopment ||
     permissions.canSetToHolding ||
     permissions.canMarkCompleted ||
+    permissions.showMarkCompleted ||
     (project.status === 'Ready' && permissions.isClientOwner)
 
   const clientName = project.clientId?.name ?? project.clientId ?? '—'
@@ -136,7 +137,7 @@ const SettingsTab = ({
                 onClick={onToggleTeamClosed}
                 disabled={togglingTeamClosed}
               >
-                {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Team' : 'Close Team'}
+                {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Project' : 'Close Project'}
               </Button>
             )}
             {(permissions.showConfirmReady || permissions.canConfirmReady) && (
@@ -256,15 +257,23 @@ const SettingsTab = ({
                 {markingHolding ? 'Updating...' : 'Set to On Hold'}
               </Button>
             )}
-            {permissions.canMarkCompleted && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onMarkCompleted}
-                disabled={markingCompleted}
-              >
-                {markingCompleted ? 'Updating...' : 'Mark as Completed'}
-              </Button>
+            {(permissions.canMarkCompleted || permissions.showMarkCompleted) && (
+              <div className="flex flex-col gap-1">
+                {permissions.markCompletedBlockedReason && (
+                  <p className="font-body text-sm text-ink-muted">
+                    {permissions.markCompletedBlockedReason}
+                  </p>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={onMarkCompleted}
+                  disabled={markingCompleted || !permissions.canMarkCompleted}
+                  title={permissions.markCompletedBlockedReason || undefined}
+                >
+                  {markingCompleted ? 'Updating...' : 'Mark as Completed'}
+                </Button>
+              </div>
             )}
           </div>
         </div>

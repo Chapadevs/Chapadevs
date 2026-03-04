@@ -67,7 +67,9 @@ const projectPhaseSchema = new mongoose.Schema(
             enum: ['pending', 'waiting_client', 'in_progress', 'completed'],
             default: 'pending',
           },
+          startDate: { type: Date, default: null },
           dueDate: { type: Date, default: null },
+          completedAt: { type: Date, default: null },
           estimatedDurationDays: { type: Number, default: null },
           questionAnswers: {
             type: [

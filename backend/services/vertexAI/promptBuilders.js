@@ -38,7 +38,7 @@ Provide a detailed analysis in the following JSON structure (respond ONLY with v
   "features": [
     "Feature 1 with brief description",
     "Feature 2 with brief description",
-    "At least 5-8 key features"
+    "4–6 key features (keep lean)"
   ],
   "techStack": {
     "frontend": ["React or Angular", "TypeScript", "Tailwind CSS"],
@@ -48,11 +48,11 @@ Provide a detailed analysis in the following JSON structure (respond ONLY with v
     "other": ["Git", "Jest", "ESLint"]
   },
   "timeline": {
-    "totalWeeks": 8,
+    "totalWeeks": 4,
     "phases": [
-      {"phase": "Planning & Design", "weeks": 2, "deliverables": ["Wireframes", "Design mockups"]},
-      {"phase": "Development", "weeks": 4, "deliverables": ["Core features", "Integration"]},
-      {"phase": "Testing & Launch", "weeks": 2, "deliverables": ["QA", "Deployment"]}
+      {"phase": "Planning & Design", "weeks": 1, "deliverables": ["Wireframes", "Design mockups"]},
+      {"phase": "Development", "weeks": 2, "deliverables": ["Core features", "Integration"]},
+      {"phase": "Testing & Launch", "weeks": 1, "deliverables": ["QA", "Deployment"]}
     ]
   },
   "budgetBreakdown": {
@@ -67,12 +67,12 @@ Provide a detailed analysis in the following JSON structure (respond ONLY with v
   "risks": [
     "Risk 1 with mitigation strategy",
     "Risk 2 with mitigation strategy",
-    "At least 3-4 potential risks"
+    "2–3 potential risks (keep lean)"
   ],
   "recommendations": [
     "Recommendation 1 for project success",
     "Recommendation 2 for project success",
-    "At least 3 actionable recommendations"
+    "2–3 actionable recommendations"
   ]
 }
 
@@ -141,7 +141,7 @@ Rules:
 - projectType MUST match one of the enum values exactly.
 - techStack values MUST be from: ${ALLOWED_TECHNOLOGIES.join(', ')}.
 - Infer projectType, budget, timeline from the client request when not explicit.
-- Keep goals, features, designStyles specific to the domain described.
+- Keep goals (3–4), features (4–6), designStyles (2–4) specific to the domain — prefer lean scope.
 - analysisExtras is for future AI preview use; always include it.
 
 Generate the response now:`;
@@ -369,11 +369,11 @@ OUTPUT FORMAT: JSON only, no markdown. Use \\n, \\", \\\\ in strings. Prefer "fi
     "features": ["Feature 1", "Feature 2", "Feature 3"],
     "techStack": {"frontend": ["React", "Tailwind CSS"], "backend": ["Node.js"], "database": ["MongoDB"]},
     "timeline": {
-      "totalWeeks": 8,
+      "totalWeeks": 4,
       "phases": [
-        {"phase": "Planning", "weeks": 2, "deliverables": ["Requirements doc", "Wireframes"], "subSteps": [{"title": "Gather requirements", "order": 1}, {"title": "Create wireframes", "order": 2}]},
-        {"phase": "Development", "weeks": 4, "deliverables": ["Core features", "Integration"], "subSteps": [{"title": "Implement HomePage", "order": 1}, {"title": "Build ProductsPage", "order": 2}]},
-        {"phase": "Testing & Launch", "weeks": 2, "deliverables": ["QA", "Deployment"], "subSteps": [{"title": "Run QA", "order": 1}, {"title": "Deploy to production", "order": 2}]}
+        {"phase": "Planning", "weeks": 1, "deliverables": ["Requirements doc", "Wireframes"], "subSteps": [{"title": "Gather requirements", "order": 1}, {"title": "Create wireframes", "order": 2}]},
+        {"phase": "Development", "weeks": 2, "deliverables": ["Core features", "Integration"], "subSteps": [{"title": "Implement HomePage", "order": 1}, {"title": "Build ProductsPage", "order": 2}]},
+        {"phase": "Testing & Launch", "weeks": 1, "deliverables": ["QA", "Deployment"], "subSteps": [{"title": "Run QA", "order": 1}, {"title": "Deploy to production", "order": 2}]}
       ]
     },
     "budgetBreakdown": {"total": "Estimated total", "breakdown": [{"category": "Design", "percentage": 25}, {"category": "Development", "percentage": 55}, {"category": "Deployment", "percentage": 20}]},

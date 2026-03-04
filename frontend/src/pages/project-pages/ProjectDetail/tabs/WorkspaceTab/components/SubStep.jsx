@@ -20,9 +20,13 @@ const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
   const status = subStep.status ?? (subStep.completed ? 'completed' : 'pending')
   const cardClasses = cardVariant ? `substep-card phase-cycle-card-style ${cardVariant}` : 'substep-card phase-cycle-card-style'
   const notesPreview = subStep.notes ? (subStep.notes.slice(0, 80) + (subStep.notes.length > 80 ? '…' : '')) : null
-  const hasDueInfo = subStep.dueDate != null || (subStep.estimatedDurationDays != null && subStep.estimatedDurationDays > 0)
-  const startDate =
-    subStep.dueDate && subStep.estimatedDurationDays != null && subStep.estimatedDurationDays > 0
+  const hasDueInfo =
+    subStep.startDate != null ||
+    subStep.dueDate != null ||
+    (subStep.estimatedDurationDays != null && subStep.estimatedDurationDays > 0)
+  const startDate = subStep.startDate
+    ? new Date(subStep.startDate)
+    : subStep.dueDate && subStep.estimatedDurationDays != null && subStep.estimatedDurationDays > 0
       ? new Date(new Date(subStep.dueDate).getTime() - subStep.estimatedDurationDays * 24 * 60 * 60 * 1000)
       : null
   const todosList = subStep.todos || []

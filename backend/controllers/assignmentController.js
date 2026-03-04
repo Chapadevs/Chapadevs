@@ -15,7 +15,10 @@ export const getAvailableProjectsPublic = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
-  const normalized = projects.map((p) => ({
+  // Exclude orphaned projects (client deleted but project still in DB)
+  const validProjects = projects.filter((p) => p.clientId != null)
+
+  const normalized = validProjects.map((p) => ({
     ...p,
     client: p.clientId,
     id: p._id,
@@ -72,7 +75,10 @@ export const getAvailableProjects = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .lean()
 
-  const normalized = projects.map((p) => ({
+  // Exclude orphaned projects (client deleted but project still in DB)
+  const validProjects = projects.filter((p) => p.clientId != null)
+
+  const normalized = validProjects.map((p) => ({
     ...p,
     client: p.clientId,
     id: p._id,

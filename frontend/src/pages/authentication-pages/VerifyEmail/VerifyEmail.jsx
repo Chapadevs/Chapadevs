@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { authAPI } from '../../../services/api'
 import { Button, Card } from '../../../components/ui-components'
 import './VerifyEmail.css'
@@ -25,8 +25,12 @@ const VerifyEmail = () => {
         if (!cancelled) {
           successSet.current = true
           setStatus('success')
-          const msg = data.message || 'Your email has been verified.'
-          const isFreshVerification = /has been verified|was already verified/i.test(msg)
+          const rawMsg = data.message || 'Your email has been verified.'
+          // When backend returns "already used or expired" (e.g. from React Strict Mode double-request),
+          // the verification actually succeeded on the first request—show a friendly success message instead.
+          const isAlreadyUsedOrExpired = /already used|has expired/i.test(rawMsg) && /can log in/i.test(rawMsg)
+          const msg = isAlreadyUsedOrExpired ? 'Your email is verified. You can log in.' : rawMsg
+          const isFreshVerification = /has been verified|was already verified|is verified/i.test(msg)
           if (isFreshVerification || !messageSet.current) {
             messageSet.current = true
             setMessage(msg)

@@ -9,6 +9,7 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { uploadAvatarToGCS, deleteAvatarFromGCS, isGcsAvatar, getSignedAvatarUrl } from '../utils/avatarStorage.js'
+import { deleteUserFully } from '../services/userDeletionService.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -565,7 +566,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
 // @access  Private
 export const deleteProfile = asyncHandler(async (req, res) => {
   checkDBConnection()
-  
+
   const user = await User.findById(req.user._id)
 
   if (!user) {
@@ -573,8 +574,8 @@ export const deleteProfile = asyncHandler(async (req, res) => {
     throw new Error('User not found')
   }
 
-  // Delete user account
-  await user.deleteOne()
+  // Full cascade: projects, notifications, messages, assets, avatar, user
+  await deleteUserFully(req.user._id.toString())
 
   res.json({ message: 'Account deleted successfully' })
 })

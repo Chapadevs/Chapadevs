@@ -32,12 +32,7 @@ export async function canProceedToNextPhase(projectId, currentPhaseId) {
     reasons.push('Client approval is required')
   }
 
-  // All required questions must be answered
-  const requiredQuestions = currentPhase.clientQuestions?.filter((q) => q.required) || []
-  const unansweredRequired = requiredQuestions.filter((q) => !q.answer || q.answer.trim() === '')
-  if (unansweredRequired.length > 0) {
-    reasons.push(`${unansweredRequired.length} required question(s) not answered`)
-  }
+  // Client questions requirement removed for now
 
   // All sub-steps should be completed (optional check)
   const incompleteSubSteps = currentPhase.subSteps?.filter((s) => !s.completed) || []
@@ -77,6 +72,49 @@ export function getPhaseRequirements(phase) {
     },
     isComplete: phase.status === 'completed',
   }
+}
+
+/**
+ * Validate that a phase meets all requirements to be marked as completed.
+ * @param {Object} phase - Phase object (plain or mongoose document)
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+export function validatePhaseCompletion(phase) {
+  if (!phase) {
+    return { valid: false, reason: 'Phase not found' }
+  }
+
+  const phaseTitle = phase.title || 'Untitled'
+
+  if (phase.requiresClientApproval && !phase.clientApproved) {
+    return { valid: false, reason: `Phase "${phaseTitle}" requires client approval before completion` }
+  }
+
+  const subSteps = phase.subSteps || []
+  for (const subStep of subSteps) {
+    const isCompleted = subStep.status === 'completed' || subStep.completed === true
+    if (!isCompleted) {
+      return { valid: false, reason: `Complete all sub-steps in phase "${phaseTitle}" before marking complete` }
+    }
+  }
+
+  const phaseRequired = phase.requiredAttachments || []
+  const missingPhaseAttachments = phaseRequired.filter((ra) => !ra.receivedAt)
+  if (missingPhaseAttachments.length > 0) {
+    return { valid: false, reason: `Provide all required attachments for phase "${phaseTitle}" before marking complete` }
+  }
+
+  for (const subStep of subSteps) {
+    const subRequired = subStep.requiredAttachments || []
+    const missingSubAttachments = subRequired.filter((ra) => !ra.receivedAt)
+    if (missingSubAttachments.length > 0) {
+      return { valid: false, reason: `Provide all required attachments for sub-steps in phase "${phaseTitle}" before marking complete` }
+    }
+  }
+
+  // Client questions requirement removed for now
+
+  return { valid: true }
 }
 
 /**

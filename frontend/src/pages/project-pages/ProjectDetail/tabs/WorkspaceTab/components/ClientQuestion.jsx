@@ -1,21 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button, Textarea } from '../../../../../../components/ui-components'
 import './ClientQuestion.css'
 
 const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
   const [answer, setAnswer] = useState(question.answer || '')
   const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const questionIdRef = useRef(question.order ?? question._id ?? question.question)
 
   useEffect(() => {
-    setAnswer(question.answer || '')
-    setIsEditing(false)
-  }, [question])
+    const questionId = question.order ?? question._id ?? question.question
+    const isDifferentQuestion = questionIdRef.current !== questionId
+    questionIdRef.current = questionId
 
-  const handleSave = () => {
-    if (onAnswer) {
-      onAnswer(answer)
+    setAnswer(question.answer || '')
+
+    if (isDifferentQuestion) {
+      setIsEditing(false)
     }
-    setIsEditing(false)
+  }, [question.order, question._id, question.question, question.answer])
+
+  const handleSave = async () => {
+    if (!onAnswer) {
+      setIsEditing(false)
+      return
+    }
+    try {
+      setSaving(true)
+      const result = onAnswer(answer)
+      if (result && typeof result.then === 'function') {
+        await result
+      }
+      setIsEditing(false)
+    } catch (_) {
+      // Error shown by parent
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancel = () => {
@@ -46,8 +67,8 @@ const ClientQuestion = ({ question, canAnswer, onAnswer }) => {
             rows={3}
           />
           <div className="question-actions">
-            <Button type="button" size="sm" onClick={handleSave}>
-              Save
+            <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
             </Button>
             <Button type="button" variant="secondary" size="sm" onClick={handleCancel}>
               Cancel

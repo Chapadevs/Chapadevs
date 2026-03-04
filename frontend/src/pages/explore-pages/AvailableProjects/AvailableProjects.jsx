@@ -106,7 +106,7 @@ const AvailableProjects = () => {
         <div className="assignment-empty">
           <p>No available projects at the moment.</p>
           <p className="assignment-empty-hint">
-            Projects appear here after a client <strong>opens the team</strong>. Clients can do this from the project detail page (open a project → &quot;Open Team&quot;).
+            Projects appear here after a client <strong>opens the team</strong>. Clients can do this from the project detail page (open a project → &quot;Open Project&quot;).
           </p>
         </div>
       ) : (

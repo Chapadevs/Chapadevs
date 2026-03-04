@@ -20,7 +20,7 @@ export function buildWorkspaceProposalPrompt(project, context = {}) {
   const codeStructureSection = buildCodeStructureSection(codeStructure)
   const outputSchemaSection = buildOutputSchemaSection(project)
 
-  return `You are an expert project manager and web development lead. Generate a detailed development timeline (phases and sub-steps) for a web project. The programmer will use this as the Workspace to guide development.
+  return `You are an expert project manager and web development lead. Generate a lean development timeline (phases and sub-steps) for a web project. Prefer shorter phase durations and fewer tasks per phase. The programmer will use this as the Workspace to guide development.
 
 ${projectSection}
 
@@ -45,7 +45,7 @@ function buildProjectSection(project) {
   if (totalDaysFromDates != null) {
     parts.push(`Total timeline: ${totalDaysFromDates} days (from start date to due date)`)
   } else if (project.timeline) {
-    const w = parseInt(project.timeline, 10) || 8
+    const w = parseInt(project.timeline, 10) || 5
     parts.push(`Total timeline: ${w * 7} days`)
   }
   if (project.startDate) parts.push(`Start date: ${project.startDate}`)
@@ -86,13 +86,13 @@ function buildCodeStructureSection(codeStructure) {
   const parts = []
   if (pages.length) parts.push(`Generated pages: ${pages.join(', ')}`)
   if (components.length) parts.push(`Key components: ${components.join(', ')}`)
-  return `GENERATED CODE STRUCTURE (use these to create Development sub-steps):\n${parts.join('\n')}\nFor Development phase, create sub-steps like "Implement HomePage", "Build ProductsPage with product grid", "Wire up authentication" based on these files.`
+  return `GENERATED CODE STRUCTURE (use these to create Development sub-steps):\n${parts.join('\n')}\nFor Development phase, create 2–4 focused sub-steps (e.g. "Implement HomePage", "Build ProductsPage", "Wire up authentication"). Group related work; avoid over-granular tasks.`
 }
 
 function buildOutputSchemaSection(project) {
   const dateDuration = getProjectDurationFromDates(project)
   const totalDaysFromDates = dateDuration?.totalDays ?? null
-  const timelineWeeks = parseInt(project?.timeline, 10) || 8
+  const timelineWeeks = parseInt(project?.timeline, 10) || 5
   const totalDays = totalDaysFromDates ?? timelineWeeks * 7
   const targetWeeks = totalDays / 7
 
@@ -101,7 +101,7 @@ function buildOutputSchemaSection(project) {
 {
   "phases": [
     {
-      "title": "Phase name (e.g. Planning & Requirements)",
+      "title": "Descriptive name only (e.g. Planning & Requirements, Discovery & Design) — no 'Phase 1:' prefix",
       "description": "Brief textual description of what this phase accomplishes.",
       "order": 1,
       "weeks": ${(totalDays / 7 / 4).toFixed(2)},
@@ -127,8 +127,9 @@ function buildOutputSchemaSection(project) {
 RULES (project has ${totalDays} days total):
 - All durations are in DAYS. Store each phase duration as weeks = days/7 (e.g. 3 days = 0.43).
 - The sum of all phase weeks MUST equal ${targetWeeks.toFixed(2)} (i.e. ${totalDays} days total).
-- Output 4–6 phases: Planning/Discovery, Design, Development, Testing, Launch (or similar).
-- Each phase should have 3–8 sub-steps. Sub-steps must be actionable (e.g. "Implement HomePage", "Create wireframes").
+- Output 4–5 phases: Planning/Discovery, Design, Development, Testing, Launch (or similar). Prefer leaner timelines.
+- Phase title: use ONLY the descriptive name (e.g. "Planning & Requirements", "Discovery & Design"). NEVER prefix with "Phase 1:", "Phase 2:", or similar — the order field indicates position.
+- Each phase should have 2–4 sub-steps (not 3–8). Sub-steps must be actionable (e.g. "Implement HomePage", "Create wireframes").
 - For Development phase: use generated page/component names to create specific sub-steps.
 - description: textual description of the phase. Do NOT put duration in description — use the weeks field.
 - weeks: days ÷ 7. Sum of phase weeks = ${targetWeeks.toFixed(2)}.
@@ -136,5 +137,6 @@ RULES (project has ${totalDays} days total):
 - order: 1-based for phases and sub-steps.
 - If no subSteps, omit the field or use empty array.
 - For each sub-step, output a "todos" array with 2–6 granular, actionable tasks. Base them on: (a) sub-step title, (b) phase duration (days = weeks×7), (c) phase deliverables. Tasks should be specific (e.g. "Create wireframe for main flow", "Implement API integration", "Run unit tests").
-- For each sub-step, output a "requiredAttachments" array. Predict what files/images the client will need to provide (e.g. logo, brand assets, content images, copy). Use label (required) and optional description. Order by relevance. Use empty array if none needed.`
+- For each sub-step, output a "requiredAttachments" array. Predict what files/images the client will need to provide (e.g. logo, brand assets, content images, copy). Use label (required) and optional description. Order by relevance. Use empty array if none needed.
+- BIAS: Prefer shorter phase durations and fewer tasks per phase. Keep projects lean and achievable.`
 }
