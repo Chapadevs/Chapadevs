@@ -20,7 +20,7 @@ const AssigneeChip = ({ assignee }) => {
             {assignee.name?.charAt(0)?.toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
-        <span>{assignee.name}</span>
+        <span title={assignee.name}>{assignee.name}</span>
       </Link>
     </div>
   )

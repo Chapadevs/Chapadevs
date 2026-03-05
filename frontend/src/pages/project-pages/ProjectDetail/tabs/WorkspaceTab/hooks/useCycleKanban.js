@@ -5,10 +5,12 @@ import { getSubStepStatus } from '../../../utils/workspaceUtils'
 
 /**
  * Hook for Kanban DnD: collision detection and drag handlers.
+ * Programmers: full movement. Clients: only waiting_client -> completed.
  */
 export function useCycleKanban({
   sortedSubSteps,
   canUpdateSubSteps,
+  canMoveSubStepToCompleted,
   phaseStatus,
   handleSubStepsReorder,
   handleSubStepStatusChange,
@@ -58,8 +60,7 @@ export function useCycleKanban({
       const effectiveOver = over ?? lastOverRef.current
       lastOverRef.current = null
       if (!effectiveOver) return
-      if (!canUpdateSubSteps) return
-      if (phaseStatus === 'completed') return
+      if (phaseStatus === 'completed' || phaseStatus === 'not_started') return
       const activeId = active?.id
       const overId = String(effectiveOver.id)
       if (activeId === overId) return
@@ -70,9 +71,15 @@ export function useCycleKanban({
       const activeStatus = activeStep
         ? getSubStepStatus(activeStep)
         : active?.data?.current?.status ?? active?.data?.status ?? 'pending'
+      const isClientMove = canMoveSubStepToCompleted && !canUpdateSubSteps
+      const clientCanMoveToCompleted =
+        isClientMove && activeStatus === 'waiting_client'
       if (overId.startsWith('column-')) {
         const targetStatus = overId.replace('column-', '')
-        if (targetStatus !== activeStatus) {
+        const canDoStatusChange =
+          canUpdateSubSteps ||
+          (clientCanMoveToCompleted && targetStatus === 'completed')
+        if (canDoStatusChange && targetStatus !== activeStatus) {
           handleSubStepStatusChange(activeId, targetStatus)
         }
       } else {
@@ -83,14 +90,22 @@ export function useCycleKanban({
         const overStatus = overStep ? getSubStepStatus(overStep) : null
         if (!overStatus) return
         if (overStatus === activeStatus) {
-          handleSubStepsReorder(activeId, overId)
+          if (canUpdateSubSteps) {
+            handleSubStepsReorder(activeId, overId)
+          }
         } else {
-          handleSubStepStatusChange(activeId, overStatus)
+          const canDoStatusChange =
+            canUpdateSubSteps ||
+            (clientCanMoveToCompleted && overStatus === 'completed')
+          if (canDoStatusChange) {
+            handleSubStepStatusChange(activeId, overStatus)
+          }
         }
       }
     },
     [
       canUpdateSubSteps,
+      canMoveSubStepToCompleted,
       phaseStatus,
       sortedSubSteps,
       handleSubStepsReorder,

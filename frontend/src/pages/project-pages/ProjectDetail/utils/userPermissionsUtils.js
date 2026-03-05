@@ -199,6 +199,7 @@ export const calculatePermissions = (user, project) => {
   const canUploadAttachments = isAssignedProgrammer || isInTeam || isClientOwner || admin
   const canEditRequiredAttachments = canUpdateSubSteps || isClientOwner || admin
   const isProgrammerOrAdmin = isAssignedProgrammer || admin
+  const canMoveSubStepToCompleted = isClientOwner
 
   return {
     isClientOwner,
@@ -232,5 +233,6 @@ export const calculatePermissions = (user, project) => {
     canUploadAttachments,
     canEditRequiredAttachments,
     isProgrammerOrAdmin,
+    canMoveSubStepToCompleted,
   }
 }

@@ -14,6 +14,7 @@ export function useCyclePhase({
   project,
   canChangePhaseStatus,
   canUpdateSubSteps,
+  canMoveSubStepToCompleted,
   canAnswerQuestion,
   isProgrammerOrAdmin,
   onUpdate,
@@ -107,11 +108,15 @@ export function useCyclePhase({
 
   const handleSubStepStatusChange = useCallback(
     async (subStepId, newStatus) => {
-      if (!canUpdateSubSteps) return
       const subSteps = [...(localPhase.subSteps || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       const idx = findSubStepIdx(subStepId)
       if (idx < 0) return
       const step = subSteps[idx]
+      const currentStatus = getSubStepStatus(step)
+      const canChange =
+        canUpdateSubSteps ||
+        (canMoveSubStepToCompleted && currentStatus === 'waiting_client' && newStatus === 'completed')
+      if (!canChange) return
       const updatedStep = { ...step, status: newStatus, completed: newStatus === 'completed' }
       const updatedSubSteps = subSteps.map((s, i) => (i === idx ? updatedStep : s))
       const sorted = [...updatedSubSteps].sort((a, b) => {
@@ -133,7 +138,7 @@ export function useCyclePhase({
         setLoading(false)
       }
     },
-    [canUpdateSubSteps, localPhase.subSteps, projectId, phaseId, onUpdate, findSubStepIdx]
+    [canUpdateSubSteps, canMoveSubStepToCompleted, localPhase.subSteps, projectId, phaseId, onUpdate, findSubStepIdx]
   )
 
   const handleResetPhase = useCallback(async () => {

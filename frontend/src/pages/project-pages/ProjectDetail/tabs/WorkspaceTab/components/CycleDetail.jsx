@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import SubStep from './SubStep'
 import KanbanColumn from './KanbanColumn/KanbanColumn'
-import ClientQuestion from './ClientQuestion'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
 import WeekTimeline from './WeekTimeline'
 import SubStepModal from '../../../../../../components/modal-components/SubStepModal/SubStepModal'
@@ -11,7 +10,7 @@ import { isPendingApproval } from '../../../../../../utils/phaseApprovalUtils'
 import { isPhaseReadyForCompletion } from '../../../utils/userPermissionsUtils'
 import { getSubStepStatus, getAssignedUser } from '../../../utils/workspaceUtils'
 import AssigneeChip from './CycleDetail/AssigneeChip'
-import { KANBAN_COLUMNS, TASK_STATUS_LABELS } from '../../../utils/workspaceConstants'
+import { KANBAN_COLUMNS } from '../../../utils/workspaceConstants'
 import { useCyclePhase } from '../hooks/useCyclePhase'
 import { useCycleKanban } from '../hooks/useCycleKanban'
 import { Button, Alert } from '../../../../../../components/ui-components'
@@ -25,6 +24,7 @@ const CycleDetail = ({
   isAssignedProgrammer,
   canChangePhaseStatus,
   canUpdateSubSteps,
+  canMoveSubStepToCompleted = false,
   canAnswerQuestion,
   canAddQuestion = false,
   canSaveNotes,
@@ -37,20 +37,19 @@ const CycleDetail = ({
   embedded = false,
 }) => {
   const [selectedSubStep, setSelectedSubStep] = useState(null)
-  const [newPhaseQuestionText, setNewPhaseQuestionText] = useState('')
 
   const cyclePhase = useCyclePhase({
     phase,
     project,
     canChangePhaseStatus,
     canUpdateSubSteps,
+    canMoveSubStepToCompleted,
     canAnswerQuestion,
     isProgrammerOrAdmin,
     onUpdate,
   })
   const {
     loading,
-    addingPhaseQuestion,
     error,
     setError,
     localPhase,
@@ -70,6 +69,7 @@ const CycleDetail = ({
   const kanban = useCycleKanban({
     sortedSubSteps,
     canUpdateSubSteps,
+    canMoveSubStepToCompleted,
     phaseStatus: localPhase.status,
     handleSubStepsReorder,
     handleSubStepStatusChange,
@@ -93,12 +93,9 @@ const CycleDetail = ({
     return grouped
   }, [sortedSubSteps])
 
-  const handleAddPhaseQuestionClick = () => {
-    handleAddPhaseQuestion(newPhaseQuestionText, setNewPhaseQuestionText, userId)
-  }
-
+  const isPhaseLocked = localPhase.status === 'not_started'
   const canStartPhase =
-    localPhase.status === 'not_started' && canChangePhaseStatus
+    isPhaseLocked && canChangePhaseStatus
   const canCompletePhase =
     localPhase.status === 'in_progress' && canChangePhaseStatus
   const canResetPhase =
@@ -112,15 +109,6 @@ const CycleDetail = ({
 
   const completedSubSteps = subSteps.filter((s) => s.completed || s.status === 'completed').length
   const subStepsProgress = subSteps.length > 0 ? (completedSubSteps / subSteps.length) * 100 : null
-
-  const stepsInProgress = sortedSubSteps.filter(
-    (s) => getSubStepStatus(s) === 'in_progress' || getSubStepStatus(s) === 'waiting_client'
-  )
-  const stepsPending = sortedSubSteps.filter((s) => getSubStepStatus(s) === 'pending')
-  const questions = localPhase.clientQuestions || []
-  const phaseLevelQuestions = [...questions]
-    .filter((q) => q.subStepOrder == null)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
   const allSubStepsCompleted = completedSubSteps === subSteps.length && subSteps.length > 0
   const hasWaitingClient = sortedSubSteps.some((s) => getSubStepStatus(s) === 'waiting_client')
@@ -159,48 +147,37 @@ const CycleDetail = ({
 
   const content = (
     <>
-      <div className={embedded ? 'phase-detail-embedded-header' : 'project-phase-modal-header'}>
-        <div className="project-phase-modal-header-content">
-          {!embedded && onClose && (
+      {!embedded && (
+        <div className="project-phase-modal-header">
+          <div className="project-phase-modal-header-content">
+            {onClose && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="project-phase-modal-back"
+                onClick={onClose}
+                aria-label="Back to cycles"
+              >
+                ← Back to cycles
+              </Button>
+            )}
+            <h2 id="phase-modal-title" className="project-phase-modal-title">
+              Cycle {localPhase.order ?? 1}: {localPhase.title}
+            </h2>
+          </div>
+          {onClose && (
             <Button
               type="button"
               variant="ghost"
-              className="project-phase-modal-back"
+              className="project-phase-modal-close"
               onClick={onClose}
-              aria-label="Back to cycles"
+              aria-label="Close"
             >
-              ← Back to cycles
+              ×
             </Button>
-            )}
-          <h2 id="phase-modal-title" className="project-phase-modal-title">
-            Cycle {localPhase.order ?? 1}: {localPhase.title}
-          </h2>
-          {subStepsProgress !== null && (
-            <div className="project-phase-modal-progress">
-              <span className="project-phase-modal-progress-label"> 
-                {Math.round(subStepsProgress)}% complete
-              </span>
-              <div className="project-phase-modal-progress-bar">
-                <div
-                  className="project-phase-modal-progress-fill"
-                  style={{ width: `${subStepsProgress}%` }}
-                />
-              </div>
-            </div>
           )}
         </div>
-        {!embedded && onClose && (
-          <Button
-            type="button"
-            variant="ghost"
-            className="project-phase-modal-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ×
-          </Button>
-        )}
-      </div>
+      )}
 
       {error && <Alert variant="error">{error}</Alert>}
 
@@ -210,82 +187,46 @@ const CycleDetail = ({
         </Alert>
       )}
 
-      <div className="project-phase-modal-body phase-cycle-two-column">
-          <div className="phase-cycle-left">
+      {isPhaseLocked && (
+        <Alert variant="info" className="mb-4">
+          {canStartPhase
+            ? 'This phase has not started yet. Start phase to begin work.'
+            : 'This phase has not started yet.'}
+        </Alert>
+      )}
 
-            <div className="phase-cycle-current-step-info">
-              <h3 className="phase-cycle-panel-title font-heading text-sm text-ink uppercase tracking-wide">
-                Current step
-              </h3>
-              <div className="phase-overview-status">
-                <PhaseApprovalBadge
-                  requiresApproval={localPhase.requiresClientApproval}
-                  approved={localPhase.clientApproved}
-                  variant="modal"
-                />
-              </div>
-
-              {currentSubStep && (getSubStepStatus(currentSubStep) === 'pending' || getSubStepStatus(currentSubStep) === 'waiting_client' || getSubStepStatus(currentSubStep) === 'in_progress') ? (
-                <div className="phase-current-substep-card">
-
-                  <SubStep
-                    subStep={currentSubStep}
-                    cardVariant={`substep-card--${getSubStepStatus(currentSubStep).replace('_', '-')}`}
-                    onOpen={() => setSelectedSubStep(currentSubStep)}
-                  >
-                  
-                  {getAssignedUser(currentSubStep, project) && (
-                    <AssigneeChip assignee={getAssignedUser(currentSubStep, project)} />
-                  )}
-                  </SubStep>
-
+      <div className={`project-phase-modal-body phase-cycle-two-column ${isPhaseLocked ? 'phase-cycle-locked' : ''}`}>
+          <div className="phase-cycle-top">
+            <div className="phase-cycle-top-titles">
+              <span className="phase-cycle-panel-title font-heading text-xs text-ink uppercase tracking-wide">Cycle actions</span>
+              <span className="phase-cycle-panel-title font-heading text-xs text-ink uppercase tracking-wide">Attachments</span>
+              <span className="phase-cycle-panel-title font-heading text-xs text-ink uppercase tracking-wide">Current step</span>
+            </div>
+            <div className="phase-cycle-top-panels">
+            <div className="phase-cycle-actions">
+              {subStepsProgress !== null && (
+                <div className="project-phase-modal-progress">
+                  <span className="project-phase-modal-progress-label font-body text-xs">
+                    {Math.round(subStepsProgress)}% complete
+                  </span>
+                  <div className="project-phase-modal-progress-bar">
+                    <div
+                      className="project-phase-modal-progress-fill"
+                      style={{ width: `${subStepsProgress}%` }}
+                    />
+                  </div>
                 </div>
-
-              ) : allSubStepsCompleted || localPhase.status === 'completed' ? (
-                <p className="phase-cycle-no-in-progress">Cycle completed.</p>
-              ) : (
-                <p className="phase-cycle-no-in-progress">No tasks yet. Add a task with the button on the right.</p>
               )}
               {localPhase.description && (
-                <p className="phase-overview-description">{localPhase.description}</p>
+                <p className="phase-overview-description font-body text-ink-muted">{localPhase.description}</p>
               )}
-              <div className="phase-cycle-current-steps">
-                <strong className="phase-cycle-current-steps-label">
-                  {stepsInProgress.length > 0 ? 'Steps in progress' : 'Steps'}
-                </strong>
-                {stepsInProgress.length > 0 ? (
-                  <ul className="phase-cycle-steps-list" aria-label="Steps being worked on">
-                    {stepsInProgress.map((s, idx) => (
-                      <li key={s._id || s.id || idx} className="phase-cycle-step-item">
-                        <span className="phase-cycle-step-title">{s.title || 'Untitled'}</span>
-                        <span className={`phase-cycle-step-status phase-cycle-step-status--${getSubStepStatus(s).replace('_', '-')}`}>
-                          {TASK_STATUS_LABELS[getSubStepStatus(s)] || getSubStepStatus(s)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : stepsPending.length > 0 ? (
-                  <p className="phase-cycle-no-in-progress">
-                    No steps in progress. {stepsPending.length} pending — open a task card to start.
-                  </p>
-                ) : completedSubSteps === subSteps.length || localPhase.status === 'completed' ? (
-                  <p className="phase-cycle-no-in-progress">Cycle completed.</p>
-                ) : (
-                  <p className="phase-cycle-no-in-progress">No tasks yet.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="phase-cycle-actions">
-              <h3 className="phase-cycle-panel-title font-heading text-sm text-ink uppercase tracking-wide">
-                Cycle actions
-              </h3>
               <ul className="phase-cycle-actions-list">
                 {canStartPhase && (
                   <li>
                     <Button
                       type="button"
                       variant="primary"
+                      size="sm"
                       disabled={loading}
                       onClick={() => handleStatusChange('in_progress')}
                     >
@@ -301,6 +242,7 @@ const CycleDetail = ({
                     <Button
                       type="button"
                       variant="primary"
+                      size="sm"
                       disabled={loading || !phaseCompletionReadiness.ready}
                       title={markCompleteBlockedReason || undefined}
                       onClick={() => handleStatusChange('completed')}
@@ -320,6 +262,7 @@ const CycleDetail = ({
                       <Button
                         type="button"
                         variant="primary"
+                        size="sm"
                         className="btn btn-success"
                         disabled={loading}
                         onClick={() => handleApprove(true)}
@@ -331,6 +274,7 @@ const CycleDetail = ({
                       <Button
                         type="button"
                         variant="secondary"
+                        size="sm"
                         disabled={loading}
                         onClick={() => {
                           const feedback = window.prompt('Optional: Add feedback for the programmer')
@@ -347,6 +291,7 @@ const CycleDetail = ({
                     <Button
                       type="button"
                       variant="secondary"
+                      size="sm"
                       disabled={loading}
                       onClick={handleResetPhase}
                     >
@@ -359,6 +304,7 @@ const CycleDetail = ({
                     <Button
                       type="button"
                       variant="secondary"
+                      size="sm"
                       disabled={loading}
                       onClick={handleUnlockCycle}
                     >
@@ -375,15 +321,13 @@ const CycleDetail = ({
             </div>
 
             <div className="phase-cycle-attachments">
-              <h3 className="phase-cycle-panel-title font-heading text-sm text-ink uppercase tracking-wide">
-                Attachments
-              </h3>
               <AttachmentManager
                 phase={localPhase}
                 project={project}
-                canUpload={canUploadAttachments}
+                canUpload={!isPhaseLocked && canUploadAttachments}
                 isProgrammerOrAdmin={isProgrammerOrAdmin}
                 userId={userId}
+                compact
                 onUpdate={(updated) => {
                   setLocalPhase(updated)
                   onUpdate?.(updated)
@@ -391,53 +335,42 @@ const CycleDetail = ({
               />
             </div>
 
-            <div className="phase-cycle-questions p-4 border border-border bg-surface">
-              <h3 className="phase-cycle-panel-title font-heading text-sm text-ink uppercase tracking-wide mb-2">
-                Questions
-              </h3>
-              {phaseLevelQuestions.length > 0 ? (
-                <div className="flex flex-col gap-2 mb-2">
-                  {phaseLevelQuestions.map((q, idx) => (
-                    <ClientQuestion
-                      key={q._id || idx}
-                      question={q}
-                      canAnswer={canAnswerQuestion}
-                      onAnswer={(answer) =>
-                        handleQuestionAnswer(String(q._id ?? q.order), answer, null)
-                      }
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="phase-cycle-questions-hint font-body text-sm text-ink-muted mb-2">
-                  No phase-level questions yet.
-                </p>
-              )}
-              {canAddQuestion && localPhase.status !== 'completed' && (
-                <div className="flex gap-2 min-w-0 items-center">
-                  <input
-                    type="text"
-                    value={newPhaseQuestionText}
-                    onChange={(e) => setNewPhaseQuestionText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddPhaseQuestionClick()}
-                    placeholder="Add a question"
-                    className="flex-1 min-w-0 py-1 px-2 text-sm border border-border rounded-none font-body"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleAddPhaseQuestionClick}
-                    disabled={!newPhaseQuestionText.trim() || addingPhaseQuestion}
-                    className="shrink-0 !py-1 !px-2 text-xs"
+            <div className="phase-cycle-current-step-info">
+              <div className="phase-overview-status">
+                <PhaseApprovalBadge
+                  requiresApproval={localPhase.requiresClientApproval}
+                  approved={localPhase.clientApproved}
+                  variant="modal"
+                />
+              </div>
+
+              {currentSubStep && (getSubStepStatus(currentSubStep) === 'pending' || getSubStepStatus(currentSubStep) === 'waiting_client' || getSubStepStatus(currentSubStep) === 'in_progress') ? (
+                <div className="phase-current-substep-card">
+
+                  <SubStep
+                    subStep={currentSubStep}
+                    cardVariant={`substep-card--${getSubStepStatus(currentSubStep).replace('_', '-')}`}
+                    onOpen={() => setSelectedSubStep(currentSubStep)}
+                    compact
                   >
-                    {addingPhaseQuestion ? 'Adding...' : 'Add'}
-                  </Button>
+                  
+                  {getAssignedUser(currentSubStep, project) && (
+                    <AssigneeChip assignee={getAssignedUser(currentSubStep, project)} />
+                  )}
+                  </SubStep>
+
                 </div>
+
+              ) : allSubStepsCompleted || localPhase.status === 'completed' ? (
+                <p className="phase-cycle-no-in-progress">Cycle completed.</p>
+              ) : (
+                <p className="phase-cycle-no-in-progress">No tasks yet. Add a task with the button on the right.</p>
               )}
+            </div>
             </div>
           </div>
 
+          <div className="phase-cycle-below">
           <div className="phase-cycle-right">
             <div className="phase-cycle-timeline-wrapper">
               <WeekTimeline
@@ -449,7 +382,7 @@ const CycleDetail = ({
               />
             </div>
             <div className="phase-cycle-kanban-wrapper">
-              {sortedSubSteps.length === 0 ? (
+              {sortedSubSteps.length === 0 && !(canUpdateSubSteps && localPhase.status !== 'completed') ? (
                 <p className="empty-state">No tasks defined for this cycle.</p>
               ) : (
                 <DndContext
@@ -472,31 +405,30 @@ const CycleDetail = ({
                             <AssigneeChip assignee={getAssignedUser(subStep, project)} />
                           )
                         }
+                        getCanDragForCard={(subStep) =>
+                          !isPhaseLocked &&
+                          ((canUpdateSubSteps && localPhase.status !== 'completed') ||
+                            (canMoveSubStepToCompleted &&
+                              getSubStepStatus(subStep) === 'waiting_client' &&
+                              localPhase.status !== 'completed'))
+                        }
+                        onAddTask={(columnStatus) =>
+                          setSelectedSubStep({
+                            title: 'New sub-step',
+                            completed: columnStatus === 'completed',
+                            notes: '',
+                            status: columnStatus,
+                            order: (localPhase.subSteps?.length ?? 0) + 1,
+                          })
+                        }
+                        showAddTask={!isPhaseLocked && canUpdateSubSteps && localPhase.status !== 'completed'}
                       />
                     ))}
                   </div>
                 </DndContext>
               )}
-              {canUpdateSubSteps && localPhase.status !== 'completed' && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() =>
-                    setSelectedSubStep({
-                      title: 'New sub-step',
-                      completed: false,
-                      notes: '',
-                      status: 'pending',
-                      order: (localPhase.subSteps?.length ?? 0) + 1,
-                    })
-                  }
-                >
-                  + Add task
-                </Button>
-              )}
             </div>
+          </div>
           </div>
         </div>
 
@@ -506,11 +438,11 @@ const CycleDetail = ({
         subStep={selectedSubStep}
         phase={localPhase}
         project={project}
-        canEdit={canUpdateSubSteps && localPhase.status !== 'completed'}
-        canEditRequiredAttachments={canEditRequiredAttachments && localPhase.status !== 'completed'}
+        canEdit={!isPhaseLocked && canUpdateSubSteps && localPhase.status !== 'completed'}
+        canEditRequiredAttachments={!isPhaseLocked && canEditRequiredAttachments && localPhase.status !== 'completed'}
         canUploadAttachments={canUploadAttachments}
-        canAnswerQuestion={canAnswerQuestion}
-        canAddQuestion={canAddQuestion}
+        canAnswerQuestion={canAnswerQuestion && !isPhaseLocked}
+        canAddQuestion={canAddQuestion && !isPhaseLocked}
         userId={userId}
         onUpdate={async (updates) => {
           const isStatusOnly = Object.keys(updates).length <= 2 && 'status' in updates

@@ -16,7 +16,7 @@ const formatDate = (d) => (d ? formatDateOnly(d, null) : null)
 /**
  * Task card: content box summary. Click to open SubStepModal for full interaction.
  */
-const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
+const SubStep = ({ subStep, cardVariant, onOpen, children, compact = false }) => {
   const status = subStep.status ?? (subStep.completed ? 'completed' : 'pending')
   const cardClasses = cardVariant ? `substep-card phase-cycle-card-style ${cardVariant}` : 'substep-card phase-cycle-card-style'
   const notesPreview = subStep.notes ? (subStep.notes.slice(0, 80) + (subStep.notes.length > 80 ? '…' : '')) : null
@@ -37,7 +37,7 @@ const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
   return (
     <Card
       variant="default"
-      className={"p-5"}
+      className={compact ? 'p-2' : 'p-5'}
       onClick={onOpen}
       role="button"
       tabIndex={0}
@@ -57,12 +57,12 @@ const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
         </span>
       <div className="substep-card-body">
         {notesPreview ? (
-          <p className="substep-notes-preview">{notesPreview}</p>
+          <p className={`substep-notes-preview ${compact ? 'text-[0.65rem]' : ''}`}>{notesPreview}</p>
         ) : (
-          <p className="substep-notes-preview substep-notes-preview--hint">Click to open and edit</p>
+          <p className={`substep-notes-preview substep-notes-preview--hint ${compact ? 'text-[0.65rem]' : ''}`}>Click to open and edit</p>
         )}
         {hasDueInfo && (
-          <div className="flex items-center gap-2 mt-1.5 font-body text-xs text-ink-muted">
+          <div className={`flex items-center gap-2 font-body text-ink-muted ${compact ? 'mt-0.5 text-[0.65rem]' : 'mt-1.5 text-xs'}`}>
             {startDate != null && formatDate(startDate) && (
               <span>Start: {formatDate(startDate)}</span>
             )}
@@ -75,12 +75,12 @@ const SubStep = ({ subStep, cardVariant, onOpen, children }) => {
           </div>
         )}
         {hasTodos && (
-          <div className="flex items-center gap-2 mt-1.5 font-body text-xs text-ink-muted">
+          <div className={`flex items-center gap-2 font-body text-ink-muted ${compact ? 'mt-0.5 text-[0.65rem]' : 'mt-1.5 text-xs'}`}>
             <span>{completedTodos}/{todosList.length} tasks</span>
           </div>
         )}
         {attachmentsCount > 0 && (
-          <div className="flex items-center gap-1.5 mt-1.5 font-body text-xs text-ink-muted">
+          <div className={`flex items-center gap-1.5 font-body text-ink-muted ${compact ? 'mt-0.5 text-[0.65rem]' : 'mt-1.5 text-xs'}`}>
             <Paperclip className="size-3.5 shrink-0" aria-hidden />
             <span>{attachmentsCount} attachment{attachmentsCount !== 1 ? 's' : ''}</span>
           </div>

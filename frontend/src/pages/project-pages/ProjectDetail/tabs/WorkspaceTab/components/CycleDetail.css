@@ -3,7 +3,7 @@
 /* Embedded: full-width cycle page (no modal) */
 .phase-detail-embedded {
   width: 100%;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   background: var(--bg-surface, #ffffff);
   overflow: hidden;
 }
@@ -60,6 +60,15 @@
   margin-top: 0.5rem;
 }
 
+.phase-cycle-actions .project-phase-modal-progress {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+}
+
+.phase-cycle-actions .project-phase-modal-progress-bar {
+  height: 4px;
+}
+
 .project-phase-modal-progress-bar {
   flex: 1;
   height: 6px;
@@ -97,27 +106,91 @@
 .project-phase-modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem 0.5rem;
 }
 
 .phase-cycle-two-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.phase-cycle-top {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1.5rem;
-  align-items: start;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr);
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-border, #e5e7eb);
+}
+
+.phase-cycle-top-titles {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+.phase-cycle-top-titles .phase-cycle-panel-title {
+  margin: 0;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--primary, #059669);
+}
+
+.phase-cycle-top-panels {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+.phase-cycle-top-panels .phase-cycle-actions,
+.phase-cycle-top-panels .phase-cycle-attachments,
+.phase-cycle-top-panels .phase-cycle-current-step-info {
+  min-width: 0;
+}
+
+.phase-cycle-attachments {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-border, #e5e7eb);
+  border-radius: 0;
+  background: var(--bg-surface, #ffffff);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.phase-cycle-attachments > *:last-child {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.phase-cycle-below {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* Locked phase: subtle visual indication (not full color change) */
+.phase-cycle-locked {
+  position: relative;
+  border-left: 3px solid var(--ink-muted, #6b7280);
+  padding-left: 0.75rem;
+  margin-left: -0.75rem;
 }
 
 @media (max-width: 720px) {
-  .phase-cycle-two-column {
-    grid-template-columns: 1fr;
-  }
-
   .phase-cycle-right {
     flex-direction: column;
   }
 
   .phase-cycle-right .phase-substeps {
     flex: none;
+  }
+
+  .phase-cycle-top {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -132,7 +205,7 @@
 .phase-cycle-right {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.5rem;
   align-items: stretch;
 }
 
@@ -149,8 +222,10 @@
   flex-shrink: 0;
   min-width: 0;
   width: 100%;
-  min-height: 200px;
+  min-height: 0;
   overflow-x: auto;
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* Kanban layout */
@@ -216,6 +291,77 @@
   margin-top: 0;
 }
 
+.phase-cycle-kanban-card > div {
+  padding: 0.5rem 0.75rem !important;
+}
+
+.phase-cycle-kanban-card .substep-card-title-text {
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.phase-cycle-kanban-card .substep-status-badge {
+  padding: 0.1rem 0.3rem;
+  font-size: 0.5625rem;
+}
+
+.phase-cycle-kanban-card .substep-card-body {
+  font-size: 0.6875rem;
+}
+
+.phase-cycle-kanban-card .substep-notes-preview {
+  font-size: 0.6875rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.phase-cycle-kanban-card .substep-card-body .flex {
+  margin-top: 0.25rem;
+  gap: 0.35rem;
+  font-size: 0.625rem;
+  flex-wrap: wrap;
+}
+
+.phase-cycle-kanban-card .phase-current-assignee {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  font-size: 0.625rem;
+  gap: 0.25rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.phase-cycle-kanban-card .phase-current-assignee-label {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.phase-cycle-kanban-card .phase-current-assignee-link {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  gap: 0.25rem;
+}
+
+.phase-cycle-kanban-card .phase-current-assignee-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.phase-cycle-kanban-card .phase-current-assignee .assignee-avatar {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 @media (max-width: 900px) {
   .phase-cycle-kanban {
     grid-template-columns: repeat(2, 1fr);
@@ -240,13 +386,124 @@
 }
 
 .phase-cycle-current-step-info {
-  padding: 1rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-border, #e5e7eb);
   border-radius: 0;
   background: var(--bg-surface, #ffffff);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-panel-title {
+  align-self: flex-start;
+  margin: 0 0 0.35rem 0;
+  padding-left: 0.5rem;
+  border-left-width: 3px;
+  font-size: 0.75rem;
+}
+
+.phase-cycle-current-step-info .phase-overview-status,
+.phase-cycle-current-step-info .phase-current-substep-card,
+.phase-cycle-current-step-info .phase-cycle-no-in-progress {
+  width: 100%;
+  text-align: center;
+}
+
+.phase-cycle-current-step-info .phase-overview-status {
+  gap: 0.35rem;
+}
+
+.phase-cycle-current-step-info .phase-current-substep-card {
+  margin-top: 0.25rem;
+}
+
+.phase-cycle-current-step-info .phase-current-substep-card > div {
+  padding: 0.35rem 0.5rem !important;
+}
+
+.phase-cycle-current-step-info .phase-current-substep-card > div {
+  padding: 0.35rem 0.5rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.phase-cycle-current-step-info .substep-card-title-text {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.phase-cycle-current-step-info .substep-status-badge {
+  padding: 0.1rem 0.25rem;
+  font-size: 0.5625rem;
+}
+
+.phase-cycle-current-step-info .substep-card-body {
+  font-size: 0.6875rem;
+  margin-top: 0.15rem;
+}
+
+.phase-cycle-current-step-info .substep-card-body .flex {
+  margin-top: 0.2rem !important;
+  gap: 0.35rem;
+  font-size: 0.625rem;
+}
+
+.phase-cycle-current-step-info .substep-notes-preview {
+  font-size: 0.6875rem;
+  margin: 0;
+}
+
+.phase-cycle-current-step-info .phase-overview-description {
+  font-size: 0.75rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-current-steps {
+  margin-top: 0.35rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-current-steps-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-steps-list {
+  gap: 0.25rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-step-item {
+  font-size: 0.75rem;
+  gap: 0.35rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-step-status {
+  padding: 0.1rem 0.3rem;
+  font-size: 0.625rem;
+}
+
+.phase-cycle-current-step-info .phase-cycle-no-in-progress {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+}
+
+.phase-cycle-current-step-info .phase-current-assignee {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  font-size: 0.625rem;
+  gap: 0.25rem;
+}
+
+.phase-cycle-current-step-info .phase-current-assignee .assignee-avatar {
+  width: 16px;
+  height: 16px;
+}
+
+.phase-cycle-current-step-info .approval-badge {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.6875rem;
+  min-height: 20px;
 }
 
 .phase-cycle-current-task {
@@ -323,10 +580,28 @@
 }
 
 .phase-cycle-actions {
-  padding: 1rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-border, #e5e7eb);
   border-radius: 0;
   background: var(--bg-surface, #ffffff);
+}
+
+.phase-cycle-actions .phase-cycle-panel-title {
+  font-size: 0.6875rem;
+}
+
+.phase-cycle-actions .phase-overview-description {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.5rem !important;
+}
+
+.phase-cycle-actions .project-phase-modal-progress {
+  margin-bottom: 0.25rem;
 }
 
 .phase-cycle-actions-list {
@@ -334,8 +609,9 @@
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 .phase-cycle-actions-list li {

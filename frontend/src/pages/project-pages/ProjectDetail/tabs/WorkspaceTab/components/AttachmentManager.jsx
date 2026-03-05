@@ -31,6 +31,7 @@ const AttachmentManager = ({
   isProgrammerOrAdmin,
   userId,
   onUpdate,
+  compact = false,
 }) => {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -204,7 +205,7 @@ const AttachmentManager = ({
   const requiredAttachments = phase.requiredAttachments || []
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={compact ? 'flex flex-col gap-1.5' : 'flex flex-col gap-4'}>
       {error && <Alert variant="error">{error}</Alert>}
 
       {requiredAttachments.length > 0 && (
@@ -302,108 +303,12 @@ const AttachmentManager = ({
         </div>
       )}
 
-      {isProgrammerOrAdmin && (
-        <div className="flex flex-col gap-2">
-          {editingRequired ? (
-            <div className="flex flex-col gap-2 p-2 border border-border bg-surface rounded-none">
-              <Input
-                value={newRequiredLabel}
-                onChange={(e) => setNewRequiredLabel(e.target.value)}
-                placeholder="Label (e.g. Logo PNG/SVG)"
-                className="text-sm"
-              />
-              <Input
-                value={newRequiredDesc}
-                onChange={(e) => setNewRequiredDesc(e.target.value)}
-                placeholder="Description (optional)"
-                className="text-sm"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMinW}
-                  onChange={(e) => setNewRequiredMinW(e.target.value)}
-                  placeholder="Min width (px)"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMaxW}
-                  onChange={(e) => setNewRequiredMaxW(e.target.value)}
-                  placeholder="Max width (px)"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMinH}
-                  onChange={(e) => setNewRequiredMinH(e.target.value)}
-                  placeholder="Min height (px)"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMaxH}
-                  onChange={(e) => setNewRequiredMaxH(e.target.value)}
-                  placeholder="Max height (px)"
-                  className="text-sm"
-                />
-              </div>
-              <Input
-                value={newRequiredTypes}
-                onChange={(e) => setNewRequiredTypes(e.target.value)}
-                placeholder="Allowed types (e.g. png, jpeg)"
-                className="text-sm"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={handleAddRequiredAttachment}
-                  disabled={!newRequiredLabel.trim()}
-                >
-                  Add
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setEditingRequired(false)
-                    setNewRequiredLabel('')
-                    setNewRequiredDesc('')
-                    setNewRequiredMinW('')
-                    setNewRequiredMaxW('')
-                    setNewRequiredMinH('')
-                    setNewRequiredMaxH('')
-                    setNewRequiredTypes('')
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="w-fit"
-              onClick={() => setEditingRequired(true)}
-            >
-              + Add required attachment
-            </Button>
+      {(canUpload || attachments.length === 0) && (
+        <div className={compact ? 'pt-2 px-2 pb-0 text-center' : 'p-4 text-center'}>
+          {canUpload && (
+            <p className={`text-muted-foreground font-body ${compact ? 'text-[0.65rem] mb-1' : 'text-xs mb-2'}`}>Max file size: 10MB</p>
           )}
-        </div>
-      )}
-
-      {canUpload && (
-        <div className="p-4 text-center">
-          <p className="text-xs text-muted-foreground font-body mb-2">Additional assets (phase-level)</p>
+          {canUpload && (
           <label className="inline-block cursor-pointer">
             <input
               type="file"
@@ -412,17 +317,18 @@ const AttachmentManager = ({
               disabled={uploading}
               className="hidden"
             />
-            <span className="inline-block px-6 py-3 font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity">
+            <span className={`inline-block font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity ${compact ? 'px-3 py-1.5 text-xs' : 'px-6 py-3'}`}>
               {uploading ? 'Uploading...' : '+ Upload File'}
             </span>
           </label>
-          <p className="mt-2 text-sm text-muted-foreground font-body">Max file size: 10MB</p>
+          )}
+          {attachments.length === 0 && (
+            <p className={`text-muted-foreground font-body ${compact ? 'mt-1 text-[0.65rem]' : 'mt-2 text-sm'}`}>No attachments yet.</p>
+          )}
         </div>
       )}
 
-      {attachments.length === 0 ? (
-        <p className="font-body text-muted-foreground">No attachments yet.</p>
-      ) : (
+      {attachments.length > 0 && (
         <div className="flex flex-col gap-6">
           {(() => {
             const imageAttachments = sortedAttachments.filter((a) => isImage(a.type))
@@ -640,6 +546,105 @@ const AttachmentManager = ({
               </>
             )
           })()}
+        </div>
+      )}
+
+      {isProgrammerOrAdmin && (
+        <div className={compact ? 'flex flex-col gap-1' : 'flex flex-col gap-2'}>
+          {editingRequired ? (
+            <div className="flex flex-col gap-2 p-2 border border-border bg-surface rounded-none">
+              <Input
+                value={newRequiredLabel}
+                onChange={(e) => setNewRequiredLabel(e.target.value)}
+                placeholder="Label (e.g. Logo PNG/SVG)"
+                className="text-sm"
+              />
+              <Input
+                value={newRequiredDesc}
+                onChange={(e) => setNewRequiredDesc(e.target.value)}
+                placeholder="Description (optional)"
+                className="text-sm"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  value={newRequiredMinW}
+                  onChange={(e) => setNewRequiredMinW(e.target.value)}
+                  placeholder="Min width (px)"
+                  className="text-sm"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  value={newRequiredMaxW}
+                  onChange={(e) => setNewRequiredMaxW(e.target.value)}
+                  placeholder="Max width (px)"
+                  className="text-sm"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  value={newRequiredMinH}
+                  onChange={(e) => setNewRequiredMinH(e.target.value)}
+                  placeholder="Min height (px)"
+                  className="text-sm"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  value={newRequiredMaxH}
+                  onChange={(e) => setNewRequiredMaxH(e.target.value)}
+                  placeholder="Max height (px)"
+                  className="text-sm"
+                />
+              </div>
+              <Input
+                value={newRequiredTypes}
+                onChange={(e) => setNewRequiredTypes(e.target.value)}
+                placeholder="Allowed types (e.g. png, jpeg)"
+                className="text-sm"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAddRequiredAttachment}
+                  disabled={!newRequiredLabel.trim()}
+                >
+                  Add
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setEditingRequired(false)
+                    setNewRequiredLabel('')
+                    setNewRequiredDesc('')
+                    setNewRequiredMinW('')
+                    setNewRequiredMaxW('')
+                    setNewRequiredMinH('')
+                    setNewRequiredMaxH('')
+                    setNewRequiredTypes('')
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              size={compact ? 'xs' : 'sm'}
+              className="w-fit"
+              onClick={() => setEditingRequired(true)}
+            >
+              + Add required attachment
+            </Button>
+          )}
         </div>
       )}
     </div>

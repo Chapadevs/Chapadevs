@@ -778,6 +778,44 @@ export const updatePhase = asyncHandler(async (req, res) => {
     }
   }
 
+  // Client can only move sub-steps from waiting_client to completed (approve tasks)
+  if (isClient && req.body.subSteps !== undefined && !(isProgrammer || req.user.role === 'admin')) {
+    if (phase.status === 'completed') {
+      res.status(400)
+      throw new Error('Cannot update sub-steps of a completed cycle.')
+    }
+    const existingSubSteps = phase.subSteps || []
+    const incomingSubSteps = req.body.subSteps
+    if (!Array.isArray(incomingSubSteps) || incomingSubSteps.length !== existingSubSteps.length) {
+      res.status(400)
+      throw new Error('Client can only update sub-step status from Waiting on client to Completed.')
+    }
+    const updatedSubSteps = existingSubSteps.map((existing) => {
+      const incoming = incomingSubSteps.find(
+        (s) => (s._id || s.id)?.toString() === (existing._id || existing.id)?.toString()
+      )
+      if (!incoming) return existing
+      const existingStatus = existing.status ?? (existing.completed ? 'completed' : 'pending')
+      const newStatus = incoming.status ?? (incoming.completed ? 'completed' : 'pending')
+      const base = existing?.toObject ? existing.toObject() : { ...existing }
+      if (existingStatus === 'waiting_client' && newStatus === 'completed') {
+        return {
+          ...base,
+          status: 'completed',
+          completed: true,
+          completedAt: new Date(),
+        }
+      }
+      return base
+    })
+    phase.subSteps = updatedSubSteps
+    if (phase.subSteps?.length > 0) {
+      const derived = derivePhaseDatesFromSubSteps(phase.subSteps)
+      if (derived.startedAt != null) phase.startedAt = derived.startedAt
+      if (derived.dueDate != null) phase.dueDate = derived.dueDate
+    }
+  }
+
   // Only programmer/admin can update these fields
   let subStepStatusesBefore = null
   if (isProgrammer || req.user.role === 'admin') {

@@ -5,7 +5,6 @@ import { useAuth } from '../../../../../context/AuthContext'
 import { calculatePermissions } from '../../utils/userPermissionsUtils'
 import CycleDetail from './components/CycleDetail'
 import ProposalSubStepCard from './components/ProposalSubStepCard/ProposalSubStepCard'
-import { getPhasesPendingApproval } from '../../../../../utils/phaseApprovalUtils'
 import { Button, Alert, Input } from '../../../../../components/ui-components'
 import { formatDateOnly, getProjectDurationFromDates } from '../../../../../utils/dateUtils'
 import { usePhaseProposal } from './hooks/usePhaseProposal'
@@ -360,9 +359,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
   const phases = project.phases.sort((a, b) => (a.order || 0) - (b.order || 0))
   const completedCount = phases.filter((p) => p.status === 'completed').length
   const progressPercentage = (completedCount / phases.length) * 100
-  const pendingApprovals = getPhasesPendingApproval(phases)
   const canAnswerQuestion = permissions?.canAnswerQuestion ?? false
-  const showPendingApprovalsStrip = canAnswerQuestion && pendingApprovals.length > 0
 
   const selectedIndex = Math.min(Math.max(0, selectedCycleIndex), Math.max(0, phases.length - 1))
   const currentPhase = phases[selectedIndex] || null
@@ -373,66 +370,16 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
     }
   }
 
-  const hasProjectSummary =
-    project?.description ||
-    project?.technologies?.length > 0 ||
-    project?.startDate ||
-    project?.dueDate ||
-    project?.timeline ||
-    previews?.length > 0
-
   return (
     <section className="project-section project-phases">
-      {hasProjectSummary && (
-        <details className="workspace-project-summary">
-          <summary className="workspace-project-summary-trigger">Project summary</summary>
-          <div className="workspace-project-summary-content">
-            {(project?.startDate || project?.dueDate || project?.timeline) && (
-              <p className="workspace-project-summary-overview text-sm text-ink-muted mb-2">
-                {project.startDate && project.dueDate
-                  ? `${formatDate(project.startDate)} → ${formatDate(project.dueDate)}`
-                  : project.dueDate
-                    ? `Due: ${formatDate(project.dueDate)}`
-                    : project.startDate
-                      ? `Start: ${formatDate(project.startDate)}`
-                      : project.timeline
-                        ? `${(parseInt(project.timeline, 10) || 8) * 7} days`
-                        : null}
-              </p>
-            )}
-            {project?.description && (
-              <p className="workspace-project-summary-overview">{project.description}</p>
-            )}
-            {project?.technologies?.length > 0 && (
-              <p className="workspace-project-summary-tech">
-                <span className="workspace-project-summary-label">Tech stack:</span>{' '}
-                {project.technologies.join(', ')}
-              </p>
-            )}
-            {previews?.length > 0 && typeof onSwitchToPreviews === 'function' && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="mt-2"
-                onClick={onSwitchToPreviews}
-              >
-                View AI Previews ({previews.length})
-              </Button>
-            )}
-          </div>
-        </details>
-      )}
-
-      {showPendingApprovalsStrip && (
-        <Alert variant="warning" className="mb-4">
-          You have {pendingApprovals.length} phase(s) awaiting your approval. Review and approve in the cycle below.
-        </Alert>
-      )}
-
       <h3 className="project-tab-panel-title">Project Cycle</h3>
 
       <div className="workspace-cycle">
+        {currentPhase && (
+          <h2 id="phase-modal-title" className="workspace-cycle-title font-heading text-lg text-ink uppercase tracking-wide">
+            Cycle {currentPhase.order ?? selectedIndex + 1}: {currentPhase.title}
+          </h2>
+        )}
         <div className="workspace-cycle-tabs" role="tablist" aria-label="Select cycle">
           {phases.map((phase, index) => {
             const phaseId = phase._id || phase.id
@@ -449,7 +396,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
                 aria-selected={isSelected}
                 aria-label={`Cycle ${cycleNumber}: ${phase.title || `Phase ${cycleNumber}`}`}
                 className={`workspace-cycle-tab ${isSelected ? 'workspace-cycle-tab-active' : ''} ${
-                  isCompleted ? 'workspace-cycle-tab-completed' : isInProgress ? 'workspace-cycle-tab-in-progress' : ''
+                  isCompleted ? 'workspace-cycle-tab-completed workspace-cycle-tab-locked' : isInProgress ? 'workspace-cycle-tab-in-progress' : ''
                 }`}
                 onClick={() => setSelectedCycleIndex(index)}
               >
@@ -469,6 +416,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
           isAssignedProgrammer={isAssignedProgrammer}
           canChangePhaseStatus={permissions.canChangePhaseStatus}
           canUpdateSubSteps={permissions.canUpdateSubSteps}
+          canMoveSubStepToCompleted={permissions.canMoveSubStepToCompleted}
           canAnswerQuestion={permissions.canAnswerQuestion}
           canAddQuestion={permissions.canAddQuestion}
           canSaveNotes={permissions.canSaveNotes}

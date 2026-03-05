@@ -143,107 +143,109 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
   }
 
   return (
-    <section className="project-section project-phases max-w-[1200px] mx-auto w-full">
-      <h2 className="font-heading text-lg uppercase text-ink mb-6">Project Calendar</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(280px,320px)] gap-8 items-start">
-        <div className="flex justify-center min-w-0">
-          <div className="border border-border rounded-none p-8 bg-surface">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(d) => d && setSelectedDate(d)}
-              defaultMonth={project?.dueDate ? new Date(project.dueDate) : undefined}
-              className="rounded-none [--cell-size:4rem] text-base"
-              classNames={{ today: 'rounded-none' }}
-              components={{ DayButton: CalendarDayWithItems }}
-            />
-          </div>
-        </div>
+    <section className="project-section project-phases max-w-[1200px] mx-auto w-full flex flex-col items-center">
+      <h2 className="font-heading text-lg uppercase text-ink mb-4 w-full text-center">Project Calendar</h2>
 
-        <div className="flex flex-col min-w-0 border-l-2 border-primary pl-6">
-          <h3 className="font-heading text-sm uppercase text-ink mb-4">
+      <div className="inline-flex flex-col items-stretch">
+        <div className="sticky top-0 z-10 flex flex-col gap-2 p-2.5 pl-3 bg-surface rounded-none">
+          <h3 className="font-heading text-xs uppercase text-ink">
             {selectedDateKey ? formatDateOnly(selectedDate, '—') : 'Select a date'}
           </h3>
-          <div className="flex flex-col gap-3">
-            {phaseMilestones.length > 0 && (
-              <div>
-                <span className="font-heading text-xs uppercase text-ink-muted block mb-2">Phase milestones</span>
-                <div className="flex flex-col gap-2">
-                  {phaseMilestones.map((item) => (
-                    <div
-                      key={item.phase._id || item.phase.id}
-                      className="flex items-center justify-between gap-3 py-2.5 px-3 border border-border bg-surface rounded-none font-body text-sm"
-                    >
-                      <span className="font-body text-sm truncate">{item.phase.title}</span>
-                      <div className="flex shrink-0 gap-1">
-                        {toDateKey(item.startDate) === selectedDateKey && (
-                          <Badge variant="neutral" className="text-xs">Start</Badge>
-                        )}
-                        {toDateKey(item.dueDate) === selectedDateKey && (
-                          <Badge variant="neutral" className="text-xs">Due</Badge>
-                        )}
-                      </div>
+          <div className="flex flex-wrap gap-2 items-start">
+          {phaseMilestones.length > 0 && (
+            <div>
+              <span className="font-heading text-[0.65rem] uppercase text-ink-muted block mb-1">Phase milestones</span>
+              <div className="flex flex-wrap gap-1.5">
+                {phaseMilestones.map((item) => (
+                  <div
+                    key={item.phase._id || item.phase.id}
+                    className="flex items-center justify-between gap-2 py-1 px-2 border border-border bg-background rounded-none font-body text-xs"
+                  >
+                    <span className="font-body text-xs truncate">{item.phase.title}</span>
+                    <div className="flex shrink-0 gap-0.5">
+                      {toDateKey(item.startDate) === selectedDateKey && (
+                        <Badge variant="neutral" className="text-[0.6rem] !py-0 !px-1.5 !min-h-0">Start</Badge>
+                      )}
+                      {toDateKey(item.dueDate) === selectedDateKey && (
+                        <Badge variant="neutral" className="text-[0.6rem] !py-0 !px-1.5 !min-h-0">Due</Badge>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
-            {subStepsForDay.length > 0 ? (
-              <div>
-                <span className="font-heading text-xs uppercase text-ink-muted block mb-2">Tasks</span>
-                <div className="flex flex-col gap-2">
-                  {subStepsForDay.map((item) => {
-                    const status = item.subStep.status ?? (item.subStep.completed ? 'completed' : 'pending')
-                    return (
-                      <Card
-                        key={`${item.phase._id || item.phase.id}-${item.subStep.order}`}
-                        variant="default"
-                        className="p-3 cursor-pointer hover:border-primary transition-colors rounded-none"
-                        onClick={() => handleOpenSubStep(item.phase, item.subStep)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            handleOpenSubStep(item.phase, item.subStep)
+            </div>
+          )}
+          {subStepsForDay.length > 0 ? (
+            <div>
+              <span className="font-heading text-[0.65rem] uppercase text-ink-muted block mb-1">Tasks</span>
+              <div className="flex flex-wrap gap-1.5">
+                {subStepsForDay.map((item) => {
+                  const status = item.subStep.status ?? (item.subStep.completed ? 'completed' : 'pending')
+                  return (
+                    <Card
+                      key={`${item.phase._id || item.phase.id}-${item.subStep.order}`}
+                      variant="default"
+                      className="p-2 cursor-pointer hover:border-primary transition-colors rounded-none min-w-[160px]"
+                      onClick={() => handleOpenSubStep(item.phase, item.subStep)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleOpenSubStep(item.phase, item.subStep)
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-body text-xs truncate">{item.subStep.title || 'Untitled'}</span>
+                        <Badge
+                          variant={
+                            status === 'completed' ? 'success' :
+                            status === 'in_progress' ? 'development' :
+                            status === 'waiting_client' ? 'holding' : 'neutral'
                           }
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-body text-sm truncate">{item.subStep.title || 'Untitled'}</span>
-                          <Badge
-                            variant={
-                              status === 'completed' ? 'success' :
-                              status === 'in_progress' ? 'development' :
-                              status === 'waiting_client' ? 'holding' : 'neutral'
-                            }
-                            className="shrink-0"
-                          >
-                            {TASK_STATUS_LABELS[status] || status}
-                          </Badge>
-                        </div>
-                        <span className="font-body text-xs text-ink-muted block mt-1">
-                          {item.phase.title}
-                        </span>
-                      </Card>
-                    )
-                  })}
-                </div>
+                          className="shrink-0 text-[0.6rem] !py-0 !px-1.5 !min-h-0"
+                        >
+                          {TASK_STATUS_LABELS[status] || status}
+                        </Badge>
+                      </div>
+                      <span className="font-body text-[0.65rem] text-ink-muted block mt-0.5">
+                        {item.phase.title}
+                      </span>
+                    </Card>
+                  )
+                })}
               </div>
-            ) : (
-              selectedDateKey === projectDueDateKey ? (
-                <p className="font-body text-sm text-red-700 py-4">Project ending</p>
+            </div>
+          ) : (
+            <div>
+              <span className="font-heading text-[0.65rem] uppercase text-ink-muted block mb-1">Tasks</span>
+              {selectedDateKey === projectDueDateKey ? (
+                <p className="font-body text-xs text-red-700 py-1">Project ending</p>
               ) : !hasAnyItems ? (
-                <p className="font-body text-sm text-ink-muted py-4">
+                <p className="font-body text-xs text-ink-muted py-1">
                   No tasks with dates yet. Add due dates to sub-steps in the Workspace.
                 </p>
               ) : (
-                <p className="font-body text-sm text-ink-muted py-4">
+                <p className="font-body text-xs text-ink-muted py-1">
                   No tasks on this day.
                 </p>
-              )
-            )}
+              )}
+            </div>
+          )}
           </div>
+        </div>
+
+        <div className="border border-t-0 border-border rounded-none p-8 bg-surface">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(d) => d && setSelectedDate(d)}
+            defaultMonth={project?.dueDate ? new Date(project.dueDate) : undefined}
+            className="rounded-none [--cell-size:4rem] text-base"
+            classNames={{ today: 'rounded-none' }}
+            components={{ DayButton: CalendarDayWithItems }}
+          />
         </div>
       </div>
 

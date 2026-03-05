@@ -184,10 +184,7 @@ const WeekTimeline = ({
 
     if (vertical) {
       return (
-        <div className="flex flex-col gap-1 min-w-[220px] shrink-0 flex-shrink-0">
-          <h3 className="font-heading text-xs text-ink uppercase tracking-wide">
-            Timeline
-          </h3>
+        <div className="flex flex-col gap-0.5 min-w-[220px] shrink-0 flex-shrink-0">
           {!hasContent ? (
             <p className="font-body text-xs text-ink-muted">No tasks with dates.</p>
           ) : (
@@ -198,10 +195,7 @@ const WeekTimeline = ({
     }
 
     return (
-      <div className="flex flex-col gap-1 w-full">
-        <h3 className="font-heading text-sm text-ink uppercase tracking-wide">
-          Timeline
-        </h3>
+      <div className="flex flex-col gap-0.5 w-full">
         {!hasContent ? (
           <p className="font-body text-xs text-ink-muted">No tasks with dates.</p>
         ) : (
@@ -270,20 +264,14 @@ const WeekTimeline = ({
 
   if (vertical) {
     return (
-      <div className="flex flex-col gap-1 min-w-[220px] shrink-0 flex-shrink-0">
-        <h3 className="font-heading text-xs text-ink uppercase tracking-wide">
-          Timeline
-        </h3>
+      <div className="flex flex-col gap-0.5 min-w-[220px] shrink-0 flex-shrink-0">
         {rulerTrack}
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <h3 className="font-heading text-sm text-ink uppercase tracking-wide">
-        Timeline
-      </h3>
+    <div className="flex flex-col gap-0.5 w-full">
       {rulerTrack}
     </div>
   )

@@ -4,8 +4,9 @@ import SubStep from '../SubStep'
 /**
  * Draggable and droppable SubStep card for Kanban.
  * useDraggable: cross-column drag. useDroppable: receive drops for same-column reorder.
+ * canDrag: when false, card is not draggable (e.g. client can only drag waiting_client -> completed).
  */
-const KanbanSubStep = ({ subStep, cardVariant, onOpen, children }) => {
+const KanbanSubStep = ({ subStep, cardVariant, canDrag = true, onOpen, children }) => {
   const id = String(subStep._id ?? subStep.id ?? `substep-${subStep.order ?? 0}`)
   const {
     attributes,
@@ -19,6 +20,7 @@ const KanbanSubStep = ({ subStep, cardVariant, onOpen, children }) => {
       subStep,
       status: subStep?.status ?? (subStep?.completed ? 'completed' : 'pending'),
     },
+    disabled: !canDrag,
   })
   const { setNodeRef: setDroppableRef } = useDroppable({ id })
   const setNodeRef = (node) => {
@@ -34,30 +36,16 @@ const KanbanSubStep = ({ subStep, cardVariant, onOpen, children }) => {
     : { opacity: isDragging ? 0.5 : 1 }
 
   return (
-    <div ref={setNodeRef} style={style} className="phase-cycle-kanban-card">
-      <div className="flex items-start gap-2">
-        <div
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-          className="flex-shrink-0 mt-5 cursor-grab active:cursor-grabbing text-ink-muted hover:text-ink p-1 -ml-1 rounded-none touch-none"
-          aria-label="Drag to reorder or change status"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="opacity-60">
-            <circle cx="5" cy="4" r="1.5" />
-            <circle cx="11" cy="4" r="1.5" />
-            <circle cx="5" cy="8" r="1.5" />
-            <circle cx="11" cy="8" r="1.5" />
-            <circle cx="5" cy="12" r="1.5" />
-            <circle cx="11" cy="12" r="1.5" />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <SubStep subStep={subStep} cardVariant={cardVariant} onOpen={onOpen}>
-            {children}
-          </SubStep>
-        </div>
-      </div>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`phase-cycle-kanban-card ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      {...(canDrag ? { ...attributes, ...listeners } : {})}
+      aria-label={canDrag ? 'Drag to reorder or change status. Click to open.' : undefined}
+    >
+      <SubStep subStep={subStep} cardVariant={cardVariant} onOpen={onOpen}>
+        {children}
+      </SubStep>
     </div>
   )
 }
