@@ -1,8 +1,0 @@
-/* TeamStatusBanner — layout and spacing only */
-.team-status-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  margin-bottom: 1rem;
-}

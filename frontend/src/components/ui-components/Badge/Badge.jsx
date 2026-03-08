@@ -15,7 +15,7 @@ const badgeVariants = cva(
         // Project Status Labels (per design-pattern)
         holding: "bg-gray-100 text-gray-700 border border-gray-200",
         open: "bg-emerald-50 text-emerald-800 border border-emerald-300",
-        ready: "bg-emerald-50 text-emerald-800 border border-emerald-300",
+        ready: "bg-emerald-200 text-emerald-900 border-2 border-emerald-600 font-extrabold shadow-sm",
         development: "bg-emerald-50 text-emerald-800 border border-emerald-300",
         completed: "bg-gray-100 text-gray-700 border border-gray-200",
         cancelled: "bg-gray-100 text-gray-400 border border-gray-200",

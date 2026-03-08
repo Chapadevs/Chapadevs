@@ -242,6 +242,11 @@ function ProjectDetail() {
     loadProject()
   }
 
+  const handleProjectUpdate = (updatedProject) => {
+    setProject((prev) => applyProjectUpdate(updatedProject, prev))
+    loadProject()
+  }
+
   // --- Effects & Auth ---
   const isNotAuthorized = error && typeof error === 'string' && error.toLowerCase().includes('not authorized')
   const hasOverviewFromState = location.state?.description != null || location.state?.title != null
@@ -291,7 +296,7 @@ function ProjectDetail() {
   const canGeneratePreviews = permissions.isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT
 
   return (
-    <SidebarProvider>
+    <SidebarProvider style={{ "--sidebar-width": "12rem", "--sidebar-width-icon": "2.5rem" }}>
       <div className="flex flex-col min-h-screen w-full bg-surface">
         <div className="flex flex-1 overflow-hidden">
           <ProjectSidebar
@@ -306,30 +311,19 @@ function ProjectDetail() {
             hasCommentsNotifications={hasCommentsNotifications}
           />
 
-          {/* Increased padding-top, reduced top proximity, fully center main content */}
-          <SidebarInset className="p-8">
-            <div className="mx-auto max-w-7xl w-full justify-start">
-              <div className="mb-8 flex items-center gap-3">
-                {/* Mobile/collapsed back trigger button */}
-                <Button 
-                  to="/projects" 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-fit text-ink-muted hover:text-ink pl-0 text-sm"
-                >
-                  ← Back to Projects
-                </Button>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-bold">{project.title}</h1>
-                  <Badge variant={project.status?.toLowerCase() || 'default'} className="text-[10px] px-1.5 py-0 h-fit leading-none">
-                    {project.status}
-                  </Badge>
-                </div>
+          {/* Constrained width, centered content per design system */}
+          <SidebarInset className="flex flex-col items-center p-4 md:p-6">
+            <div className="w-full max-w-3xl mx-auto min-w-0">
+              <div className="mb-6 flex flex-col items-center gap-2">
+                <Badge variant={project.status?.toLowerCase() || 'default'} className="text-[10px] px-1.5 py-0 h-fit leading-none">
+                  {project.status}
+                </Badge>
+                <h1 className="text-lg font-bold text-center">{project.title}</h1>
               </div>
 
               {error && <Alert variant="error" className="mb-6">{error}</Alert>}
 
-              <section>
+              <section className="min-w-0 w-full">
                 {activeTab === 'ai-preview' && showAIPreviewsSection && (
                   <AIPreviewTab
                     project={project}
@@ -368,6 +362,7 @@ function ProjectDetail() {
                     project={project}
                     canUploadAttachments={permissions.canUploadAttachments}
                     onPhaseUpdate={handlePhaseUpdate}
+                    onProjectUpdate={handleProjectUpdate}
                   />
                 )}
                 {activeTab === 'activity' && (

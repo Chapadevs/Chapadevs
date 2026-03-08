@@ -88,7 +88,7 @@ const ActivityTab = ({ project }) => {
       <h3 className="project-tab-panel-title font-heading text-sm uppercase tracking-wider border-l-4 border-primary pl-3 mb-4">
         Activity
       </h3>
-      <p className="text-ink-muted text-sm mb-6">
+      <p className="text-ink-muted text-sm mb-4">
         Recent actions on this project. Client and team see the same feed.
       </p>
       {error && (

@@ -64,7 +64,7 @@ const projectPhaseSchema = new mongoose.Schema(
           notes: { type: String, default: '' },
           status: {
             type: String,
-            enum: ['pending', 'waiting_client', 'in_progress', 'completed'],
+            enum: ['pending', 'client_approval', 'in_progress', 'completed'],
             default: 'pending',
           },
           startDate: { type: Date, default: null },

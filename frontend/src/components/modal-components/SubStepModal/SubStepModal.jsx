@@ -21,7 +21,7 @@ function getSubStepStartDate(source) {
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
-  { value: 'waiting_client', label: 'Waiting on client' },
+  { value: 'client_approval', label: 'Waiting on client' },
   { value: 'in_progress', label: 'In progress' },
   { value: 'completed', label: 'Completed' },
 ]
@@ -147,10 +147,10 @@ function SubStepModal({
   const handleSave = async () => {
     setSaveValidationError(null)
     const isCompleted = currentSubStep?.status === 'completed' || currentSubStep?.completed === true
-    const isWaitingClient = status === 'waiting_client'
+    const isClientApproval = status === 'client_approval'
     const startIso = startDate ? new Date(startDate).toISOString() : null
     const dueIso = dueDate ? new Date(dueDate).toISOString() : null
-    if (!isCompleted && !isWaitingClient && startIso && dueIso) {
+    if (!isCompleted && !isClientApproval && startIso && dueIso) {
       const start = new Date(startIso)
       const due = new Date(dueIso)
       if (due.getTime() < start.getTime()) {
@@ -159,14 +159,14 @@ function SubStepModal({
       }
     }
     let estimatedDurationDays = currentSubStep?.estimatedDurationDays ?? null
-    if (!isCompleted && !isWaitingClient && startIso && dueIso) {
+    if (!isCompleted && !isClientApproval && startIso && dueIso) {
       const start = new Date(startIso)
       const due = new Date(dueIso)
       estimatedDurationDays = Math.max(1, Math.round((due.getTime() - start.getTime()) / MS_PER_DAY))
     }
     const datePayload = isCompleted
       ? {}
-      : isWaitingClient
+      : isClientApproval
         ? { dueDate: dueIso }
         : { startDate: startIso, dueDate: dueIso, estimatedDurationDays }
     const payload = {
@@ -565,16 +565,27 @@ function SubStepModal({
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {canEditDates ? (
-                    status === 'waiting_client' ? (
-                      <label className="substep-modal-field col-span-2">
-                        <span className="substep-modal-label">Client approval due</span>
-                        <input
-                          type="date"
-                          value={dueDate}
-                          onChange={(e) => setDueDate(e.target.value)}
-                          className="substep-modal-select w-full rounded-none border border-border bg-surface px-3 py-2 font-body text-sm"
-                        />
-                      </label>
+                    status === 'client_approval' ? (
+                      <>
+                        <label className="substep-modal-field">
+                          <span className="substep-modal-label">Start date</span>
+                          <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="substep-modal-select w-full rounded-none border border-border bg-surface px-3 py-2 font-body text-sm"
+                          />
+                        </label>
+                        <label className="substep-modal-field">
+                          <span className="substep-modal-label">Client approval due</span>
+                          <input
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="substep-modal-select w-full rounded-none border border-border bg-surface px-3 py-2 font-body text-sm"
+                          />
+                        </label>
+                      </>
                     ) : (
                       <>
                         <label className="substep-modal-field">
@@ -599,8 +610,11 @@ function SubStepModal({
                     )
                   ) : (
                     <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-muted font-body">
-                      {status === 'waiting_client' ? (
-                        dueDate && <span>Approve by: {formatDateOnly(dueDate)}</span>
+                      {status === 'client_approval' ? (
+                        <>
+                          {startDate && <span>Start: {formatDateOnly(startDate)}</span>}
+                          {dueDate && <span>Approve by: {formatDateOnly(dueDate)}</span>}
+                        </>
                       ) : (
                         <>
                           {startDate && <span>Start: {formatDateOnly(startDate)}</span>}
@@ -619,10 +633,14 @@ function SubStepModal({
                 <p><strong>Title:</strong> {subStep?.title || '—'}</p>
                 {subStep?.notes && <p><strong>Notes:</strong> {subStep.notes}</p>}
                 <p><strong>Status:</strong> {STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status}</p>
-                {(status === 'waiting_client' ? dueDate : startDate || dueDate || (currentSubStep?.completedAt && (currentSubStep?.status === 'completed' || currentSubStep?.completed))) && (
+                {(status === 'client_approval' ? (startDate || dueDate) : startDate || dueDate || (currentSubStep?.completedAt && (currentSubStep?.status === 'completed' || currentSubStep?.completed))) && (
                   <p className="mt-1 text-sm text-ink-muted font-body">
-                    {status === 'waiting_client' ? (
-                      dueDate && `Approve by: ${formatDateOnly(dueDate)}`
+                    {status === 'client_approval' ? (
+                      <>
+                        {startDate && `Start: ${formatDateOnly(startDate)}`}
+                        {startDate && dueDate && ' · '}
+                        {dueDate && `Approve by: ${formatDateOnly(dueDate)}`}
+                      </>
                     ) : (
                       <>
                         {startDate && `Start: ${formatDateOnly(startDate)}`}

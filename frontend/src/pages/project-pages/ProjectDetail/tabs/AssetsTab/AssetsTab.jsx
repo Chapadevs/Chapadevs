@@ -3,20 +3,29 @@ import { projectAPI } from '../../../../../services/api'
 import { PageTitle, Badge, Alert } from '../../../../../components/ui-components'
 import { isGcsUrl, getFileUrl, getFileIcon, isImage, getFileFormat } from '../../utils/attachmentUtils'
 
-const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate }) => {
+const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate, onProjectUpdate }) => {
   const [phaseFilter, setPhaseFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
   const [signedUrls, setSignedUrls] = useState({})
-  const [uploadPhaseId, setUploadPhaseId] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
 
   const { items, phases } = useMemo(() => {
     const phases = project?.phases || []
     const items = []
+    for (const att of project?.attachments || []) {
+      items.push({
+        ...att,
+        phaseName: 'General',
+        subStepName: null,
+        phaseId: null,
+        subStepId: null,
+        sourceType: 'additional-assets',
+      })
+    }
     for (const phase of phases) {
       const phaseName = phase.title || `Phase ${phase.order ?? ''}`
       for (const att of phase.attachments || []) {
@@ -87,15 +96,9 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate }) => 
     return getFileUrl(item.url)
   }
 
-  useEffect(() => {
-    if (phases.length > 0 && !uploadPhaseId) {
-      setUploadPhaseId(phases[0]._id || phases[0].id)
-    }
-  }, [phases, uploadPhaseId])
-
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0]
-    if (!file || !uploadPhaseId || !onPhaseUpdate) return
+    if (!file || !onProjectUpdate) return
     if (file.size > 10 * 1024 * 1024) {
       setUploadError('File size must be less than 10MB')
       return
@@ -105,12 +108,11 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate }) => 
       setUploadError(null)
       const formData = new FormData()
       formData.append('file', file)
-      const updated = await projectAPI.uploadAttachment(
+      const updated = await projectAPI.uploadProjectLevelAttachment(
         project._id || project.id,
-        uploadPhaseId,
         formData
       )
-      onPhaseUpdate(updated)
+      onProjectUpdate(updated)
       e.target.value = ''
     } catch (err) {
       setUploadError(err.response?.data?.message || err.message || 'Failed to upload file')
@@ -130,104 +132,111 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate }) => 
 
   if (!project) {
     return (
-      <section className="project-section max-w-[1200px] mx-auto p-8">
+      <section className="project-section w-full">
         <p className="font-body text-ink-muted">Loading project...</p>
       </section>
     )
   }
 
   return (
-    <section className="project-section max-w-[1200px] mx-auto p-8">
+    <section className="project-section w-full">
       <PageTitle>Assets</PageTitle>
-      <p className="font-body text-ink-muted mt-1 mb-6">
-        All images and files attached to phases and tasks. Copy links to share.
+      <p className="font-body text-ink-muted mt-1 mb-4">
+        General project images and files, plus assets attached to phases and tasks. Copy links to share.
       </p>
 
-      {canUploadAttachments && phases.length > 0 && (
-        <div className="mb-6 flex flex-col gap-3 p-4 border border-border bg-surface">
-          <h3 className="font-heading text-xs uppercase tracking-wide text-ink">Upload file</h3>
+      {(canUploadAttachments || phases.length > 0 || items.length > 0) ? (
+        <div className="mb-4 flex flex-col gap-3 p-3 border border-border bg-surface">
           {uploadError && <Alert variant="error">{uploadError}</Alert>}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="font-body text-sm text-ink">Phase:</label>
-              <select
-                value={uploadPhaseId}
-                onChange={(e) => setUploadPhaseId(e.target.value)}
-                className="font-body text-sm border border-border px-3 py-1.5 rounded-none bg-surface"
-              >
-                {phases.map((p) => (
-                  <option key={p._id || p.id} value={p._id || p.id}>
-                    {p.title || `Phase ${p.order ?? ''}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-muted-foreground font-body text-xs">Max file size: 10MB</p>
-            <label className="inline-block cursor-pointer">
-              <input
-                type="file"
-                accept="image/*,.pdf,.doc,.docx"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                className="hidden"
-              />
-              <span className="inline-block font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity px-6 py-3">
-                {uploading ? 'Uploading...' : '+ Upload File'}
-              </span>
-            </label>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            {canUploadAttachments && (
+              <>
+                <div className="flex flex-col gap-1 items-center">
+                  <label className="font-heading text-xs uppercase tracking-wide text-ink-muted">Upload file</label>
+                  <label className="cursor-pointer shrink-0 flex flex-col items-center gap-0.5">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                    <span className="inline-block font-button text-xs bg-primary text-white rounded-none hover:opacity-90 transition-opacity px-3 py-1.5">
+                      {uploading ? 'Uploading...' : '+ Choose file'}
+                    </span>
+                    <span className="font-body text-xs text-ink-muted">Max 10MB</span>
+                  </label>
+                </div>
+                {(phases.length > 0 || items.length > 0) && (
+                  <div className="h-6 w-px bg-border shrink-0 self-center" aria-hidden />
+                )}
+              </>
+            )}
+            {(phases.length > 0 || items.length > 0) && (
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+                {phases.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <label className="font-body text-xs text-ink-muted shrink-0">Phase</label>
+                    <select
+                      value={phaseFilter}
+                      onChange={(e) => setPhaseFilter(e.target.value)}
+                      className="font-body text-xs border border-border px-2 py-1.5 rounded-none bg-surface min-w-[120px]"
+                    >
+                      <option value="">All phases</option>
+                      {phases.map((p) => (
+                        <option key={p._id || p.id} value={p._id || p.id}>
+                          {p.title || `Phase ${p.order ?? ''}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <label className="font-body text-xs text-ink-muted shrink-0">Source</label>
+                  <select
+                    value={sourceFilter}
+                    onChange={(e) => setSourceFilter(e.target.value)}
+                    className="font-body text-xs border border-border px-2 py-1.5 rounded-none bg-surface min-w-[120px]"
+                  >
+                    <option value="">All</option>
+                    <option value="additional-assets">Additional assets</option>
+                    <option value="task">Task attachments</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="font-body text-xs text-ink-muted shrink-0">Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="font-body text-xs border border-border px-2 py-1.5 rounded-none bg-surface min-w-[120px]"
+                  >
+                    <option value="">All</option>
+                    <option value="ok">OK</option>
+                    <option value="changes_needed">Changes needed</option>
+                  </select>
+                </div>
+                {(phaseFilter || sourceFilter || statusFilter) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhaseFilter('')
+                      setSourceFilter('')
+                      setStatusFilter('')
+                    }}
+                    className="font-button text-xs text-primary hover:underline shrink-0"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {(phases.length > 0 || items.length > 0) && (
-        <div className="mb-4 flex flex-wrap items-center gap-4">
-          {phases.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label className="font-body text-sm text-ink">Filter by phase:</label>
-              <select
-                value={phaseFilter}
-                onChange={(e) => setPhaseFilter(e.target.value)}
-                className="font-body text-sm border border-border px-3 py-1.5 rounded-none bg-surface"
-              >
-                <option value="">All phases</option>
-                {phases.map((p) => (
-                  <option key={p._id || p.id} value={p._id || p.id}>
-                    {p.title || `Phase ${p.order ?? ''}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <label className="font-body text-sm text-ink">Source:</label>
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="font-body text-sm border border-border px-3 py-1.5 rounded-none bg-surface"
-            >
-              <option value="">All</option>
-              <option value="additional-assets">Additional assets</option>
-              <option value="task">Task attachments</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="font-body text-sm text-ink">Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="font-body text-sm border border-border px-3 py-1.5 rounded-none bg-surface"
-            >
-              <option value="">All</option>
-              <option value="ok">OK</option>
-              <option value="changes_needed">Changes needed</option>
-            </select>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {filteredItems.length === 0 ? (
         <p className="font-body text-ink-muted py-8">
-          No attachments yet. {canUploadAttachments && phases.length > 0 ? 'Upload files above or in task modals.' : 'Upload files in task modals.'}
+          No attachments yet. {canUploadAttachments ? 'Upload files above or in task modals.' : 'Upload files in task modals.'}
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

@@ -1,5 +1,3 @@
-import './TeamStatusBanner.css'
-
 const TeamStatusBanner = ({ project }) => {
   if (project.status !== 'Open' && project.status !== 'Ready') return null
 
@@ -32,8 +30,14 @@ const TeamStatusBanner = ({ project }) => {
   }
 
   return (
-    <div className={`team-status-banner ${isOpen ? 'team-open' : 'team-closed'}`}>
-      <span className="team-status-text">{statusText}</span>
+    <div
+      className={
+        isOpen
+          ? 'flex items-center gap-2 py-0.5 px-3 mb-3 font-body text-sm text-ink-muted bg-primary/5 border-l-2 border-primary'
+          : 'flex items-center gap-2 py-0.5 px-3 mb-3 font-body text-sm text-ink-muted bg-surface-gray border-l-2 border-ink-muted'
+      }
+    >
+      {statusText}
     </div>
   )
 }

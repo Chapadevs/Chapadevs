@@ -86,12 +86,10 @@ const OverviewTab = ({
   const readyCount = (clientReady ? 1 : 0) + programmerReadyCount
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
         {/* Development + Ready/Not ready — one section, same row */}
         {(hasDevActions || hasTeamActions) && (
-        <div className="flex flex-col gap-3 pb-6 border-b border-border">
-          <h4 className="text-sm font-heading font-bold uppercase text-ink">Development</h4>
-          {project.status === 'Ready' && permissions.isClientOwner && (
+        <div className="flex flex-col gap-3 pb-4 border-b border-border items-center text-center">          {project.status === 'Ready' && permissions.isClientOwner && (
             <p className="font-body text-sm text-ink-muted">
               Waiting for programmer to start the project.
             </p>
@@ -104,7 +102,7 @@ const OverviewTab = ({
           {project.status === 'Open' && !project.clientMarkedReady && permissions.isClientOwner && (
             <p className="text-ink-muted text-sm">Mark ready once you&apos;ve reviewed the project; then programmers can create the timeline and confirm ready.</p>
           )}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 justify-center">
             {permissions.canUnconfirmReady && onUnconfirmReady && (
               <Button variant="secondary" size="sm" onClick={onUnconfirmReady} disabled={unconfirmingReady}>
                 Not ready
@@ -159,7 +157,7 @@ const OverviewTab = ({
         </div>
       )}
       {/* Project summary (read-only) */}
-      <div className="flex flex-col gap-3 pb-6 border-b border-border">
+      <div className="flex flex-col gap-3 pb-4 border-b border-border">
         <div className="flex items-center justify-between gap-4">
           <h4 className="text-sm font-heading font-bold uppercase text-ink">Project summary</h4>
           {permissions.canEdit && onEditSave && (
@@ -168,9 +166,9 @@ const OverviewTab = ({
             </Button>
           )}
         </div>
-        {/* Dates on top, duration (weeks) on bottom — centered, no padding/margin */}
-        <div className="flex flex-col items-center justify-center text-center border-l-4 border-primary font-body p-0 m-0 mb-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 p-0 m-0">
+        {/* Dates on top, duration (weeks) on bottom — left-aligned, no padding/margin */}
+        <div className="flex flex-col items-start justify-start text-left border-l-4 border-primary font-body pl-3 m-0 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 w-fit gap-x-2 gap-y-1 p-0 m-0 mb-2">
             <div className="p-0 m-0">
               <dt className="text-xs font-heading uppercase text-ink-muted tracking-wide p-0 m-0">Start date</dt>
               <dd className="font-heading font-bold text-lg text-ink p-0 m-0">{formatDate(project.startDate)}</dd>
@@ -192,15 +190,9 @@ const OverviewTab = ({
         <div className="flex flex-col gap-6 font-body text-sm">
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <div>
-              <dt className="text-ink-muted">Status</dt>
-              <dd className="font-medium">{project.status ?? '—'}</dd>
-            </div>
-            <div>
               <dt className="text-ink-muted">Project type</dt>
               <dd className="font-medium">{project.projectType ?? '—'}</dd>
             </div>
-          </dl>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <div>
               <dt className="text-ink-muted">Client</dt>
               <dd className="font-medium">{clientName}</dd>
@@ -210,12 +202,6 @@ const OverviewTab = ({
               <dd className="font-medium">
                 {programmerNames.length ? programmerNames.join(', ') : '—'}
               </dd>
-            </div>
-          </dl>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-            <div>
-              <dt className="text-ink-muted">Team closed</dt>
-              <dd className="font-medium">{project.teamClosed ? 'Yes' : 'No'}</dd>
             </div>
             <div>
               <dt className="text-ink-muted">Ready confirmed</dt>

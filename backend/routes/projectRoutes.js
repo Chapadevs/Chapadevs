@@ -16,6 +16,7 @@ import {
   answerQuestion,
   approvePhase,
   uploadAttachment,
+  uploadProjectLevelAttachment,
   deleteAttachment,
   updateAttachment,
   getAttachmentSignedUrls,
@@ -70,6 +71,7 @@ router.put('/:id/complete', authorizeProjectAccess, markProjectCompleted)
 router.put('/:id/cancel', authorizeProjectAccess, markProjectCancelled)
 router.get('/:id/previews', authorizeProjectAccess, getProjectPreviews)
 router.post('/:id/attachments/signed-urls', authorizeProjectAccess, getProjectAttachmentSignedUrls)
+router.post('/:id/attachments', authorizeProjectAccess, upload.single('file'), uploadProjectLevelAttachment)
 router.get('/:id/activity', authorizeProjectAccess, getProjectActivity)
 router.get('/:id/phases/proposal', authorizeProjectAccess, getPhaseProposal)
 router.patch('/:id/phases/proposal', authorizeProjectAccess, savePhaseProposal)

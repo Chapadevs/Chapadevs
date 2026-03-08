@@ -6,7 +6,8 @@ import {
   MessageSquare,
   History,
   Calendar,
-  Image
+  Image,
+  ArrowLeft
 } from "lucide-react";
 
 import {
@@ -14,11 +15,12 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger
+  SidebarTrigger,
+  Button
 } from "@/components/ui-components";
 import NotificationBadge from "../../../../../components/ui-components/NotificationBadge/NotificationBadge";
 import StatusDropdown from "../../../../../components/ui-components/StatusDropdown/StatusDropdown";
@@ -55,12 +57,24 @@ const ProjectSidebar = ({
     >
 
       <SidebarTrigger 
-        className="absolute right-[-14px] top-20 z-50 h-7 w-7 rounded-full border bg-white shadow-md hover:bg-gray-50 flex items-center justify-center" 
+        className="absolute right-[-12px] top-3 z-50 h-5 w-5 rounded-full border bg-white shadow-md hover:bg-gray-50 flex items-center justify-center [&>svg]:size-3" 
       />
 
-      <SidebarContent>
-        <SidebarGroup>
-          <div className="flex w-full justify-center pt-2 pb-2 group-data-[collapsible=icon]:pb-4">
+      <SidebarHeader className="pt-2 pb-0 flex flex-row justify-start w-full group-data-[collapsible=icon]:justify-center">
+        <Button
+          to="/projects"
+          variant="ghost"
+          size="sm"
+          className="w-fit justify-start p-2 mt-1 text-ink-muted hover:text-ink group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:-translate-x-0.5"
+          title="Back to Projects"
+        >
+          <ArrowLeft className="size-4 shrink-0" />
+        </Button>
+      </SidebarHeader>
+
+      <SidebarContent className="gap-1">
+        <SidebarGroup className="p-1 pt-0 pl-0">
+          <div className="flex w-full justify-center pt-1 pb-1 mb-2 group-data-[collapsible=icon]:pb-2">
             <StatusDropdown 
               trigger={
                 <div className="relative cursor-pointer">
@@ -81,9 +95,6 @@ const ProjectSidebar = ({
               } 
             />
           </div>
-          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
-            Navigation
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               {navItems.map((item) => {
@@ -95,7 +106,7 @@ const ProjectSidebar = ({
                       onClick={() => onTabChange(item.id)}
                       isActive={activeTab === item.id}
                       tooltip={item.label}
-                      className="px-1.5 [&>svg]:size-3"
+                      className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
                     >
                       <item.icon className="size-3 shrink-0" /> 
                       <span className="group-data-[collapsible=icon]:hidden">

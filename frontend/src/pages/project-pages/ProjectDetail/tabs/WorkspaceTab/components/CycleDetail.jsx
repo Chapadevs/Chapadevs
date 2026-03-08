@@ -85,7 +85,7 @@ const CycleDetail = ({
   const subSteps = localPhase.subSteps || []
 
   const subStepsByStatus = useMemo(() => {
-    const grouped = { pending: [], in_progress: [], waiting_client: [], completed: [] }
+    const grouped = { pending: [], in_progress: [], client_approval: [], completed: [] }
     for (const s of sortedSubSteps) {
       const st = s?.status ?? (s?.completed ? 'completed' : 'pending')
       if (grouped[st]) grouped[st].push(s)
@@ -130,15 +130,15 @@ const CycleDetail = ({
     : null
 
   const subStepsProgress = subSteps.length > 0 ? (completedSubSteps / subSteps.length) * 100 : null
-  const hasWaitingClient = sortedSubSteps.some((s) => getSubStepStatus(s) === 'waiting_client')
+  const hasClientApproval = sortedSubSteps.some((s) => getSubStepStatus(s) === 'client_approval')
   const hasInProgress = sortedSubSteps.some((s) => getSubStepStatus(s) === 'in_progress')
   const hasPending = sortedSubSteps.some((s) => getSubStepStatus(s) === 'pending')
 
   const currentStepDisplayStatus =
     localPhase.status === 'completed' || allSubStepsCompleted
       ? 'completed'
-      : hasWaitingClient
-        ? 'waiting_client'
+      : hasClientApproval
+        ? 'client_approval'
         : hasInProgress
           ? 'in_progress'
           : hasPending
@@ -150,8 +150,8 @@ const CycleDetail = ({
   const currentStepDisplayLabel =
     currentStepDisplayStatus === 'completed'
       ? 'Completed'
-      : currentStepDisplayStatus === 'waiting_client'
-        ? 'Waiting on client'
+      : currentStepDisplayStatus === 'client_approval'
+        ? 'Client approval'
         : currentStepDisplayStatus === 'in_progress'
           ? 'In progress'
           : currentStepDisplayStatus === 'pending'
@@ -160,7 +160,7 @@ const CycleDetail = ({
 
     const currentSubStep =
     sortedSubSteps.find(s => getSubStepStatus(s) === 'in_progress') ||
-    sortedSubSteps.find(s => getSubStepStatus(s) === 'waiting_client') ||
+    sortedSubSteps.find(s => getSubStepStatus(s) === 'client_approval') ||
     sortedSubSteps.find(s => getSubStepStatus(s) === 'pending') ||
     null
 
@@ -249,7 +249,7 @@ const CycleDetail = ({
                 </div>
               )}
 
-              {currentSubStep && (getSubStepStatus(currentSubStep) === 'pending' || getSubStepStatus(currentSubStep) === 'waiting_client' || getSubStepStatus(currentSubStep) === 'in_progress') ? (
+              {currentSubStep && (getSubStepStatus(currentSubStep) === 'pending' || getSubStepStatus(currentSubStep) === 'client_approval' || getSubStepStatus(currentSubStep) === 'in_progress') ? (
                 <div className="phase-current-substep-card">
                   <SubStep
                     subStep={currentSubStep}
@@ -311,7 +311,7 @@ const CycleDetail = ({
                           !isPhaseLocked &&
                           ((canUpdateSubSteps && localPhase.status !== 'completed') ||
                             (canMoveSubStepToCompleted &&
-                              getSubStepStatus(subStep) === 'waiting_client' &&
+                              getSubStepStatus(subStep) === 'client_approval' &&
                               localPhase.status !== 'completed'))
                         }
                         onAddTask={(columnStatus) =>
@@ -327,6 +327,21 @@ const CycleDetail = ({
                         renderHeaderAction={(columnStatus) => {
                           if (columnStatus !== 'completed') return null
                           if ((isClientOwner || isAdmin) && localPhase.status !== 'completed') {
+                            if (localPhase.clientApproved) {
+                              return (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={loading}
+                                  onClick={() => handleApprove(false)}
+                                  className="!py-1 !px-2 text-xs w-full"
+                                  title="Unmark approval"
+                                >
+                                  Not approved
+                                </Button>
+                              )
+                            }
                             const approveDisabled = loading || !allSubStepsCompleted
                             return (
                               <div className="flex flex-col gap-1">

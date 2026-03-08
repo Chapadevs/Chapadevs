@@ -170,6 +170,19 @@ export const projectAPI = {
     return response.data
   },
 
+  uploadProjectLevelAttachment: async (projectId, formData) => {
+    const response = await api.post(
+      `/projects/${projectId}/attachments`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return response.data
+  },
+
   deleteAttachment: async (projectId, phaseId, attachmentId) => {
     const response = await api.delete(
       `/projects/${projectId}/phases/${phaseId}/attachments/${attachmentId}`

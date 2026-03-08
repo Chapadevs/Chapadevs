@@ -133,7 +133,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
 
   if (!hasPhases) {
     return (
-      <section className="project-section max-w-[1200px] mx-auto">
+      <section className="project-section w-full">
         <div className="font-body text-ink-muted py-8 text-center">
           <p className="mb-2">No phases yet. Set up your workspace first.</p>
           <p className="text-sm">Go to the Workspace tab to create and confirm your project timeline.</p>
@@ -143,7 +143,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
   }
 
   return (
-    <section className="project-section project-phases max-w-[1200px] mx-auto w-full flex flex-col items-center">
+    <section className="project-section project-phases w-full flex flex-col items-center">
       <h2 className="font-heading text-lg uppercase text-ink mb-4 w-full text-center">Project Calendar</h2>
 
       <div className="inline-flex flex-col items-stretch">
@@ -202,7 +202,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
                           variant={
                             status === 'completed' ? 'success' :
                             status === 'in_progress' ? 'development' :
-                            status === 'waiting_client' ? 'holding' : 'neutral'
+                            status === 'client_approval' ? 'holding' : 'neutral'
                           }
                           className="shrink-0 text-[0.6rem] !py-0 !px-1.5 !min-h-0"
                         >
@@ -236,7 +236,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
           </div>
         </div>
 
-        <div className="border border-t-0 border-border rounded-none p-8 bg-surface">
+        <div className="border border-t-0 border-border rounded-none p-4 md:p-6 bg-surface">
           <Calendar
             mode="single"
             selected={selectedDate}

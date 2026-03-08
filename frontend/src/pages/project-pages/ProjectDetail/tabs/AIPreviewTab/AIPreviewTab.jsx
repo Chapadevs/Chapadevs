@@ -134,7 +134,7 @@ const AIPreviewTab = ({
       ) : previews.length === 0 && !isClientOwner ? (
         <p className="project-previews-empty font-body text-sm text-ink-secondary">No AI preview yet.</p>
       ) : (
-        <div className="flex flex-nowrap gap-4 max-w-5xl items-start justify-center">
+        <div className="flex flex-nowrap gap-4 w-full items-start justify-center">
           {Array.from({ length: MAX_PREVIEWS_PER_PROJECT }, (_, i) => {
             const preview = previews[i]
             if (preview) {

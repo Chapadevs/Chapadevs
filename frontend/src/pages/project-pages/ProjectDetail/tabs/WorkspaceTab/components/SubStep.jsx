@@ -4,7 +4,7 @@ import './SubStep.css'
 
 const STATUS_LABELS = {
   pending: 'Pending',
-  waiting_client: 'Waiting on client',
+  client_approval: 'Client approval',
   in_progress: 'In progress',
   completed: 'Completed',
 }

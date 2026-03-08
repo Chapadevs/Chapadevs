@@ -9,13 +9,14 @@ import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../u
 import { getProjectDurationFromDates } from '../utils/projectDuration.js'
 import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
 import { getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
-import { uploadProjectAttachment, deleteProjectAttachment, getSignedUrlsForAttachments } from '../utils/projectAttachmentStorage.js'
+import { uploadProjectAttachment, uploadProjectLevelAttachment as uploadProjectLevelAttachmentToGcs, deleteProjectAttachment, getSignedUrlsForAttachments } from '../utils/projectAttachmentStorage.js'
 import { deleteProjectFully } from '../utils/projectDeletion.js'
 import { validateAttachmentForRequired } from '../utils/attachmentValidation.js'
 import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
 import { derivePhaseDatesFromSubSteps } from '../utils/phaseDateUtils.js'
 import { generateSubStepTodos } from '../utils/subStepTodoGenerator.js'
 import { createNotification } from './notificationController.js'
+import mongoose from 'mongoose'
 import asyncHandler from 'express-async-handler'
 import multer from 'multer'
 import path from 'path'
@@ -798,7 +799,7 @@ export const updatePhase = asyncHandler(async (req, res) => {
     }
   }
 
-  // Client can only move sub-steps from waiting_client to completed (approve tasks)
+  // Client can only move sub-steps from client_approval to completed (approve tasks)
   if (isClient && req.body.subSteps !== undefined && !(isProgrammer || req.user.role === 'admin')) {
     if (phase.status === 'completed') {
       res.status(400)
@@ -808,7 +809,7 @@ export const updatePhase = asyncHandler(async (req, res) => {
     const incomingSubSteps = req.body.subSteps
     if (!Array.isArray(incomingSubSteps) || incomingSubSteps.length !== existingSubSteps.length) {
       res.status(400)
-      throw new Error('Client can only update sub-step status from Waiting on client to Completed.')
+      throw new Error('Client can only update sub-step status from Client approval to Completed.')
     }
     const updatedSubSteps = existingSubSteps.map((existing) => {
       const incoming = incomingSubSteps.find(
@@ -818,7 +819,7 @@ export const updatePhase = asyncHandler(async (req, res) => {
       const existingStatus = existing.status ?? (existing.completed ? 'completed' : 'pending')
       const newStatus = incoming.status ?? (incoming.completed ? 'completed' : 'pending')
       const base = existing?.toObject ? existing.toObject() : { ...existing }
-      if (existingStatus === 'waiting_client' && newStatus === 'completed') {
+      if (existingStatus === 'client_approval' && newStatus === 'completed') {
         return {
           ...base,
           status: 'completed',
@@ -986,7 +987,7 @@ export const updatePhase = asyncHandler(async (req, res) => {
     )
   }
 
-  // Send notification to client when any sub-step changes to waiting_client
+  // Send notification to client when any sub-step changes to client_approval
   if (subStepStatusesBefore && isProgrammer && project.clientId && phase.subSteps?.length > 0) {
     const changedToWaiting = phase.subSteps.find((s, idx) => {
       const prev = subStepStatusesBefore.find(
@@ -994,7 +995,7 @@ export const updatePhase = asyncHandler(async (req, res) => {
       )
       const prevStatus = prev?.status ?? 'pending'
       const newStatus = s.status ?? 'pending'
-      return prevStatus !== 'waiting_client' && newStatus === 'waiting_client'
+      return prevStatus !== 'client_approval' && newStatus === 'client_approval'
     })
     if (changedToWaiting) {
       const taskTitle = changedToWaiting.title || 'A task'
@@ -1051,7 +1052,7 @@ export const updateSubStep = asyncHandler(async (req, res) => {
 
   const { subStepId, title, completed, notes, order, status, requiredAttachments } = req.body
 
-  const validSubStepStatuses = ['pending', 'waiting_client', 'in_progress', 'completed']
+  const validSubStepStatuses = ['pending', 'client_approval', 'in_progress', 'completed']
 
   if (!phase.subSteps) {
     phase.subSteps = []
@@ -1364,6 +1365,75 @@ export const uploadAttachment = asyncHandler(async (req, res) => {
 
   const updated = await ProjectPhase.findById(phase._id).lean()
   res.json(updated)
+})
+
+// @desc    Upload attachment to project (general assets, not tied to a phase)
+// @route   POST /api/projects/:id/attachments
+// @access  Private (assigned programmer, client, or admin)
+export const uploadProjectLevelAttachment = asyncHandler(async (req, res) => {
+  const projectId = req.params.id
+
+  const project = await Project.findById(projectId)
+  if (!project) {
+    res.status(404)
+    throw new Error('Project not found')
+  }
+
+  const isClient = project.clientId?.toString() === req.user._id.toString()
+  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
+  const userId = req.user._id.toString()
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+
+  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
+    res.status(403)
+    throw new Error('Not authorized to upload attachments')
+  }
+
+  if (!req.file) {
+    res.status(400)
+    throw new Error('No file uploaded')
+  }
+
+  const gcsUrl = await uploadProjectLevelAttachmentToGcs(
+    projectId,
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype || 'application/octet-stream'
+  )
+
+  const attachment = {
+    _id: new mongoose.Types.ObjectId(),
+    filename: req.file.originalname,
+    url: gcsUrl,
+    uploadedBy: req.user._id,
+    uploadedAt: new Date(),
+    type: req.file.mimetype || 'file',
+    status: 'ok',
+    changesNeededFeedback: null,
+  }
+
+  if (!project.attachments) {
+    project.attachments = []
+  }
+  project.attachments.push(attachment)
+  await project.save()
+
+  const updated = await Project.findById(projectId)
+    .populate('clientId', 'name email company status')
+    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
+    .populate('assignedProgrammerIds', 'name email skills bio hourlyRate status')
+    .populate('attachments.uploadedBy', 'name')
+    .lean()
+
+  const phases = await ProjectPhase.find({ projectId })
+    .populate('subSteps.assignedTo', 'name email avatar')
+    .populate('subSteps.attachments.uploadedBy', 'name')
+    .populate('attachments.uploadedBy', 'name')
+    .sort({ order: 1 })
+    .lean()
+
+  res.json({ ...updated, phases })
 })
 
 // @desc    Delete attachment from a phase

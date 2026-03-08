@@ -22,8 +22,8 @@
 }
 
 .project-phase-modal-enhanced {
-  max-width: 960px;
-  width: 95vw;
+  max-width: min(768px, 100%);
+  width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -206,6 +206,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-x: auto;
 }
 
 .phase-cycle-kanban {
@@ -536,7 +537,7 @@
   color: #2563eb;
 }
 
-.phase-cycle-step-status--waiting-client {
+.phase-cycle-step-status--client-approval {
   background: rgba(217, 119, 6, 0.15);
   color: #b45309;
 }
@@ -626,7 +627,7 @@
 }
 
 
-.substep-item.phase-cycle-card-style.substep-card--waiting-client .substep-card-title-row {
+.substep-item.phase-cycle-card-style.substep-card--client-approval .substep-card-title-row {
   border-left-color: #d97706;
 }
 
@@ -740,7 +741,7 @@
   border-color: var(--border-border, #e5e7eb);
 }
 
-.project-phase-modal-status-badge.status-waiting-client {
+.project-phase-modal-status-badge.status-client-approval {
   background-color: rgba(217, 119, 6, 0.15);
   color: #b45309;
   border-color: #d97706;

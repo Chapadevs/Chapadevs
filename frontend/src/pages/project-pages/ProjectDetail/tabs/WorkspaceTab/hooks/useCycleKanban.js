@@ -5,7 +5,7 @@ import { getSubStepStatus } from '../../../utils/workspaceUtils'
 
 /**
  * Hook for Kanban DnD: collision detection and drag handlers.
- * Programmers: full movement. Clients: only waiting_client -> completed.
+ * Programmers: full movement. Clients: only client_approval -> completed.
  */
 export function useCycleKanban({
   sortedSubSteps,
@@ -73,7 +73,7 @@ export function useCycleKanban({
         : active?.data?.current?.status ?? active?.data?.status ?? 'pending'
       const isClientMove = canMoveSubStepToCompleted && !canUpdateSubSteps
       const clientCanMoveToCompleted =
-        isClientMove && activeStatus === 'waiting_client'
+        isClientMove && activeStatus === 'client_approval'
       if (overId.startsWith('column-')) {
         const targetStatus = overId.replace('column-', '')
         const canDoStatusChange =

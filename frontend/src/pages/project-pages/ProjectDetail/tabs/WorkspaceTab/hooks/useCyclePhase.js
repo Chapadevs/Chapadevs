@@ -3,7 +3,7 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { projectAPI } from '../../../../../../services/api'
 import { findSubStepIndex, getSubStepStatus } from '../../../utils/workspaceUtils'
 
-const STATUS_ORDER = { pending: 0, in_progress: 1, waiting_client: 2, completed: 3 }
+const STATUS_ORDER = { pending: 0, in_progress: 1, client_approval: 2, completed: 3 }
 
 /**
  * Hook for cycle/phase API operations and state.
@@ -115,7 +115,7 @@ export function useCyclePhase({
       const currentStatus = getSubStepStatus(step)
       const canChange =
         canUpdateSubSteps ||
-        (canMoveSubStepToCompleted && currentStatus === 'waiting_client' && newStatus === 'completed')
+        (canMoveSubStepToCompleted && currentStatus === 'client_approval' && newStatus === 'completed')
       if (!canChange) return
       const updatedStep = { ...step, status: newStatus, completed: newStatus === 'completed' }
       const updatedSubSteps = subSteps.map((s, i) => (i === idx ? updatedStep : s))

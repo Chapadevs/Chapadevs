@@ -77,6 +77,42 @@ export async function uploadProjectAttachment(projectId, phaseId, fileBuffer, fi
 }
 
 /**
+ * Upload a project-level attachment (general assets, not tied to a phase).
+ * @param {string} projectId - Project ID
+ * @param {Buffer} fileBuffer - File content
+ * @param {string} filename - Original filename
+ * @param {string} mimeType - MIME type (e.g. image/jpeg)
+ * @returns {Promise<string>} Public URL of the uploaded file
+ */
+export async function uploadProjectLevelAttachment(projectId, fileBuffer, filename, mimeType) {
+  if (!projectId || !fileBuffer || !filename) {
+    throw new Error('projectId, fileBuffer, and filename are required')
+  }
+
+  try {
+    const client = getStorage()
+    const bucket = client.bucket(BUCKET_NAME)
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+    const ext = getExt(filename)
+    const safeFilename = `${uniqueSuffix}${ext}`
+    const objectPath = `${PREFIX}/${projectId}/general/${safeFilename}`
+
+    const file = bucket.file(objectPath)
+    await file.save(fileBuffer, {
+      metadata: {
+        contentType: mimeType || 'application/octet-stream',
+        cacheControl: 'public, max-age=31536000',
+      },
+    })
+
+    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`
+  } catch (err) {
+    console.warn('GCS project-level attachment upload failed:', err.message)
+    throw err
+  }
+}
+
+/**
  * Upload a chat attachment to GCS (project comments).
  * @param {string} projectId - Project ID
  * @param {Buffer} fileBuffer - File content

@@ -115,7 +115,7 @@ const WeekTimeline = ({
     }, {})
 
     const activeInProgress = rowsByStatus.in_progress
-    const activeWaiting = rowsByStatus.waiting_client
+    const activeWaiting = rowsByStatus.client_approval
     const activeSubSteps = [...(activeInProgress?.subSteps ?? []), ...(activeWaiting?.subSteps ?? [])]
     const activeStartPercents = [...(activeInProgress?.startPercents ?? []), ...(activeWaiting?.startPercents ?? [])]
     const activeDuePercents = [...(activeInProgress?.duePercents ?? []), ...(activeWaiting?.duePercents ?? [])]
@@ -149,8 +149,8 @@ const WeekTimeline = ({
       })
       .filter(Boolean)
 
-    const waitingClientSubSteps = subSteps.filter((ss) => getSubStepStatus(ss) === 'waiting_client')
-    const approvalDueMarkers = waitingClientSubSteps
+    const clientApprovalSubSteps = subSteps.filter((ss) => getSubStepStatus(ss) === 'client_approval')
+    const approvalDueMarkers = clientApprovalSubSteps
       .map((ss) => {
         const dueDate = ss.dueDate ? new Date(ss.dueDate) : null
         if (!dueDate || Number.isNaN(dueDate.getTime())) return null
@@ -179,6 +179,7 @@ const WeekTimeline = ({
         onBarClick={onBarClick}
         formatShortDate={formatShortDate}
         toPercent={toPercent}
+        allSubStepsCompleted={completedSubSteps.length === subSteps.length && subSteps.length > 0}
       />
     )
 
@@ -205,12 +206,12 @@ const WeekTimeline = ({
     )
   }
 
-  // Ruler mode - exclude completed and waiting_client (waiting_client shown as dot in gantt only)
+  // Ruler mode - exclude completed and client_approval (client_approval shown as dot in gantt only)
   const nonCompletedSubSteps = subSteps
     .map((ss, i) => ({ ss, originalIndex: i }))
     .filter(({ ss }) => {
       const st = getSubStepStatus(ss)
-      return st !== 'completed' && st !== 'waiting_client'
+      return st !== 'completed' && st !== 'client_approval'
     })
   const subStepMarkers = nonCompletedSubSteps
     .map(({ ss, originalIndex }) => {

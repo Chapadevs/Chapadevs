@@ -4,7 +4,7 @@ import SubStep from '../SubStep'
 /**
  * Draggable and droppable SubStep card for Kanban.
  * useDraggable: cross-column drag. useDroppable: receive drops for same-column reorder.
- * canDrag: when false, card is not draggable (e.g. client can only drag waiting_client -> completed).
+ * canDrag: when false, card is not draggable (e.g. client can only drag client_approval -> completed).
  */
 const KanbanSubStep = ({ subStep, cardVariant, canDrag = true, onOpen, children }) => {
   const id = String(subStep._id ?? subStep.id ?? `substep-${subStep.order ?? 0}`)

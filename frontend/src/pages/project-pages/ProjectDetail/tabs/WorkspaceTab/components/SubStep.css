@@ -8,18 +8,18 @@
 }
 
 .substep-status-badge--pending {
-  background: rgba(217, 119, 6, 0.15);
-  color: #b45309;
+  background: rgba(5, 150, 105, 0.08);
+  color: #047857;
 }
 
-.substep-status-badge--waiting-client {
-  background: rgba(217, 119, 6, 0.15);
-  color: #b45309;
+.substep-status-badge--client-approval {
+  background: rgba(5, 150, 105, 0.15);
+  color: #059669;
 }
 
 .substep-status-badge--in-progress {
-  background: rgba(37, 99, 235, 0.12);
-  color: #2563eb;
+  background: rgba(5, 150, 105, 0.2);
+  color: #059669;
 }
 
 .substep-status-badge--completed {
