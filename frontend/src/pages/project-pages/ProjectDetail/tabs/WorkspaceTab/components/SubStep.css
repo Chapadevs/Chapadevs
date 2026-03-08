@@ -8,8 +8,8 @@
 }
 
 .substep-status-badge--pending {
-  background: var(--border-border, #e5e7eb);
-  color: var(--ink-muted, #6b7280);
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
 }
 
 .substep-status-badge--waiting-client {

@@ -51,10 +51,6 @@ const projectSchema = new mongoose.Schema(
       ],
       default: null,
     },
-    budget: {
-      type: String,
-      default: null,
-    },
     timeline: {
       type: String,
       default: null,

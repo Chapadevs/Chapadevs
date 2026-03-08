@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Download, RefreshCw, Trash2 } from 'lucide-react'
 import { projectAPI } from '../../../../../../services/api'
-import { Button, Alert, Badge, Input } from '../../../../../../components/ui-components'
-import { isGcsUrl, getFileIcon, getFileUrl, isImage, parseNum, parseTypes } from '../../../utils/attachmentUtils'
+import { Button, Alert, Badge } from '../../../../../../components/ui-components'
+import { isGcsUrl, getFileIcon, getFileUrl, isImage } from '../../../utils/attachmentUtils'
 
 function ImageWithFallback({ src, alt, fallbackIcon }) {
   const [errored, setErrored] = useState(false)
@@ -32,20 +32,13 @@ const AttachmentManager = ({
   userId,
   onUpdate,
   compact = false,
+  showUploadSection = true,
 }) => {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
   const [updatingStatusId, setUpdatingStatusId] = useState(null)
   const [signedUrls, setSignedUrls] = useState({})
-  const [editingRequired, setEditingRequired] = useState(false)
-  const [newRequiredLabel, setNewRequiredLabel] = useState('')
-  const [newRequiredDesc, setNewRequiredDesc] = useState('')
-  const [newRequiredMinW, setNewRequiredMinW] = useState('')
-  const [newRequiredMaxW, setNewRequiredMaxW] = useState('')
-  const [newRequiredMinH, setNewRequiredMinH] = useState('')
-  const [newRequiredMaxH, setNewRequiredMaxH] = useState('')
-  const [newRequiredTypes, setNewRequiredTypes] = useState('')
 
   const attachments = phase.attachments || []
 
@@ -67,7 +60,7 @@ const AttachmentManager = ({
   }, [attachments, project?._id, phase?._id])
   const userIdStr = userId?.toString?.() ?? ''
 
-  const handleFileSelect = async (e, forRequiredIndex = null) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -82,9 +75,6 @@ const AttachmentManager = ({
 
       const formData = new FormData()
       formData.append('file', file)
-      if (Number.isInteger(forRequiredIndex) && forRequiredIndex >= 0) {
-        formData.append('forRequiredIndex', String(forRequiredIndex))
-      }
 
       const updated = await projectAPI.uploadAttachment(
         project._id || project.id,
@@ -147,53 +137,6 @@ const AttachmentManager = ({
     }
   }
 
-  const handleAddRequiredAttachment = async () => {
-    const label = newRequiredLabel.trim()
-    if (!label) return
-    const list = [...(phase.requiredAttachments || [])]
-    list.push({
-      label,
-      description: newRequiredDesc.trim() || '',
-      order: list.length + 1,
-      receivedAt: null,
-      minWidth: parseNum(newRequiredMinW),
-      maxWidth: parseNum(newRequiredMaxW),
-      minHeight: parseNum(newRequiredMinH),
-      maxHeight: parseNum(newRequiredMaxH),
-      allowedTypes: parseTypes(newRequiredTypes),
-    })
-    try {
-      setError(null)
-      const updated = await projectAPI.updatePhase(project._id || project.id, phase._id || phase.id, {
-        requiredAttachments: list,
-      })
-      setNewRequiredLabel('')
-      setNewRequiredDesc('')
-      setNewRequiredMinW('')
-      setNewRequiredMaxW('')
-      setNewRequiredMinH('')
-      setNewRequiredMaxH('')
-      setNewRequiredTypes('')
-      setEditingRequired(false)
-      if (onUpdate) onUpdate(updated)
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to add required attachment')
-    }
-  }
-
-  const handleRemoveRequiredAttachment = async (index) => {
-    const list = (phase.requiredAttachments || []).filter((_, i) => i !== index)
-    try {
-      setError(null)
-      const updated = await projectAPI.updatePhase(project._id || project.id, phase._id || phase.id, {
-        requiredAttachments: list,
-      })
-      if (onUpdate) onUpdate(updated)
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to remove required attachment')
-    }
-  }
-
   const sortedAttachments = [...attachments].sort((a, b) => {
     const aImg = isImage(a.type)
     const bImg = isImage(b.type)
@@ -202,108 +145,11 @@ const AttachmentManager = ({
     return 0
   })
 
-  const requiredAttachments = phase.requiredAttachments || []
-
   return (
     <div className={compact ? 'flex flex-col gap-1.5' : 'flex flex-col gap-4'}>
       {error && <Alert variant="error">{error}</Alert>}
 
-      {requiredAttachments.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h4 className="font-heading text-xs uppercase tracking-wide text-ink">Required from client</h4>
-          <ul className="list-none p-0 m-0 flex flex-col gap-1.5">
-            {requiredAttachments.map((ra, idx) => {
-              const hasConstraints =
-                ra.minWidth != null ||
-                ra.maxWidth != null ||
-                ra.minHeight != null ||
-                ra.maxHeight != null ||
-                (ra.allowedTypes?.length ?? 0) > 0
-              const constraintStr = hasConstraints
-                ? [
-                    [ra.minWidth, ra.maxWidth].some((n) => n != null)
-                      ? `${ra.minWidth ?? '?'}–${ra.maxWidth ?? '?'}px wide`
-                      : null,
-                    [ra.minHeight, ra.maxHeight].some((n) => n != null)
-                      ? `${ra.minHeight ?? '?'}–${ra.maxHeight ?? '?'}px tall`
-                      : null,
-                    (ra.allowedTypes?.length ?? 0) > 0 ? (ra.allowedTypes || []).join(', ').toUpperCase() : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')
-                : null
-              const acceptHint =
-                hasConstraints && (ra.allowedTypes?.length ?? 0) > 0
-                  ? (ra.allowedTypes || [])
-                      .map((t) => {
-                        const ext = String(t).toLowerCase()
-                        if (ext === 'png') return 'image/png'
-                        if (ext === 'jpeg' || ext === 'jpg') return 'image/jpeg'
-                        if (ext === 'svg') return 'image/svg+xml'
-                        if (ext === 'webp') return 'image/webp'
-                        if (ext === 'gif') return 'image/gif'
-                        return `image/${ext}`
-                      })
-                      .join(',')
-                  : 'image/*,.pdf,.doc,.docx'
-              return (
-                <li
-                  key={idx}
-                  className="flex items-center justify-between gap-2 p-2 border border-border bg-surface rounded-none"
-                >
-                  <div className="min-w-0 flex-1">
-                    <span className="font-body text-sm font-medium">{ra.label}</span>
-                    {ra.description && (
-                      <p className="text-xs text-muted-foreground font-body truncate" title={ra.description}>
-                        {ra.description}
-                      </p>
-                    )}
-                    {constraintStr && (
-                      <span className="text-xs text-muted-foreground font-body block" title={constraintStr}>
-                        {constraintStr}
-                      </span>
-                    )}
-                    {ra.receivedAt && (
-                      <span className="text-xs text-primary font-body">
-                        Received {new Date(ra.receivedAt).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="shrink-0 flex items-center gap-1">
-                    {canUpload && (
-                      <label className="inline-block cursor-pointer">
-                        <input
-                          type="file"
-                          accept={acceptHint}
-                          onChange={(ev) => handleFileSelect(ev, idx)}
-                          disabled={uploading}
-                          className="hidden"
-                        />
-                        <span className="inline-block px-3 py-1.5 text-xs font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity">
-                          {uploading ? 'Uploading...' : '+ Upload'}
-                        </span>
-                      </label>
-                    )}
-                    {isProgrammerOrAdmin && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="px-2 py-1 text-xs text-ink-muted hover:text-ink"
-                        onClick={() => handleRemoveRequiredAttachment(idx)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-
-      {(canUpload || attachments.length === 0) && (
+      {showUploadSection && (canUpload || attachments.length === 0) ? (
         <div className={compact ? 'pt-2 px-2 pb-0 text-center' : 'p-4 text-center'}>
           {canUpload && (
             <p className={`text-muted-foreground font-body ${compact ? 'text-[0.65rem] mb-1' : 'text-xs mb-2'}`}>Max file size: 10MB</p>
@@ -326,7 +172,9 @@ const AttachmentManager = ({
             <p className={`text-muted-foreground font-body ${compact ? 'mt-1 text-[0.65rem]' : 'mt-2 text-sm'}`}>No attachments yet.</p>
           )}
         </div>
-      )}
+      ) : !showUploadSection && attachments.length === 0 ? (
+        <p className={`text-muted-foreground font-body ${compact ? 'pt-2 px-2 text-[0.65rem]' : 'p-4 text-sm'}`}>No attachments.</p>
+      ) : null}
 
       {attachments.length > 0 && (
         <div className="flex flex-col gap-6">
@@ -546,105 +394,6 @@ const AttachmentManager = ({
               </>
             )
           })()}
-        </div>
-      )}
-
-      {isProgrammerOrAdmin && (
-        <div className={compact ? 'flex flex-col gap-1' : 'flex flex-col gap-2'}>
-          {editingRequired ? (
-            <div className="flex flex-col gap-2 p-2 border border-border bg-surface rounded-none">
-              <Input
-                value={newRequiredLabel}
-                onChange={(e) => setNewRequiredLabel(e.target.value)}
-                placeholder="Label (e.g. Logo PNG/SVG)"
-                className="text-sm"
-              />
-              <Input
-                value={newRequiredDesc}
-                onChange={(e) => setNewRequiredDesc(e.target.value)}
-                placeholder="Description (optional)"
-                className="text-sm"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMinW}
-                  onChange={(e) => setNewRequiredMinW(e.target.value)}
-                  placeholder="Min width (px)"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMaxW}
-                  onChange={(e) => setNewRequiredMaxW(e.target.value)}
-                  placeholder="Max width (px)"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMinH}
-                  onChange={(e) => setNewRequiredMinH(e.target.value)}
-                  placeholder="Min height (px)"
-                  className="text-sm"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  value={newRequiredMaxH}
-                  onChange={(e) => setNewRequiredMaxH(e.target.value)}
-                  placeholder="Max height (px)"
-                  className="text-sm"
-                />
-              </div>
-              <Input
-                value={newRequiredTypes}
-                onChange={(e) => setNewRequiredTypes(e.target.value)}
-                placeholder="Allowed types (e.g. png, jpeg)"
-                className="text-sm"
-              />
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={handleAddRequiredAttachment}
-                  disabled={!newRequiredLabel.trim()}
-                >
-                  Add
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setEditingRequired(false)
-                    setNewRequiredLabel('')
-                    setNewRequiredDesc('')
-                    setNewRequiredMinW('')
-                    setNewRequiredMaxW('')
-                    setNewRequiredMinH('')
-                    setNewRequiredMaxH('')
-                    setNewRequiredTypes('')
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              size={compact ? 'xs' : 'sm'}
-              className="w-fit"
-              onClick={() => setEditingRequired(true)}
-            >
-              + Add required attachment
-            </Button>
-          )}
         </div>
       )}
     </div>

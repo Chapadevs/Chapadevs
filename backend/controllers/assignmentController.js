@@ -32,7 +32,7 @@ export const getAvailableProjectsPublic = asyncHandler(async (req, res) => {
 export const getProjectDescriptionPublic = asyncHandler(async (req, res) => {
   const { id } = req.params
   const project = await Project.findById(id)
-    .select('title description status teamClosed projectType budget timeline priority')
+    .select('title description status teamClosed projectType timeline priority')
     .populate('clientId', 'name company')
     .lean()
 
@@ -52,7 +52,6 @@ export const getProjectDescriptionPublic = asyncHandler(async (req, res) => {
     description: project.description,
     status: project.status,
     projectType: project.projectType,
-    budget: project.budget,
     timeline: project.timeline,
     priority: project.priority,
     client: client ? { name: client.name, company: client.company } : null,

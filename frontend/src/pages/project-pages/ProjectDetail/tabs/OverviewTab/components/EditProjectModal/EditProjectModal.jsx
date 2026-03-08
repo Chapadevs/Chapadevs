@@ -37,7 +37,6 @@ export default function EditProjectModal({ project, onSave, onClose }) {
     description: '',
     priority: '',
     projectType: '',
-    budget: '',
     timeline: '',
     startDate: '',
     dueDate: '',
@@ -62,7 +61,6 @@ export default function EditProjectModal({ project, onSave, onClose }) {
       description: project.description ?? '',
       priority: project.priority ?? 'medium',
       projectType: project.projectType ?? '',
-      budget: project.budget ?? '',
       timeline: project.timeline ?? '',
       startDate: toDateInputValue(project.startDate),
       dueDate: toDateInputValue(project.dueDate),
@@ -109,7 +107,6 @@ export default function EditProjectModal({ project, onSave, onClose }) {
       description: form.description.trim() || undefined,
       priority: form.priority || undefined,
       projectType: form.projectType || undefined,
-      budget: form.budget.trim() || undefined,
       timeline: weeks || undefined,
       startDate: startDateVal,
       dueDate: dueDateVal,
@@ -220,13 +217,6 @@ export default function EditProjectModal({ project, onSave, onClose }) {
                   <option key={t} value={t}>{t}</option>
                 ))}
               </Select>
-              <Input
-                label="Budget"
-                id="edit-budget"
-                value={form.budget}
-                onChange={(e) => handleChange('budget', e.target.value)}
-                placeholder="e.g. $5,000"
-              />
               <Input
                 label="Workspace"
                 id="edit-timeline"

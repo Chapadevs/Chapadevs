@@ -124,7 +124,6 @@ const AvailableProjects = () => {
                       title: project.title,
                       status: project.status,
                       projectType: project.projectType,
-                      budget: project.budget,
                       timeline: project.timeline,
                       priority: project.priority,
                       client: project.client,
@@ -151,11 +150,6 @@ const AvailableProjects = () => {
                 {project.client?.company && (
                   <div className="meta-item">
                     <strong>Company:</strong> {project.client.company}
-                  </div>
-                )}
-                {project.budget && (
-                  <div className="meta-item">
-                    <strong>Budget:</strong> {project.budget}
                   </div>
                 )}
                 {project.timeline && (

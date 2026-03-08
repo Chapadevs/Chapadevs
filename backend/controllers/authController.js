@@ -45,6 +45,8 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   // Normalize legacy role name "client" to "user"
   const normalizedRole = role === 'client' ? 'user' : role
+  // Admin cannot self-register; only user/programmer allowed
+  const effectiveRole = normalizedRole === 'admin' ? 'user' : (normalizedRole || 'user')
 
   const emailVerificationToken = crypto.randomBytes(32).toString('hex')
   const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -53,11 +55,11 @@ export const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password,
-    role: normalizedRole || 'user',
+    role: effectiveRole,
     isEmailVerified: false,
     emailVerificationToken,
     emailVerificationExpires,
-    ...(role === 'programmer' && {
+    ...(effectiveRole === 'programmer' && {
       skills: [],
       bio: '',
       hourlyRate: null,

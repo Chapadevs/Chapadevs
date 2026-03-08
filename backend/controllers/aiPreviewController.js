@@ -18,7 +18,7 @@ const ESTIMATED_TOKENS_PER_REQUEST = 20000
 // @route   POST /api/ai-previews
 // @access  Private
 export const generateAIPreview = asyncHandler(async (req, res) => {
-  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, previewTemplate, modelId } = req.body
+  const { prompt, projectId, previewType, timeline, techStack, projectType, previewTemplate, modelId } = req.body
 
   if (!prompt) {
     res.status(400)
@@ -63,14 +63,14 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
     previewType: previewType || 'text',
     previewResult: '',
     status: 'generating',
-    metadata: { budget, timeline, techStack, projectType, previewTemplate, modelId: selectedModelId }
+    metadata: { timeline, techStack, projectType, previewTemplate, modelId: selectedModelId }
   })
 
   console.log('[AI Preview] Generation params:', JSON.stringify({
     previewId: preview._id.toString(),
     prompt: prompt.substring(0, 200) + (prompt.length > 200 ? '...' : ''),
     promptLength: prompt.length,
-    userInputs: { budget, timeline, techStack, projectType, previewTemplate },
+    userInputs: { timeline, techStack, projectType, previewTemplate },
     templateType,
     templateSource,
     modelId: selectedModelId,
@@ -78,7 +78,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
   }, null, 2))
 
   try {
-    const userInputs = { budget, timeline, techStack, projectType, previewTemplate }
+    const userInputs = { timeline, techStack, projectType, previewTemplate }
     
     // Use combined preview generation (single API call)
     const { result, fromCache, usage, isMock } = await vertexAIService.generateCombinedPreview(
@@ -152,7 +152,7 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
         templateSource,
         previewTemplate: previewTemplate || null,
         promptPreview: prompt.substring(0, 300),
-        userInputs: { budget, timeline, techStack, projectType },
+        userInputs: { timeline, techStack, projectType },
         modelId: selectedModelId,
       },
       usage: usage ? {
@@ -280,7 +280,7 @@ async function createAndCacheCodesandbox(preview) {
 // @route   POST /api/ai-previews/stream
 // @access  Private
 export const generateAIPreviewStream = asyncHandler(async (req, res) => {
-  const { prompt, projectId, previewType, budget, timeline, techStack, projectType, previewTemplate, modelId } = req.body
+  const { prompt, projectId, previewType, timeline, techStack, projectType, previewTemplate, modelId } = req.body
 
   if (!prompt) {
     res.status(400).json({ error: 'Please provide a prompt for the AI preview' })
@@ -321,14 +321,14 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
     previewType: previewType || 'text',
     previewResult: '',
     status: 'generating',
-    metadata: { budget, timeline, techStack, projectType, previewTemplate, modelId: selectedModelId }
+    metadata: { timeline, techStack, projectType, previewTemplate, modelId: selectedModelId }
   })
 
   console.log('[AI Preview] Generation params:', JSON.stringify({
     previewId: preview._id.toString(),
     prompt: prompt.substring(0, 200) + (prompt.length > 200 ? '...' : ''),
     promptLength: prompt.length,
-    userInputs: { budget, timeline, techStack, projectType, previewTemplate },
+    userInputs: { timeline, techStack, projectType, previewTemplate },
     templateType,
     templateSource,
     modelId: selectedModelId,
@@ -344,7 +344,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
   sendSSE(res, { type: 'start', previewId: preview._id.toString() })
 
   try {
-    const userInputs = { budget, timeline, techStack, projectType, previewTemplate }
+    const userInputs = { timeline, techStack, projectType, previewTemplate }
     const { result, usage } = await vertexAIService.generateCombinedPreviewStream(
       prompt,
       userInputs,
@@ -409,7 +409,7 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
         templateSource,
         previewTemplate: previewTemplate || null,
         promptPreview: prompt.substring(0, 300),
-        userInputs: { budget, timeline, techStack, projectType },
+        userInputs: { timeline, techStack, projectType },
         modelId: selectedModelId,
       },
       usage: usage ? {

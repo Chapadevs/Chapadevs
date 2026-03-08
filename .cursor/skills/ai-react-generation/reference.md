@@ -50,6 +50,7 @@ Use this to inject or mirror app components in prompts so generated code can ali
 | Input | `ui-components/Input/Input.jsx` | Form inputs. Prompt: "Inputs: sharp corners (rounded-none), border, focus ring." |
 | Select | `ui-components/Select/Select.jsx` | Dropdowns. Prompt: "Selects: same as Input styling." |
 | Tag | `ui-components/Tag/Tag.jsx` | Tags/chips. Prompt: "Tags: small pill, primary variant for highlights." |
+| HoverCard | `shadcn-components/shadcn-hover-card/hover-card.jsx` | Hover-triggered message cards; use for contextual help, disabled-state reasons. |
 
 **Design system (design-pattern.mdc)**: Sharp look (rounded-none), font-heading / font-button / font-body, primary #059669, surface white, border #e5e7eb. When generating code that may be merged into the app, prefer these tokens and no new one-off CSS.
 

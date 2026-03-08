@@ -60,6 +60,26 @@
   margin-top: 0.5rem;
 }
 
+.phase-cycle-progress-and-description {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.phase-cycle-progress-and-description .phase-overview-description-full {
+  margin: 0;
+  line-height: 1.4;
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
+.phase-cycle-two-column > .phase-cycle-progress-and-description .project-phase-modal-progress {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .phase-cycle-actions .project-phase-modal-progress {
   margin-top: 0;
   margin-bottom: 0.25rem;
@@ -116,53 +136,8 @@
 }
 
 .phase-cycle-top {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr);
-  gap: 0.75rem;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
   border-bottom: 1px solid var(--border-border, #e5e7eb);
-}
-
-.phase-cycle-top-titles {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-}
-
-.phase-cycle-top-titles .phase-cycle-panel-title {
-  margin: 0;
-  padding-left: 0.75rem;
-  border-left: 4px solid var(--primary, #059669);
-}
-
-.phase-cycle-top-panels {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-}
-
-.phase-cycle-top-panels .phase-cycle-actions,
-.phase-cycle-top-panels .phase-cycle-attachments,
-.phase-cycle-top-panels .phase-cycle-current-step-info {
-  min-width: 0;
-}
-
-.phase-cycle-attachments {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-border, #e5e7eb);
-  border-radius: 0;
-  background: var(--bg-surface, #ffffff);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.phase-cycle-attachments > *:last-child {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
 }
 
 .phase-cycle-below {
@@ -189,9 +164,6 @@
     flex: none;
   }
 
-  .phase-cycle-top {
-    grid-template-columns: 1fr;
-  }
 }
 
 .phase-cycle-left {
@@ -386,19 +358,19 @@
 }
 
 .phase-cycle-current-step-info {
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid var(--border-border, #e5e7eb);
   border-radius: 0;
   background: var(--bg-surface, #ffffff);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.15rem;
 }
 
 .phase-cycle-current-step-info .phase-cycle-panel-title {
   align-self: flex-start;
-  margin: 0 0 0.35rem 0;
+  margin: 0 0 0.2rem 0;
   padding-left: 0.5rem;
   border-left-width: 3px;
   font-size: 0.75rem;
@@ -412,22 +384,18 @@
 }
 
 .phase-cycle-current-step-info .phase-overview-status {
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .phase-cycle-current-step-info .phase-current-substep-card {
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
 }
 
 .phase-cycle-current-step-info .phase-current-substep-card > div {
-  padding: 0.35rem 0.5rem !important;
-}
-
-.phase-cycle-current-step-info .phase-current-substep-card > div {
-  padding: 0.35rem 0.5rem !important;
+  padding: 0.2rem 0.35rem !important;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.05rem;
 }
 
 .phase-cycle-current-step-info .substep-card-title-text {
@@ -580,7 +548,7 @@
 }
 
 .phase-cycle-actions {
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid var(--border-border, #e5e7eb);
   border-radius: 0;
   background: var(--bg-surface, #ffffff);
@@ -591,13 +559,13 @@
 }
 
 .phase-cycle-actions .phase-overview-description {
-  font-size: 0.75rem;
-  line-height: 1.35;
+  font-size: 0.7rem;
+  line-height: 1.2;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: 0.5rem !important;
+  margin: 0 0 0.25rem 0 !important;
 }
 
 .phase-cycle-actions .project-phase-modal-progress {
@@ -611,7 +579,7 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .phase-cycle-actions-list li {

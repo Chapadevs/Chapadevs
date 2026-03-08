@@ -39,7 +39,6 @@ function buildProjectSection(project) {
   if (project.title) parts.push(`Title: ${project.title}`)
   if (project.description) parts.push(`Description: ${project.description}`)
   if (project.projectType) parts.push(`Type: ${project.projectType}`)
-  if (project.budget) parts.push(`Budget: ${project.budget}`)
   const dateDuration = getProjectDurationFromDates(project)
   const totalDaysFromDates = dateDuration?.totalDays ?? null
   if (totalDaysFromDates != null) {

@@ -39,7 +39,7 @@ export const useProjectNotifications = (project) => {
     relevantTabs.forEach((tab) => tabsWithNotifications.add(tab))
   })
 
-  const hasSettingsNotifications = tabsWithNotifications.has('settings')
+  const hasOverviewNotifications = tabsWithNotifications.has('overview')
   const hasAIPreviewNotifications = tabsWithNotifications.has('ai-preview')
   const hasProgrammersNotifications = tabsWithNotifications.has('programmers')
   const hasWorkspaceNotifications = tabsWithNotifications.has('timeline')
@@ -61,7 +61,7 @@ export const useProjectNotifications = (project) => {
   }, [projectIdStr, projectNotifications, markNotificationsAsRead])
 
   return {
-    hasSettingsNotifications,
+    hasOverviewNotifications,
     hasAIPreviewNotifications,
     hasProgrammersNotifications,
     hasWorkspaceNotifications,

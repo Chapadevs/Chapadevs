@@ -1,15 +1,15 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../ui-components'
-import './ProjectSettingsModal.css'
+import './ProjectOverviewModal.css'
 
 /**
  * Modal that displays basic project info and description.
  * Used when a programmer is not authorized to view full project details
  * but can see basic info and description (from assignment list or public API).
  */
-function ProjectSettingsModal({ basicInfo = {}, onClose }) {
-  const { title, description, status, projectType, budget, timeline, priority, client } = basicInfo
+function ProjectOverviewModal({ basicInfo = {}, onClose }) {
+  const { title, description, status, projectType, timeline, priority, client } = basicInfo
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -31,73 +31,68 @@ function ProjectSettingsModal({ basicInfo = {}, onClose }) {
 
   return (
     <div
-      className="project-settings-modal-overlay"
+      className="project-overview-modal-overlay"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="project-settings-modal-title"
+      aria-labelledby="project-overview-modal-title"
       onClick={onClose}
     >
       <div
-        className="project-settings-modal"
+        className="project-overview-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="project-settings-modal-header">
-          <h2 id="project-settings-modal-title" className="project-settings-modal-title">
-            {title || 'Project Settings'}
+        <div className="project-overview-modal-header">
+          <h2 id="project-overview-modal-title" className="project-overview-modal-title">
+            {title || 'Project Overview'}
           </h2>
           <Button
             type="button"
             variant="ghost"
-            className="project-settings-modal-close"
+            className="project-overview-modal-close"
             onClick={onClose}
             aria-label="Close"
           >
             ×
           </Button>
         </div>
-        <div className="project-settings-modal-body">
-          <p className="project-settings-modal-notice">
+        <div className="project-overview-modal-body">
+          <p className="project-overview-modal-notice">
             You are not authorized to access full project details. Here is the basic information:
           </p>
-          <div className="project-settings-modal-basic-info">
+          <div className="project-overview-modal-basic-info">
             {status && (
-              <div className="project-settings-modal-info-item">
+              <div className="project-overview-modal-info-item">
                 <strong>Status:</strong> {status}
               </div>
             )}
             {projectType && (
-              <div className="project-settings-modal-info-item">
+              <div className="project-overview-modal-info-item">
                 <strong>Type:</strong> {projectType}
               </div>
             )}
             {client?.name && (
-              <div className="project-settings-modal-info-item">
+              <div className="project-overview-modal-info-item">
                 <strong>Client:</strong> {client.name}
                 {client.company && ` (${client.company})`}
               </div>
             )}
             {priority && (
-              <div className="project-settings-modal-info-item">
+              <div className="project-overview-modal-info-item">
                 <strong>Priority:</strong> {priority}
               </div>
             )}
-            {budget && (
-              <div className="project-settings-modal-info-item">
-                <strong>Budget:</strong> {budget}
-              </div>
-            )}
             {timeline && (
-              <div className="project-settings-modal-info-item">
+              <div className="project-overview-modal-info-item">
                 <strong>Workspace:</strong> {timeline}
               </div>
             )}
           </div>
-          <h3 className="project-settings-modal-section-title">Settings</h3>
-          <div className="project-settings-modal-content">
+          <h3 className="project-overview-modal-section-title">Overview</h3>
+          <div className="project-overview-modal-content">
             {description || 'No description available.'}
           </div>
         </div>
-        <div className="project-settings-modal-footer">
+        <div className="project-overview-modal-footer">
           <Button
             type="button"
             variant="primary"
@@ -118,4 +113,4 @@ function ProjectSettingsModal({ basicInfo = {}, onClose }) {
   )
 }
 
-export default ProjectSettingsModal
+export default ProjectOverviewModal

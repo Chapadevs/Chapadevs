@@ -19,6 +19,7 @@ import CreateProject from './pages/project-pages/CreateProject/CreateProject'
 import ProjectDetail from './pages/project-pages/ProjectDetail/ProjectDetail'
 import Team from './pages/resource-pages/Team/Team'
 import AvailableProjects from './pages/explore-pages/AvailableProjects/AvailableProjects'
+import Admin from './pages/admin-pages/Admin/Admin'
 import './styles.css'
 
 function App() {
@@ -53,7 +54,7 @@ function App() {
             }
           />
           <Route
-            path="/settings/change-password"
+            path="/overview/change-password"
             element={
               <ProtectedRoute>
                 <ChangePassword />
@@ -90,6 +91,14 @@ function App() {
               <ProtectedRoute>
                 <AvailableProjects />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <Admin />
+              </RoleProtectedRoute>
             }
           />
         </Routes>

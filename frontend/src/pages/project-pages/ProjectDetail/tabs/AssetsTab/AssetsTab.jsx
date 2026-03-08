@@ -1,15 +1,18 @@
 import { useState, useMemo, useEffect } from 'react'
 import { projectAPI } from '../../../../../services/api'
-import { PageTitle, Badge } from '../../../../../components/ui-components'
+import { PageTitle, Badge, Alert } from '../../../../../components/ui-components'
 import { isGcsUrl, getFileUrl, getFileIcon, isImage, getFileFormat } from '../../utils/attachmentUtils'
 
-const AssetsTab = ({ project }) => {
+const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate }) => {
   const [phaseFilter, setPhaseFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [lightboxUrl, setLightboxUrl] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
   const [signedUrls, setSignedUrls] = useState({})
+  const [uploadPhaseId, setUploadPhaseId] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
 
   const { items, phases } = useMemo(() => {
     const phases = project?.phases || []
@@ -84,6 +87,38 @@ const AssetsTab = ({ project }) => {
     return getFileUrl(item.url)
   }
 
+  useEffect(() => {
+    if (phases.length > 0 && !uploadPhaseId) {
+      setUploadPhaseId(phases[0]._id || phases[0].id)
+    }
+  }, [phases, uploadPhaseId])
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !uploadPhaseId || !onPhaseUpdate) return
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File size must be less than 10MB')
+      return
+    }
+    try {
+      setUploading(true)
+      setUploadError(null)
+      const formData = new FormData()
+      formData.append('file', file)
+      const updated = await projectAPI.uploadAttachment(
+        project._id || project.id,
+        uploadPhaseId,
+        formData
+      )
+      onPhaseUpdate(updated)
+      e.target.value = ''
+    } catch (err) {
+      setUploadError(err.response?.data?.message || err.message || 'Failed to upload file')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleCopyLink = async (item) => {
     const url = getDisplayUrl(item)
     try {
@@ -107,6 +142,42 @@ const AssetsTab = ({ project }) => {
       <p className="font-body text-ink-muted mt-1 mb-6">
         All images and files attached to phases and tasks. Copy links to share.
       </p>
+
+      {canUploadAttachments && phases.length > 0 && (
+        <div className="mb-6 flex flex-col gap-3 p-4 border border-border bg-surface">
+          <h3 className="font-heading text-xs uppercase tracking-wide text-ink">Upload file</h3>
+          {uploadError && <Alert variant="error">{uploadError}</Alert>}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="font-body text-sm text-ink">Phase:</label>
+              <select
+                value={uploadPhaseId}
+                onChange={(e) => setUploadPhaseId(e.target.value)}
+                className="font-body text-sm border border-border px-3 py-1.5 rounded-none bg-surface"
+              >
+                {phases.map((p) => (
+                  <option key={p._id || p.id} value={p._id || p.id}>
+                    {p.title || `Phase ${p.order ?? ''}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-muted-foreground font-body text-xs">Max file size: 10MB</p>
+            <label className="inline-block cursor-pointer">
+              <input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <span className="inline-block font-button bg-primary text-white rounded-none hover:opacity-90 transition-opacity px-6 py-3">
+                {uploading ? 'Uploading...' : '+ Upload File'}
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
 
       {(phases.length > 0 || items.length > 0) && (
         <div className="mb-4 flex flex-wrap items-center gap-4">
@@ -155,7 +226,9 @@ const AssetsTab = ({ project }) => {
       )}
 
       {filteredItems.length === 0 ? (
-        <p className="font-body text-ink-muted py-8">No attachments yet. Upload files in the Workspace or in task modals.</p>
+        <p className="font-body text-ink-muted py-8">
+          No attachments yet. {canUploadAttachments && phases.length > 0 ? 'Upload files above or in task modals.' : 'Upload files in task modals.'}
+        </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filteredItems.map((item) => {

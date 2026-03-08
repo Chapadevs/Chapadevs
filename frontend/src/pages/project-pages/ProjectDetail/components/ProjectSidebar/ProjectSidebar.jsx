@@ -1,5 +1,5 @@
 import { 
-  Settings, 
+  LayoutDashboard, 
   Layout, 
   Users, 
   FolderKanban, 
@@ -29,7 +29,7 @@ const ProjectSidebar = ({
   activeTab,
   onTabChange,
   showAIPreviewsSection,
-  hasSettingsNotifications,
+  hasOverviewNotifications,
   hasAIPreviewNotifications,
   hasProgrammersNotifications,
   hasWorkspaceNotifications,
@@ -37,6 +37,7 @@ const ProjectSidebar = ({
   hasCommentsNotifications,
 }) => {
   const navItems = [
+    { id: "overview", label: "Overview", icon: LayoutDashboard, hasNotification: hasOverviewNotifications, show: true },
     { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
     { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
     { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasWorkspaceNotifications, show: true },
@@ -44,7 +45,6 @@ const ProjectSidebar = ({
     { id: "calendar", label: "Calendar", icon: Calendar, hasNotification: false, show: true },
     { id: "activity", label: "Activity", icon: History, hasNotification: hasActivityNotifications, show: true },
     { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
-    { id: "settings", label: "Settings", icon: Settings, hasNotification: hasSettingsNotifications, show: true },
   ];
   const { user } = useAuth()
   return (
@@ -60,21 +60,44 @@ const ProjectSidebar = ({
 
       <SidebarContent>
         <SidebarGroup>
+          <div className="flex w-full justify-center pt-2 pb-2 group-data-[collapsible=icon]:pb-4">
+            <StatusDropdown 
+              trigger={
+                <div className="relative cursor-pointer">
+                  <Avatar className="w-8 h-8 bg-transparent">
+                    <AvatarImage src={getAvatarUrl(user?.avatar)} alt={user?.name} />
+                    <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || '?'}</AvatarFallback>
+                  </Avatar>
+                  
+                  <span 
+                    className="absolute bottom-0 right-0 z-20 w-2 h-2 rounded-full"
+                    style={{ 
+                      backgroundColor: user?.status === 'online' ? '#4caf50' : 
+                                      user?.status === 'busy' ? '#f44336' : 
+                                      user?.status === 'away' ? '#facc15' : '#9e9e9e' 
+                    }} 
+                  />
+                </div>
+              } 
+            />
+          </div>
           <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {navItems.map((item) => {
                 if (!item.show) return null;
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
+                      size="sm"
                       onClick={() => onTabChange(item.id)}
                       isActive={activeTab === item.id}
                       tooltip={item.label}
+                      className="px-1.5 [&>svg]:size-3"
                     >
-                      <item.icon className="size-4 shrink-0" /> 
+                      <item.icon className="size-3 shrink-0" /> 
                       <span className="group-data-[collapsible=icon]:hidden">
                         {item.label}
                       </span>
@@ -87,27 +110,6 @@ const ProjectSidebar = ({
               })}
             </SidebarMenu>
           </SidebarGroupContent>
-            <div className="flex w-full justify-center pt-2 group-data-[collapsible=icon]:pt-4">
-            <StatusDropdown 
-              trigger={
-                <div className="relative cursor-pointer">
-                  <Avatar className="w-10 h-10 border border-white/10">
-                    <AvatarImage src={getAvatarUrl(user?.avatar)} alt={user?.name} />
-                    <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || '?'}</AvatarFallback>
-                  </Avatar>
-                  
-                  <span 
-                    className="absolute bottom-0 right-0 z-20 w-3 h-3 rounded-full border-2 border-black"
-                    style={{ 
-                      backgroundColor: user?.status === 'online' ? '#4caf50' : 
-                                      user?.status === 'busy' ? '#f44336' : 
-                                      user?.status === 'away' ? '#facc15' : '#9e9e9e' 
-                    }} 
-                  />
-                </div>
-              } 
-            />
-            </div>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>

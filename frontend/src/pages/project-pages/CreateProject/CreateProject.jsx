@@ -7,23 +7,6 @@ import Header from '../../../components/layout-components/Header/Header'
 import { Button, SectionTitle, Alert, Input, Select, Textarea } from '../../../components/ui-components'
 import './CreateProject.css'
 
-const formatBudgetDisplay = (value) => {
-  const digitsOnly = value.replace(/[^\d.]/g, '')
-  if (digitsOnly === '' || digitsOnly === '.') return ''
-  const parts = digitsOnly.split('.')
-  const intPart = parts[0] || '0'
-  const decPart = parts[1] != null ? parts[1].slice(0, 2) : ''
-  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  if (decPart === '') return `$${formattedInt}`
-  return `$${formattedInt}.${decPart}`
-}
-
-const parseBudgetForSubmit = (displayValue) => {
-  if (!displayValue) return ''
-  const raw = displayValue.replace(/[$,]/g, '')
-  return raw === '' ? '' : raw
-}
-
 const toISODateOnly = (d) => {
   if (!d) return ''
   const date = typeof d === 'string' ? new Date(d) : d
@@ -32,15 +15,10 @@ const toISODateOnly = (d) => {
 
 const mapProjectDataToForm = (projectData) => {
   const toStr = (v) => (Array.isArray(v) ? v.join(', ') : (v ?? ''))
-  let budget = projectData.budget ?? ''
-  if (typeof budget === 'string' && /^\d+(\.\d+)?$/.test(budget.replace(/[$,]/g, ''))) {
-    budget = formatBudgetDisplay(budget.replace(/[$,]/g, ''))
-  }
   return {
     title: projectData.title ?? '',
     description: projectData.description ?? '',
     projectType: projectData.projectType ?? '',
-    budget,
     timeline: projectData.timeline ?? '',
     startDate: toISODateOnly(projectData.startDate) || toISODateOnly(new Date()),
     goals: toStr(projectData.goals),
@@ -70,7 +48,6 @@ const CreateProject = () => {
     title: '',
     description: '',
     projectType: '',
-    budget: '',
     timeline: '',
     startDate: defaultStart,
     goals: '',
@@ -88,13 +65,6 @@ const CreateProject = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    if (name === 'budget') {
-      setFormData((prev) => ({
-        ...prev,
-        budget: formatBudgetDisplay(value),
-      }))
-      return
-    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -143,7 +113,6 @@ const CreateProject = () => {
 
       const projectData = {
         ...formData,
-        budget: parseBudgetForSubmit(formData.budget),
         timeline: weeks,
         startDate: startDate || null,
         dueDate: dueDate || null,
@@ -280,8 +249,6 @@ const CreateProject = () => {
           </div>
 
           <div className="form-row">
-            <Input type="text" id="budget" label="Budget" name="budget" value={formData.budget} onChange={handleChange} placeholder="e.g., $5,000 - $10,000" wrapperClassName="form-group" />
-
             <div className="form-group form-group--timeline">
               <label htmlFor="timeline">Workspace</label>
               <div className="timeline-stepper" role="group" aria-label="Project timeline in weeks">

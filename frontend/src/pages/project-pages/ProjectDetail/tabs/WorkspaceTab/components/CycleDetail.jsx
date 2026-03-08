@@ -1,19 +1,17 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { DndContext } from '@dnd-kit/core'
 import SubStep from './SubStep'
 import KanbanColumn from './KanbanColumn/KanbanColumn'
 import PhaseApprovalBadge from './PhaseApprovalBadge'
 import WeekTimeline from './WeekTimeline'
 import SubStepModal from '../../../../../../components/modal-components/SubStepModal/SubStepModal'
-import AttachmentManager from './AttachmentManager'
-import { isPendingApproval } from '../../../../../../utils/phaseApprovalUtils'
 import { isPhaseReadyForCompletion } from '../../../utils/userPermissionsUtils'
 import { getSubStepStatus, getAssignedUser } from '../../../utils/workspaceUtils'
 import AssigneeChip from './CycleDetail/AssigneeChip'
 import { KANBAN_COLUMNS } from '../../../utils/workspaceConstants'
 import { useCyclePhase } from '../hooks/useCyclePhase'
 import { useCycleKanban } from '../hooks/useCycleKanban'
-import { Button, Alert } from '../../../../../../components/ui-components'
+import { Button, Alert, HoverCard, HoverCardTrigger, HoverCardContent } from '../../../../../../components/ui-components'
 import './CycleDetail.css'
 
 const CycleDetail = ({
@@ -21,6 +19,7 @@ const CycleDetail = ({
   project,
   phases = [],
   isClientOwner,
+  isAdmin = false,
   isAssignedProgrammer,
   canChangePhaseStatus,
   canUpdateSubSteps,
@@ -34,6 +33,7 @@ const CycleDetail = ({
   userId,
   onClose,
   onUpdate,
+  onCycleActionsReady,
   embedded = false,
 }) => {
   const [selectedSubStep, setSelectedSubStep] = useState(null)
@@ -94,23 +94,42 @@ const CycleDetail = ({
   }, [sortedSubSteps])
 
   const isPhaseLocked = localPhase.status === 'not_started'
+  const phaseIndex = phases.findIndex((p) => (p._id || p.id) === (localPhase._id || localPhase.id))
+  const isFirstPhase = phaseIndex <= 0
+  const previousPhase = phaseIndex > 0 ? phases[phaseIndex - 1] : null
+  const isPreviousPhaseCompleted = !previousPhase || previousPhase.status === 'completed'
   const canStartPhase =
-    isPhaseLocked && canChangePhaseStatus
+    isPhaseLocked && canChangePhaseStatus && (isFirstPhase || isPreviousPhaseCompleted)
   const canCompletePhase =
     localPhase.status === 'in_progress' && canChangePhaseStatus
   const canResetPhase =
     (localPhase.status === 'in_progress' || localPhase.status === 'completed') && canChangePhaseStatus
-  const needsApproval = isPendingApproval(localPhase)
+
+  const completedSubSteps = subSteps.filter((s) => s.completed || s.status === 'completed').length
+  const allSubStepsCompleted = completedSubSteps === subSteps.length && subSteps.length > 0
+  const needsClientApproval = allSubStepsCompleted && !localPhase.clientApproved
+
+  const phaseId = localPhase._id || localPhase.id
+  const handlersRef = useRef({ handleStatusChange, handleResetPhase })
+  handlersRef.current = { handleStatusChange, handleResetPhase }
+  useEffect(() => {
+    onCycleActionsReady?.({
+      phaseId,
+      handleStartPhase: () => handlersRef.current.handleStatusChange('in_progress'),
+      canStartPhase,
+      handleResetPhase: () => handlersRef.current.handleResetPhase(),
+      canResetPhase,
+      loading,
+    })
+    return () => onCycleActionsReady?.(null)
+  }, [onCycleActionsReady, phaseId, canStartPhase, canResetPhase, loading])
   const canApprove = canAnswerQuestion
   const phaseCompletionReadiness = isPhaseReadyForCompletion(localPhase)
-  const markCompleteBlockedReason = canCompletePhase && !needsApproval && !phaseCompletionReadiness.ready
+  const markCompleteBlockedReason = canCompletePhase && !needsClientApproval && !phaseCompletionReadiness.ready
     ? phaseCompletionReadiness.reason
     : null
 
-  const completedSubSteps = subSteps.filter((s) => s.completed || s.status === 'completed').length
   const subStepsProgress = subSteps.length > 0 ? (completedSubSteps / subSteps.length) * 100 : null
-
-  const allSubStepsCompleted = completedSubSteps === subSteps.length && subSteps.length > 0
   const hasWaitingClient = sortedSubSteps.some((s) => getSubStepStatus(s) === 'waiting_client')
   const hasInProgress = sortedSubSteps.some((s) => getSubStepStatus(s) === 'in_progress')
   const hasPending = sortedSubSteps.some((s) => getSubStepStatus(s) === 'pending')
@@ -196,14 +215,8 @@ const CycleDetail = ({
       )}
 
       <div className={`project-phase-modal-body phase-cycle-two-column ${isPhaseLocked ? 'phase-cycle-locked' : ''}`}>
-          <div className="phase-cycle-top">
-            <div className="phase-cycle-top-titles">
-              <span className="phase-cycle-panel-title font-heading text-xs text-ink uppercase tracking-wide">Cycle actions</span>
-              <span className="phase-cycle-panel-title font-heading text-xs text-ink uppercase tracking-wide">Attachments</span>
-              <span className="phase-cycle-panel-title font-heading text-xs text-ink uppercase tracking-wide">Current step</span>
-            </div>
-            <div className="phase-cycle-top-panels">
-            <div className="phase-cycle-actions">
+          {(subStepsProgress !== null || localPhase.description) && (
+            <div className="phase-cycle-progress-and-description">
               {subStepsProgress !== null && (
                 <div className="project-phase-modal-progress">
                   <span className="project-phase-modal-progress-label font-body text-xs">
@@ -218,155 +231,44 @@ const CycleDetail = ({
                 </div>
               )}
               {localPhase.description && (
-                <p className="phase-overview-description font-body text-ink-muted">{localPhase.description}</p>
+                <p className="phase-overview-description phase-overview-description-full font-body text-ink-muted text-sm">
+                  {localPhase.description}
+                </p>
               )}
-              <ul className="phase-cycle-actions-list">
-                {canStartPhase && (
-                  <li>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      disabled={loading}
-                      onClick={() => handleStatusChange('in_progress')}
-                    >
-                      Start Phase
-                    </Button>
-                  </li>
-                )}
-                {canCompletePhase && !needsApproval && (
-                  <li>
-                    {markCompleteBlockedReason && (
-                      <p className="text-amber-700 text-sm font-body mb-2">{markCompleteBlockedReason}</p>
-                    )}
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      disabled={loading || !phaseCompletionReadiness.ready}
-                      title={markCompleteBlockedReason || undefined}
-                      onClick={() => handleStatusChange('completed')}
-                    >
-                      Mark Complete
-                    </Button>
-                  </li>
-                )}
-                {canCompletePhase && needsApproval && (
-                  <li className="phase-approval-notice">
-                    <p>Client approval required before marking complete.</p>
-                  </li>
-                )}
-                {needsApproval && canApprove && (
-                  <>
-                    <li>
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        className="btn btn-success"
-                        disabled={loading}
-                        onClick={() => handleApprove(true)}
-                      >
-                        Approve Cycle
-                      </Button>
-                    </li>
-                    <li>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={loading}
-                        onClick={() => {
-                          const feedback = window.prompt('Optional: Add feedback for the programmer')
-                          handleApprove(false, feedback ?? null)
-                        }}
-                      >
-                        Request Changes
-                      </Button>
-                    </li>
-                  </>
-                )}
-                {canResetPhase && (
-                  <li>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={loading}
-                      onClick={handleResetPhase}
-                    >
-                      Reset Phase
-                    </Button>
-                  </li>
-                )}
-                {localPhase.status === 'completed' && isProgrammerOrAdmin && (
-                  <li>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={loading}
-                      onClick={handleUnlockCycle}
-                    >
-                      Unlock Cycle
-                    </Button>
-                  </li>
-                )}
-                {!canStartPhase && !canCompletePhase && !needsApproval && !canApprove && !canResetPhase && !(localPhase.status === 'completed' && isProgrammerOrAdmin) && (
-                  <li>
-                    <p className="text-ink-muted text-sm">No actions available for this cycle.</p>
-                  </li>
-                )}
-              </ul>
             </div>
-
-            <div className="phase-cycle-attachments">
-              <AttachmentManager
-                phase={localPhase}
-                project={project}
-                canUpload={!isPhaseLocked && canUploadAttachments}
-                isProgrammerOrAdmin={isProgrammerOrAdmin}
-                userId={userId}
-                compact
-                onUpdate={(updated) => {
-                  setLocalPhase(updated)
-                  onUpdate?.(updated)
-                }}
-              />
-            </div>
-
-            <div className="phase-cycle-current-step-info">
-              <div className="phase-overview-status">
-                <PhaseApprovalBadge
-                  requiresApproval={localPhase.requiresClientApproval}
-                  approved={localPhase.clientApproved}
-                  variant="modal"
-                />
-              </div>
+          )}
+          <div className="phase-cycle-top">
+            <div className="phase-cycle-current-step-info max-w-sm mx-auto">
+              {localPhase.status !== 'completed' && (
+                <div className="phase-overview-status">
+                  <PhaseApprovalBadge
+                    requiresApproval={allSubStepsCompleted}
+                    approved={localPhase.clientApproved}
+                    variant="modal"
+                  />
+                </div>
+              )}
 
               {currentSubStep && (getSubStepStatus(currentSubStep) === 'pending' || getSubStepStatus(currentSubStep) === 'waiting_client' || getSubStepStatus(currentSubStep) === 'in_progress') ? (
                 <div className="phase-current-substep-card">
-
                   <SubStep
                     subStep={currentSubStep}
                     cardVariant={`substep-card--${getSubStepStatus(currentSubStep).replace('_', '-')}`}
                     onOpen={() => setSelectedSubStep(currentSubStep)}
                     compact
-                  >
-                  
-                  {getAssignedUser(currentSubStep, project) && (
-                    <AssigneeChip assignee={getAssignedUser(currentSubStep, project)} />
-                  )}
-                  </SubStep>
-
+                    minimal
+                  />
                 </div>
 
-              ) : allSubStepsCompleted || localPhase.status === 'completed' ? (
+              ) : localPhase.status === 'completed' ? (
                 <p className="phase-cycle-no-in-progress">Cycle completed.</p>
+              ) : allSubStepsCompleted && localPhase.clientApproved ? (
+                <p className="phase-cycle-no-in-progress text-ink-muted">Client approved. Programmer can mark complete.</p>
+              ) : allSubStepsCompleted ? (
+                <p className="phase-cycle-no-in-progress text-ink-muted">All tasks done. Awaiting client approval.</p>
               ) : (
                 <p className="phase-cycle-no-in-progress">No tasks yet. Add a task with the button on the right.</p>
               )}
-            </div>
             </div>
           </div>
 
@@ -422,6 +324,75 @@ const CycleDetail = ({
                           })
                         }
                         showAddTask={!isPhaseLocked && canUpdateSubSteps && localPhase.status !== 'completed'}
+                        renderHeaderAction={(columnStatus) => {
+                          if (columnStatus !== 'completed') return null
+                          if ((isClientOwner || isAdmin) && localPhase.status !== 'completed') {
+                            const approveDisabled = loading || !allSubStepsCompleted
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  type="button"
+                                  variant="primary"
+                                  size="sm"
+                                  disabled={approveDisabled}
+                                  onClick={() => handleApprove(true)}
+                                  className="!py-1 !px-2 text-xs w-full"
+                                  title={!allSubStepsCompleted ? 'Move all tasks to completed first' : undefined}
+                                >
+                                  Approve Cycle
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={approveDisabled}
+                                  onClick={() => {
+                                    const feedback = window.prompt('Optional: Add feedback for the programmer')
+                                    handleApprove(false, feedback?.trim() || null)
+                                  }}
+                                  className="!py-1 !px-2 text-xs w-full"
+                                  title={!allSubStepsCompleted ? 'Move all tasks to completed first' : undefined}
+                                >
+                                  Request Changes
+                                </Button>
+                              </div>
+                            )
+                          }
+                          if (!canCompletePhase || needsClientApproval) return null
+                          if (markCompleteBlockedReason) {
+                            return (
+                              <HoverCard openDelay={200} closeDelay={150}>
+                                <HoverCardTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={loading || !phaseCompletionReadiness.ready}
+                                    onClick={() => handleStatusChange('completed')}
+                                    className="!py-1 !px-2 text-xs w-full"
+                                  >
+                                    Mark Complete
+                                  </Button>
+                                </HoverCardTrigger>
+                                <HoverCardContent side="top" align="start" className="max-w-xs">
+                                  <p className="text-sm font-body text-amber-700">{markCompleteBlockedReason}</p>
+                                </HoverCardContent>
+                              </HoverCard>
+                            )
+                          }
+                          return (
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              disabled={loading || !phaseCompletionReadiness.ready}
+                              onClick={() => handleStatusChange('completed')}
+                              className="!py-1 !px-2 text-xs w-full"
+                            >
+                              Mark Complete
+                            </Button>
+                          )
+                        }}
                       />
                     ))}
                   </div>

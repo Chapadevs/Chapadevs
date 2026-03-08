@@ -11,14 +11,14 @@ import {
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
 import Header from '../../../components/layout-components/Header/Header'
-import ProjectSettingsModal from '../../../components/modal-components/ProjectSettingsModal/ProjectSettingsModal'
+import ProjectOverviewModal from '../../../components/modal-components/ProjectOverviewModal/ProjectOverviewModal'
 import WorkspaceTab from './tabs/WorkspaceTab/Workspace'
 import { useProjectData } from './hooks/useProjectData'
 import { useUserStatuses } from './hooks/useUserStatuses'
 import { useProjectNotifications } from './hooks/useProjectNotifications'
 import { calculatePermissions } from './utils/userPermissionsUtils'
 import ProjectSidebar from './components/ProjectSidebar/ProjectSidebar'
-import SettingsTab from './tabs/SettingsTab/SettingsTab'
+import OverviewTab from './tabs/OverviewTab/OverviewTab'
 import AIPreviewTab from './tabs/AIPreviewTab/AIPreviewTab'
 import ProgrammersTab from './tabs/ProgrammersTab/ProgrammersTab'
 import CommentsTab from './tabs/CommentsTab/CommentsTab'
@@ -48,7 +48,7 @@ function ProjectDetail() {
   
   const { getUserStatus } = useUserStatuses(project)
   const {
-    hasSettingsNotifications,
+    hasOverviewNotifications,
     hasAIPreviewNotifications,
     hasProgrammersNotifications,
     hasWorkspaceNotifications,
@@ -86,9 +86,9 @@ function ProjectDetail() {
   const [markingCancelled, setMarkingCancelled] = useState(false)
   const [removingProgrammerId, setRemovingProgrammerId] = useState(null)
   const [activeTab, setActiveTab] = useState('timeline')
-  const [settingsPreview, setSettingsPreview] = useState(null)
-  const [settingsFetching, setSettingsFetching] = useState(false)
-  const [settingsFetchAttempted, setSettingsFetchAttempted] = useState(false)
+  const [overviewPreview, setOverviewPreview] = useState(null)
+  const [overviewFetching, setOverviewFetching] = useState(false)
+  const [overviewFetchAttempted, setOverviewFetchAttempted] = useState(false)
 
   // Merge API response with current project; preserve phases/previewCount when API omits them
   // (e.g. unmarkReady returns project without phases, which would hide the Workspace for client)
@@ -244,32 +244,32 @@ function ProjectDetail() {
 
   // --- Effects & Auth ---
   const isNotAuthorized = error && typeof error === 'string' && error.toLowerCase().includes('not authorized')
-  const hasSettingsFromState = location.state?.description != null || location.state?.title != null
+  const hasOverviewFromState = location.state?.description != null || location.state?.title != null
   const isProgrammerUnauthorized = error && !project && isProgrammer(user) && isNotAuthorized
-  const showSettingsModal = isProgrammerUnauthorized && (hasSettingsFromState || settingsPreview)
+  const showOverviewModal = isProgrammerUnauthorized && (hasOverviewFromState || overviewPreview)
 
   useEffect(() => {
-    if (isProgrammerUnauthorized && id && !hasSettingsFromState && !settingsPreview && !settingsFetchAttempted) {
-      setSettingsFetchAttempted(true)
-      setSettingsFetching(true)
-      assignmentAPI.getProjectSettingsPublic(id)
-        .then((data) => setSettingsPreview(data))
+    if (isProgrammerUnauthorized && id && !hasOverviewFromState && !overviewPreview && !overviewFetchAttempted) {
+      setOverviewFetchAttempted(true)
+      setOverviewFetching(true)
+      assignmentAPI.getProjectOverviewPublic(id)
+        .then((data) => setOverviewPreview(data))
         .catch(() => {})
-        .finally(() => setSettingsFetching(false))
+        .finally(() => setOverviewFetching(false))
     }
-  }, [error, project, user, id, hasSettingsFromState, settingsPreview, settingsFetchAttempted, isNotAuthorized])
+  }, [error, project, user, id, hasOverviewFromState, overviewPreview, overviewFetchAttempted, isNotAuthorized])
 
   if (loading) return <div className="flex h-screen items-center justify-center animate-pulse">Loading project...</div>
 
   if (error && !project) {
-    if (showSettingsModal) {
+    if (showOverviewModal) {
       return (
-      // Return a modal with the project settings when a programmer
+      // Return a modal with the project overview when a programmer
       <>
           <Header />
           <div className="mx-auto max-w-7xl px-4 py-8">
-             <ProjectSettingsModal 
-               basicInfo={{ ...location.state, ...settingsPreview }} 
+             <ProjectOverviewModal 
+               basicInfo={{ ...location.state, ...overviewPreview }} 
                onClose={() => navigate('/assignments')} 
              />
           </div>
@@ -298,7 +298,7 @@ function ProjectDetail() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
             showAIPreviewsSection={showAIPreviewsSection}
-            hasSettingsNotifications={hasSettingsNotifications}
+            hasOverviewNotifications={hasOverviewNotifications}
             hasAIPreviewNotifications={hasAIPreviewNotifications}
             hasProgrammersNotifications={hasProgrammersNotifications}
             hasWorkspaceNotifications={hasWorkspaceNotifications}
@@ -309,19 +309,19 @@ function ProjectDetail() {
           {/* Increased padding-top, reduced top proximity, fully center main content */}
           <SidebarInset className="p-8">
             <div className="mx-auto max-w-7xl w-full justify-start">
-              <div className="mb-12 flex items-center gap-4">
+              <div className="mb-8 flex items-center gap-3">
                 {/* Mobile/collapsed back trigger button */}
                 <Button 
                   to="/projects" 
                   variant="ghost" 
                   size="sm" 
-                  className="w-fit text-ink-muted hover:text-ink pl-0"
+                  className="w-fit text-ink-muted hover:text-ink pl-0 text-sm"
                 >
                   ← Back to Projects
                 </Button>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold">{project.title}</h1>
-                  <Badge variant={project.status?.toLowerCase() || 'default'}>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-bold">{project.title}</h1>
+                  <Badge variant={project.status?.toLowerCase() || 'default'} className="text-[10px] px-1.5 py-0 h-fit leading-none">
                     {project.status}
                   </Badge>
                 </div>
@@ -364,13 +364,17 @@ function ProjectDetail() {
                   <CalendarTab project={project} onPhaseUpdate={handlePhaseUpdate} />
                 )}
                 {activeTab === 'assets' && (
-                  <AssetsTab project={project} />
+                  <AssetsTab
+                    project={project}
+                    canUploadAttachments={permissions.canUploadAttachments}
+                    onPhaseUpdate={handlePhaseUpdate}
+                  />
                 )}
                 {activeTab === 'activity' && (
                   <ActivityTab project={project} />
                 )}
-                {activeTab === 'settings' && (
-                  <SettingsTab
+                {activeTab === 'overview' && (
+                  <OverviewTab
                     project={project}
                     {...permissions}
                     onDelete={handleDelete}

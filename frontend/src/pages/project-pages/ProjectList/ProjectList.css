@@ -44,26 +44,8 @@
 
 .project-list-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 1.5rem;
-}
-
-.project-card {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.project-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.project-card-header h3 {
-  margin: 0 1rem 0 0;
-  flex: 1;
 }
 
 .status-badge {

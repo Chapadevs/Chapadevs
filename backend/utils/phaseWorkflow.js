@@ -98,12 +98,6 @@ export function validatePhaseCompletion(phase) {
     }
   }
 
-  const phaseRequired = phase.requiredAttachments || []
-  const missingPhaseAttachments = phaseRequired.filter((ra) => !ra.receivedAt)
-  if (missingPhaseAttachments.length > 0) {
-    return { valid: false, reason: `Provide all required attachments for phase "${phaseTitle}" before marking complete` }
-  }
-
   for (const subStep of subSteps) {
     const subRequired = subStep.requiredAttachments || []
     const missingSubAttachments = subRequired.filter((ra) => !ra.receivedAt)
@@ -128,10 +122,8 @@ export function checkClientApprovalRequired(phase) {
     return phase.requiresClientApproval
   }
 
-  // Default logic: Design and Launch phases typically need approval
-  const title = (phase.title || '').toLowerCase()
-  const approvalKeywords = ['design', 'launch', 'approval', 'review', 'handoff']
-  return approvalKeywords.some((keyword) => title.includes(keyword))
+  // Default: all phases require client approval before programmer can complete
+  return true
 }
 
 /**

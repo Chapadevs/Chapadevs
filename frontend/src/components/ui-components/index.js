@@ -17,3 +17,4 @@ export * from './Avatar';
 export * from './Card';
 export { Skeleton } from '@/components/shadcn-components/shadcn-sidebar/skeleton';
 export { Calendar, CalendarDayButton } from '@/components/shadcn-components/shadcn-calendar/calendar';
+export * from '@/components/shadcn-components/shadcn-hover-card/hover-card';

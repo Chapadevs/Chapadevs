@@ -104,34 +104,30 @@ const ProjectList = () => {
 
             <Card
               variant="accent"
-              className="project-card px-5 py-5 flex flex-col no-underline hover:shadow-lg transition-shadow duration-300"
+              className="px-6 py-6 flex flex-col no-underline hover:shadow-lg transition-shadow duration-300 h-[320px]"
             >
-              <div className="project-card-header flex justify-between items-start mb-3">
-                <h3 className="font-heading text-base text-ink uppercase tracking-wide m-0 mr-3 flex-1 border-none p-0">{project.title}</h3>
-                <Badge variant={project.status?.toLowerCase() || 'default'}>
+              <div className="flex justify-between items-start gap-3 mb-4 shrink-0">
+                <h3 className="font-heading text-lg text-ink uppercase tracking-wide m-0 flex-1 min-w-0 line-clamp-2">{project.title}</h3>
+                <Badge variant={project.status?.toLowerCase() || 'default'} className="shrink-0">
                   {project.status}
                 </Badge>
               </div>
-              <p className="text-ink-secondary text-sm mb-4 flex-1">
-                {project.description?.substring(0, 150)}
-                {project.description?.length > 150 ? '...' : ''}
+              <p className="font-body text-ink-secondary text-sm leading-relaxed mb-5 flex-1 min-h-0 overflow-hidden line-clamp-4">
+                {project.description?.substring(0, 180)}
+                {project.description?.length > 180 ? '...' : ''}
               </p>
-              <div className="mt-auto pt-3 border-t border-border">
-                <div className="flex flex-col gap-1 mb-2 text-xs text-ink-muted">
-                  <span>
-                    Client: {project.clientId?.name || project.client?.name || 'N/A'}
-                  </span>
+              <div className="mt-auto pt-4 border-t border-border shrink-0 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-ink-muted font-body">
+                <div className="flex flex-col gap-1.5">
+                  <span>Client: {project.clientId?.name || project.client?.name || 'N/A'}</span>
                   {(project.assignedProgrammerId || project.assignedProgrammer) && (
-                    <span>
-                      Programmer: {(project.assignedProgrammerId?.name || project.assignedProgrammer?.name)}
-                    </span>
+                    <span>Programmer: {(project.assignedProgrammerId?.name || project.assignedProgrammer?.name)}</span>
                   )}
                 </div>
-                <div className="flex flex-col gap-1 text-xs text-ink-muted">
+                <div className="flex flex-col gap-1.5">
                   {project.startDate && (
                     <span>Started: {formatDateOnly(project.startDate)}</span>
                   )}
-                  <span className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2">
                     {project.dueDate && (
                       <span>Due: {formatDateOnly(project.dueDate)}</span>
                     )}

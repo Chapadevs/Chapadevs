@@ -85,13 +85,11 @@ function normalizeProjectRequirements(parsed) {
   }
   const toArr = (v) => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : [])
   const projectType = PROJECT_TYPE_ENUM.includes(parsed.projectType) ? parsed.projectType : 'Other'
-  const budget = parsed.budget != null ? String(parsed.budget) : null
   const timeline = parsed.timeline != null ? String(parsed.timeline) : (parsed.timeline?.totalWeeks != null ? String(parsed.timeline.totalWeeks) : null)
   return {
     title: parsed.title || 'Untitled Project',
     description: parsed.description || parsed.overview || parsed.analysisExtras?.overview || '',
     projectType,
-    budget,
     timeline,
     goals: toArr(parsed.goals),
     features: toArr(parsed.features),
@@ -744,10 +742,27 @@ export const updatePhase = asyncHandler(async (req, res) => {
     }
     
     const oldStatus = phase.status
+
+    // Enforce client approval: programmer cannot mark complete until client has approved (when all sub-steps are done)
+    const allSubStepsDone = (phase.subSteps || []).every((s) => s.status === 'completed' || s.completed === true)
+    if (req.body.status === 'completed' && allSubStepsDone && !phase.clientApproved) {
+      res.status(400)
+      throw new Error('Client must approve this phase before it can be marked complete.')
+    }
+
     phase.status = req.body.status
-    
-    // Set startedAt when moving to in_progress (preserve handoff from previous phase completion)
+
+    // Enforce sequential start: cannot start a phase before the previous one is completed
     if (oldStatus === 'not_started' && req.body.status === 'in_progress') {
+      const allPhases = await ProjectPhase.find({ projectId }).sort({ order: 1 }).lean()
+      const idx = allPhases.findIndex((p) => p._id.toString() === phaseId)
+      if (idx > 0) {
+        const prevPhase = allPhases[idx - 1]
+        if (prevPhase.status !== 'completed') {
+          res.status(400)
+          throw new Error('Complete the previous phase before starting this one.')
+        }
+      }
       if (!phase.startedAt) {
         phase.startedAt = new Date()
       }
@@ -761,6 +776,11 @@ export const updatePhase = asyncHandler(async (req, res) => {
     } else if (req.body.status !== 'completed') {
       phase.completedAt = null
     }
+  }
+
+  // Programmer/admin can update requiresClientApproval
+  if ((isProgrammer || req.user.role === 'admin') && req.body.requiresClientApproval !== undefined) {
+    phase.requiresClientApproval = Boolean(req.body.requiresClientApproval)
   }
 
   // Allow client to update questions and approval
@@ -904,12 +924,15 @@ export const updatePhase = asyncHandler(async (req, res) => {
         : []
     }
 
-    // Phase reset: set status to not_started, clear dates, reset sub-step status
+    // Phase reset: set status to not_started, clear dates, reset sub-step status, clear client approval
     if (req.body.reset === true) {
       phase.status = 'not_started'
       phase.startedAt = null
       phase.completedAt = null
       phase.actualDurationDays = null
+      phase.clientApproved = false
+      phase.clientApprovedAt = null
+      phase.clientApprovalFeedback = null
       if (phase.subSteps?.length > 0) {
         phase.subSteps = phase.subSteps.map((s) => ({
           ...s,
@@ -1217,32 +1240,20 @@ export const approvePhase = asyncHandler(async (req, res) => {
     throw new Error('Phase not found')
   }
 
-  if (!phase.requiresClientApproval) {
-    res.status(400)
-    throw new Error('This phase does not require client approval')
-  }
-
-  const previousStatus = phase.status
   phase.clientApproved = approved !== false
   phase.clientApprovedAt = phase.clientApproved ? new Date() : null
   phase.clientApprovalFeedback = approved === false ? (feedback || null) : null
 
-  // If approved and phase is in_progress, can mark as completed (client questions requirement removed for now)
-  if (phase.clientApproved && phase.status === 'in_progress') {
-    phase.status = 'completed'
-    phase.completedAt = new Date()
-    phase.actualDurationDays = calculatePhaseDuration(phase)
-  }
-
+  // Client approval UNLOCKS the programmer's "Mark Complete" button - it does NOT complete the phase itself
   await phase.save()
 
-  // Send notification to programmer if phase was just completed
-  if (phase.status === 'completed' && previousStatus !== 'completed' && project.assignedProgrammerId) {
+  // Notify programmer that client approved - they can now mark the cycle complete
+  if (phase.clientApproved && phase.status === 'in_progress' && project.assignedProgrammerId) {
     await createNotification(
       project.assignedProgrammerId,
       'project_updated',
-      'Phase Completed',
-      `The client has approved and completed phase "${phase.title}" for project "${project.title}".`,
+      'Phase Approved',
+      `The client approved phase "${phase.title}" for project "${project.title}". You can now mark it complete.`,
       projectId
     )
   }

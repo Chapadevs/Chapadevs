@@ -15,10 +15,6 @@ export function isProjectReadyForCompletion(project) {
     if (phase.status !== 'completed') {
       return { ready: false, reason: `Complete phase "${phase.title || 'Untitled'}" before marking the project as completed` }
     }
-    // If phase requires client approval, it must be approved
-    if (phase.requiresClientApproval && !phase.clientApproved) {
-      return { ready: false, reason: `Phase "${phase.title || 'Untitled'}" requires client approval before completion` }
-    }
     // All sub-steps must be completed
     const subSteps = phase.subSteps || []
     for (const subStep of subSteps) {
@@ -26,12 +22,6 @@ export function isProjectReadyForCompletion(project) {
       if (!isCompleted) {
         return { ready: false, reason: `Complete all sub-steps in phase "${phase.title || 'Untitled'}" before marking the project as completed` }
       }
-    }
-    // All required attachments (phase-level) must be received
-    const phaseRequired = phase.requiredAttachments || []
-    const missingPhaseAttachments = phaseRequired.filter((ra) => !ra.receivedAt)
-    if (missingPhaseAttachments.length > 0) {
-      return { ready: false, reason: `Provide all required attachments for phase "${phase.title || 'Untitled'}" before marking the project as completed` }
     }
     // All required attachments (sub-step level) must be received
     for (const subStep of subSteps) {
@@ -55,22 +45,17 @@ export function isPhaseReadyForCompletion(phase) {
     return { ready: false, reason: 'Phase not found' }
   }
 
-  if (phase.requiresClientApproval && !phase.clientApproved) {
+  const subSteps = phase.subSteps || []
+  const allSubStepsDone = subSteps.length > 0 && subSteps.every((s) => s.status === 'completed' || s.completed === true)
+  if (allSubStepsDone && !phase.clientApproved) {
     return { ready: false, reason: `Client approval required before marking complete` }
   }
 
-  const subSteps = phase.subSteps || []
   for (const subStep of subSteps) {
     const isCompleted = subStep.status === 'completed' || subStep.completed === true
     if (!isCompleted) {
       return { ready: false, reason: `Complete all sub-steps before marking complete` }
     }
-  }
-
-  const phaseRequired = phase.requiredAttachments || []
-  const missingPhaseAttachments = phaseRequired.filter((ra) => !ra.receivedAt)
-  if (missingPhaseAttachments.length > 0) {
-    return { ready: false, reason: `Provide all required attachments for this phase before marking complete` }
   }
 
   for (const subStep of subSteps) {
@@ -203,6 +188,7 @@ export const calculatePermissions = (user, project) => {
 
   return {
     isClientOwner,
+    isAdmin: admin,
     isAssignedProgrammer,
     isProgrammerInProject,
     canEdit,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import RoleGate from '../RoleGate/RoleGate'
 import NotificationBell from '../../ui-components/NotificationBell/NotificationBell'
@@ -8,13 +8,7 @@ import { getAvatarUrl } from '../../../utils/avatarUtils'
 import './Header.css'
 
 const Header = () => {
-  const { user, isAuthenticated, logout } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/')
-  }
+  const { user, isAuthenticated } = useAuth()
 
   return (
     <header className="main-header">
@@ -69,21 +63,17 @@ const Header = () => {
               </RoleGate>
               
               <NotificationBell />
-              
-              <Button to="/projects" variant="ghost" size="sm">
-                PROJECTS
-              </Button>
 
               <StatusDropdown 
                 trigger={
                   <div className="relative cursor-pointer">
-                    <Avatar className="w-10 h-10 border border-white/10">
+                    <Avatar className="w-8 h-8 bg-transparent">
                       <AvatarImage src={getAvatarUrl(user?.avatar)} alt={user?.name} />
                       <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || '?'}</AvatarFallback>
                     </Avatar>
                     
                     <span 
-                      className="absolute bottom-0 right-0 z-20 w-3 h-3 rounded-full border-2 border-black"
+                      className="absolute bottom-0 right-0 z-20 w-2 h-2 rounded-full"
                       style={{ 
                         backgroundColor: user?.status === 'online' ? '#4caf50' : 
                                         user?.status === 'busy' ? '#f44336' : 
@@ -93,19 +83,6 @@ const Header = () => {
                   </div>
                 } 
               />
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </Button>
             </div>
           )}
         </nav>

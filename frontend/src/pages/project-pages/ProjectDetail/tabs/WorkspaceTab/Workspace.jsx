@@ -15,9 +15,11 @@ const formatDate = (d) => formatDateOnly(d, '—')
 const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed, onSwitchToPreviews }) => {
   const { user } = useAuth()
   const [selectedCycleIndex, setSelectedCycleIndex] = useState(0)
+  const [cycleActions, setCycleActions] = useState(null)
 
   const permissions = project && user ? calculatePermissions(user, project) : null
   const isClientOwner = permissions?.isClientOwner ?? false
+  const isAdmin = permissions?.isAdmin ?? false
   const isAssignedProgrammer = permissions?.isAssignedProgrammer ?? false
   const canConfirmWorkspace = permissions?.canConfirmWorkspace ?? true
 
@@ -385,23 +387,53 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
             const phaseId = phase._id || phase.id
             const isCompleted = phase.status === 'completed'
             const isInProgress = phase.status === 'in_progress'
+            const isNotStarted = phase.status === 'not_started'
             const cycleNumber = phase.order ?? index + 1
             const isSelected = index === selectedIndex
             return (
-              <Button
-                key={phaseId}
-                type="button"
-                variant={isSelected ? 'primary' : 'ghost'}
-                role="tab"
-                aria-selected={isSelected}
-                aria-label={`Cycle ${cycleNumber}: ${phase.title || `Phase ${cycleNumber}`}`}
-                className={`workspace-cycle-tab ${isSelected ? 'workspace-cycle-tab-active' : ''} ${
-                  isCompleted ? 'workspace-cycle-tab-completed workspace-cycle-tab-locked' : isInProgress ? 'workspace-cycle-tab-in-progress' : ''
-                }`}
-                onClick={() => setSelectedCycleIndex(index)}
-              >
-                Cycle {cycleNumber}
-              </Button>
+              <div key={phaseId} className="flex flex-col items-center gap-1">
+                <Button
+                  type="button"
+                  variant={isSelected ? 'primary' : 'ghost'}
+                  role="tab"
+                  aria-selected={isSelected}
+                  aria-label={`Cycle ${cycleNumber}: ${phase.title || `Phase ${cycleNumber}`}`}
+                  className={`workspace-cycle-tab ${isSelected ? 'workspace-cycle-tab-active' : ''} ${
+                    isCompleted ? 'workspace-cycle-tab-completed' : isInProgress ? 'workspace-cycle-tab-in-progress' : isNotStarted ? 'workspace-cycle-tab-not-started' : ''
+                  }`}
+                  onClick={() => setSelectedCycleIndex(index)}
+                >
+                  Cycle {cycleNumber}
+                </Button>
+                {isSelected && (
+                  <div className="flex flex-col gap-1">
+                    {cycleActions?.phaseId === (currentPhase?._id || currentPhase?.id) && cycleActions?.canStartPhase && (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        disabled={cycleActions.loading}
+                        onClick={cycleActions.handleStartPhase}
+                        className="!py-1 !px-2 text-xs"
+                      >
+                        Start Phase
+                      </Button>
+                    )}
+                    {cycleActions?.phaseId === (currentPhase?._id || currentPhase?.id) && cycleActions?.canResetPhase && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={cycleActions.loading}
+                        onClick={cycleActions.handleResetPhase}
+                        className="!py-1 !px-2 text-xs"
+                      >
+                        Reset Phase
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
@@ -413,6 +445,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
           project={project}
           phases={phases}
           isClientOwner={isClientOwner}
+          isAdmin={isAdmin}
           isAssignedProgrammer={isAssignedProgrammer}
           canChangePhaseStatus={permissions.canChangePhaseStatus}
           canUpdateSubSteps={permissions.canUpdateSubSteps}
@@ -425,6 +458,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
           isProgrammerOrAdmin={permissions.isProgrammerOrAdmin}
           userId={user?._id || user?.id}
           onUpdate={handlePhaseUpdate}
+          onCycleActionsReady={setCycleActions}
           embedded
         />
       )}

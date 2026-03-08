@@ -1,9 +1,11 @@
 /**
- * Phase object with requiresClientApproval, clientApproved
+ * Phase object with requiresClientApproval, clientApproved.
+ * Defaults requiresClientApproval to true for legacy phases (undefined).
  */
 export function isPendingApproval(phase) {
   if (!phase) return false
-  return Boolean(phase.requiresClientApproval && !phase.clientApproved)
+  const requiresApproval = phase.requiresClientApproval !== false
+  return Boolean(requiresApproval && !phase.clientApproved)
 }
 
 /**

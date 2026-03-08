@@ -14,6 +14,7 @@ const KanbanColumn = ({
   getCanDragForCard,
   onAddTask,
   showAddTask,
+  renderHeaderAction,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
@@ -21,9 +22,19 @@ const KanbanColumn = ({
 
   return (
     <div className={`phase-cycle-kanban-column ${isOver ? 'phase-cycle-kanban-column--over' : ''}`}>
-      <div className="phase-cycle-kanban-column-header">
-        <span className="font-heading text-xs uppercase tracking-wide">{label}</span>
-        <span className="phase-cycle-kanban-column-count">{cards.length}</span>
+      <div className="phase-cycle-kanban-column-header flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <span className="font-heading text-xs uppercase tracking-wide shrink-0">{label}</span>
+          <span className="phase-cycle-kanban-column-count shrink-0">{cards.length}</span>
+        </div>
+        {renderHeaderAction && (() => {
+          const action = renderHeaderAction(status)
+          return action ? (
+            <div className="phase-cycle-kanban-column-header-action w-full">
+              {action}
+            </div>
+          ) : null
+        })()}
       </div>
       <div ref={setNodeRef} className="phase-cycle-kanban-column-cards min-h-[120px] flex flex-col">
         {cards.length === 0 ? (

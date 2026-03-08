@@ -10,18 +10,6 @@ import './AIPreviewTab.css'
 
 const MAX_PREVIEWS_PER_PROJECT = 3
 
-// Helper function to map project budget to form budget format
-const mapBudgetToForm = (projectBudget) => {
-  if (!projectBudget) return ''
-  const budgetStr = String(projectBudget).replace(/[$,]/g, '')
-  const budgetNum = parseFloat(budgetStr)
-  if (isNaN(budgetNum)) return ''
-  if (budgetNum < 5000) return 'Under $5,000'
-  if (budgetNum < 10000) return '$5,000 - $10,000'
-  if (budgetNum < 25000) return '$10,000 - $25,000'
-  return '$25,000+'
-}
-
 // Helper function to map project timeline to form timeline format
 const mapWorkspaceToForm = (projectWorkspace) => {
   if (!projectWorkspace) return ''
@@ -48,7 +36,6 @@ const AIPreviewTab = ({
   // Initialize form data with project data when form is shown
   const initialFormData = useMemo(() => ({
     prompt: project?.description || '',
-    budget: project?.budget ? mapBudgetToForm(project.budget) : '',
     timeline: project?.timeline ? mapWorkspaceToForm(project.timeline) : '',
     projectType: project?.projectType || '',
     techStack: Array.isArray(project?.technologies) ? project.technologies : [],

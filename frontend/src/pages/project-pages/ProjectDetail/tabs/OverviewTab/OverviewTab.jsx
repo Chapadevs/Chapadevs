@@ -19,7 +19,7 @@ const getDisplayDueDate = (project) => {
   return computed ? formatDate(computed) : '—'
 }
 
-const SettingsTab = ({
+const OverviewTab = ({
   project,
   onDelete,
   onMarkReady,
@@ -87,10 +87,15 @@ const SettingsTab = ({
 
   return (
     <div className="flex flex-col gap-8">
-        {/* Recruitment / Team */}
-        {hasTeamActions && (
+        {/* Development + Ready/Not ready — one section, same row */}
+        {(hasDevActions || hasTeamActions) && (
         <div className="flex flex-col gap-3 pb-6 border-b border-border">
-          <h4 className="text-sm font-heading font-bold uppercase text-ink">Team & recruitment</h4>
+          <h4 className="text-sm font-heading font-bold uppercase text-ink">Development</h4>
+          {project.status === 'Ready' && permissions.isClientOwner && (
+            <p className="font-body text-sm text-ink-muted">
+              Waiting for programmer to start the project.
+            </p>
+          )}
           {project.clientMarkedReady && project.status === 'Open' && permissions.isClientOwner && !permissions.allTeamConfirmedReady && (
             <Alert variant="warning" className="text-sm">
               Waiting for programmers to create project steps and mark themselves as ready. Then the project will move to Ready.
@@ -101,54 +106,54 @@ const SettingsTab = ({
           )}
           <div className="flex flex-wrap gap-3">
             {permissions.canUnconfirmReady && onUnconfirmReady && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onUnconfirmReady}
-                disabled={unconfirmingReady}
-              >
+              <Button variant="secondary" size="sm" onClick={onUnconfirmReady} disabled={unconfirmingReady}>
                 Not ready
               </Button>
             )}
             {(permissions.showMarkReady || permissions.canMarkReady) && !project.clientMarkedReady && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onMarkReady}
-                disabled={markingReady || !permissions.canMarkReady}
-              >
+              <Button variant="primary" size="sm" onClick={onMarkReady} disabled={markingReady || !permissions.canMarkReady}>
                 {project.status === 'Open' ? "I've Reviewed" : 'Mark Ready'}
               </Button>
             )}
             {permissions.canUnmarkReady && onUnmarkReady && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onUnmarkReady}
-                disabled={unmarkingReady}
-              >
+              <Button variant="secondary" size="sm" onClick={onUnmarkReady} disabled={unmarkingReady}>
                 Not ready
               </Button>
             )}
             {permissions.canToggleTeamClosed && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onToggleTeamClosed}
-                disabled={togglingTeamClosed}
-              >
+              <Button variant="primary" size="sm" onClick={onToggleTeamClosed} disabled={togglingTeamClosed}>
                 {togglingTeamClosed ? 'Updating...' : project.teamClosed ? 'Open Project' : 'Close Project'}
               </Button>
             )}
             {(permissions.showConfirmReady || permissions.canConfirmReady) && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onConfirmReady}
-                disabled={confirmingReady || !permissions.canConfirmReady}
-              >
+              <Button variant="primary" size="sm" onClick={onConfirmReady} disabled={confirmingReady || !permissions.canConfirmReady}>
                 {confirmingReady ? 'Confirming...' : "I'm Ready"}
               </Button>
+            )}
+            {(permissions.showStartDevelopment || permissions.canStartDevelopment) && (
+              <Button variant="primary" size="sm" onClick={onStartDevelopment} disabled={startingDevelopment || !permissions.canStartDevelopment}>
+                {startingDevelopment ? 'Starting...' : 'Start Development'}
+              </Button>
+            )}
+            {permissions.canStopDevelopment && (
+              <Button variant="primary" size="sm" onClick={onStopDevelopment} disabled={stoppingDevelopment}>
+                {stoppingDevelopment ? 'Stopping...' : 'Stop Development'}
+              </Button>
+            )}
+            {permissions.canSetToHolding && (
+              <Button variant="primary" size="sm" onClick={onMarkHolding} disabled={markingHolding}>
+                {markingHolding ? 'Updating...' : 'Set to On Hold'}
+              </Button>
+            )}
+            {(permissions.canMarkCompleted || permissions.showMarkCompleted) && (
+              <div className="flex flex-col gap-1">
+                {permissions.markCompletedBlockedReason && (
+                  <p className="font-body text-sm text-ink-muted">{permissions.markCompletedBlockedReason}</p>
+                )}
+                <Button variant="primary" size="sm" onClick={onMarkCompleted} disabled={markingCompleted || !permissions.canMarkCompleted} title={permissions.markCompletedBlockedReason || undefined}>
+                  {markingCompleted ? 'Updating...' : 'Mark as Completed'}
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -163,121 +168,62 @@ const SettingsTab = ({
             </Button>
           )}
         </div>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 font-body text-sm">
-          <div>
-            <dt className="text-ink-muted">Status</dt>
-            <dd className="font-medium">{project.status ?? '—'}</dd>
+        {/* Dates on top, duration (weeks) on bottom — centered, no padding/margin */}
+        <div className="flex flex-col items-center justify-center text-center border-l-4 border-primary font-body p-0 m-0 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 p-0 m-0">
+            <div className="p-0 m-0">
+              <dt className="text-xs font-heading uppercase text-ink-muted tracking-wide p-0 m-0">Start date</dt>
+              <dd className="font-heading font-bold text-lg text-ink p-0 m-0">{formatDate(project.startDate)}</dd>
+            </div>
+            <div className="p-0 m-0">
+              <dt className="text-xs font-heading uppercase text-ink-muted tracking-wide p-0 m-0">Due date</dt>
+              <dd className="font-heading font-bold text-lg text-ink p-0 m-0">{getDisplayDueDate(project)}</dd>
+            </div>
+            <div className="p-0 m-0">
+              <dt className="text-xs font-heading uppercase text-ink-muted tracking-wide p-0 m-0">Completed date</dt>
+              <dd className="font-heading font-bold text-lg text-ink p-0 m-0">{formatDate(project.completedDate)}</dd>
+            </div>
           </div>
-          <div>
-            <dt className="text-ink-muted">Priority</dt>
-            <dd className="font-medium">{project.priority ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Project type</dt>
-            <dd className="font-medium">{project.projectType ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Budget</dt>
-            <dd className="font-medium">{project.budget ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Workspace</dt>
-            <dd className="font-medium">{formatWorkspace(project.timeline)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Start date</dt>
-            <dd className="font-medium">{formatDate(project.startDate)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Due date</dt>
-            <dd className="font-medium">{getDisplayDueDate(project)}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Completed date</dt>
-            <dd className="font-medium">{formatDate(project.completedDate)}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-ink-muted">Client</dt>
-            <dd className="font-medium">{clientName}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-ink-muted">Assigned programmer(s)</dt>
-            <dd className="font-medium">
-              {programmerNames.length ? programmerNames.join(', ') : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Teamclosed</dt>
-            <dd className="font-medium">{project.teamClosed ? 'Yes' : 'No'}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Ready confirmed</dt>
-            <dd className="font-medium">{readyCount} of {totalMembers}</dd>
-          </div>
-        </dl>
-      </div>
-
-      {/* Development */}
-      {hasDevActions && (
-        <div className="flex flex-col gap-3 pb-6 border-b border-border">
-          <h4 className="text-sm font-heading font-bold uppercase text-ink">Development</h4>
-          {project.status === 'Ready' && permissions.isClientOwner && (
-            <p className="font-body text-sm text-ink-muted">
-              Waiting for programmer to start the project.
-            </p>
-          )}
-          <div className="flex flex-wrap gap-3">
-            {(permissions.showStartDevelopment || permissions.canStartDevelopment) && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onStartDevelopment}
-                disabled={startingDevelopment || !permissions.canStartDevelopment}
-              >
-                {startingDevelopment ? 'Starting...' : 'Start Development'}
-              </Button>
-            )}
-            {permissions.canStopDevelopment && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onStopDevelopment}
-                disabled={stoppingDevelopment}
-              >
-                {stoppingDevelopment ? 'Stopping...' : 'Stop Development'}
-              </Button>
-            )}
-            {permissions.canSetToHolding && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={onMarkHolding}
-                disabled={markingHolding}
-              >
-                {markingHolding ? 'Updating...' : 'Set to On Hold'}
-              </Button>
-            )}
-            {(permissions.canMarkCompleted || permissions.showMarkCompleted) && (
-              <div className="flex flex-col gap-1">
-                {permissions.markCompletedBlockedReason && (
-                  <p className="font-body text-sm text-ink-muted">
-                    {permissions.markCompletedBlockedReason}
-                  </p>
-                )}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={onMarkCompleted}
-                  disabled={markingCompleted || !permissions.canMarkCompleted}
-                  title={permissions.markCompletedBlockedReason || undefined}
-                >
-                  {markingCompleted ? 'Updating...' : 'Mark as Completed'}
-                </Button>
-              </div>
-            )}
+          <div className="p-0 m-0">
+            <dt className="text-xs font-heading uppercase text-ink-muted tracking-wide p-0 m-0">Duration</dt>
+            <dd className="font-heading font-bold text-lg text-ink p-0 m-0">{formatWorkspace(project.timeline)}</dd>
           </div>
         </div>
-      )}
+        <div className="flex flex-col gap-6 font-body text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            <div>
+              <dt className="text-ink-muted">Status</dt>
+              <dd className="font-medium">{project.status ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Project type</dt>
+              <dd className="font-medium">{project.projectType ?? '—'}</dd>
+            </div>
+          </dl>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            <div>
+              <dt className="text-ink-muted">Client</dt>
+              <dd className="font-medium">{clientName}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Assigned programmer(s)</dt>
+              <dd className="font-medium">
+                {programmerNames.length ? programmerNames.join(', ') : '—'}
+              </dd>
+            </div>
+          </dl>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            <div>
+              <dt className="text-ink-muted">Team closed</dt>
+              <dd className="font-medium">{project.teamClosed ? 'Yes' : 'No'}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Ready confirmed</dt>
+              <dd className="font-medium">{readyCount} of {totalMembers}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
 
       {/* Danger Zone */}
       {(permissions.canDelete ||
@@ -334,4 +280,4 @@ const SettingsTab = ({
   )
 }
 
-export default SettingsTab
+export default OverviewTab

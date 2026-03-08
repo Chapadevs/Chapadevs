@@ -373,7 +373,7 @@ const EditProfile = () => {
               </div>
             </div>
             <div className="profile-header">
-              <h1>Profile Settings<NotificationBadge /></h1>
+              <h1>Profile Overview<NotificationBadge /></h1>
               {editingBio ? (
                 <div className="profile-bio-edit">
                   <Textarea
