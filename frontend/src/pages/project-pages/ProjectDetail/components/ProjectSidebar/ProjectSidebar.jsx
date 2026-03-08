@@ -7,7 +7,8 @@ import {
   History,
   Calendar,
   Image,
-  ArrowLeft
+  ArrowLeft,
+  ChevronRight
 } from "lucide-react";
 
 import {
@@ -19,8 +20,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarTrigger,
-  Button
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
 } from "@/components/ui-components";
 import NotificationBadge from "../../../../../components/ui-components/NotificationBadge/NotificationBadge";
 import StatusDropdown from "../../../../../components/ui-components/StatusDropdown/StatusDropdown";
@@ -38,16 +45,15 @@ const ProjectSidebar = ({
   hasActivityNotifications,
   hasCommentsNotifications,
 }) => {
-  const navItems = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard, hasNotification: hasOverviewNotifications, show: true },
+  const workspaceSubItems = [
     { id: "ai-preview", label: "Previews", icon: Layout, hasNotification: hasAIPreviewNotifications, show: showAIPreviewsSection },
-    { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications, show: true },
-    { id: "timeline", label: "Workspace", icon: FolderKanban, hasNotification: hasWorkspaceNotifications, show: true },
-    { id: "assets", label: "Assets", icon: Image, hasNotification: false, show: true },
-    { id: "calendar", label: "Calendar", icon: Calendar, hasNotification: false, show: true },
-    { id: "activity", label: "Activity", icon: History, hasNotification: hasActivityNotifications, show: true },
-    { id: "comments", label: "Chat", icon: MessageSquare, hasNotification: hasCommentsNotifications, show: true },
-  ];
+    { id: "timeline", label: "Timeline", icon: FolderKanban, hasNotification: hasWorkspaceNotifications },
+    { id: "programmers", label: "Team", icon: Users, hasNotification: hasProgrammersNotifications },
+    { id: "assets", label: "Assets", icon: Image },
+    { id: "calendar", label: "Calendar", icon: Calendar },
+  ]
+  const isWorkspaceActive = ["timeline", "ai-preview", "programmers", "assets", "calendar"].includes(activeTab)
+  const workspaceDefaultOpen = isWorkspaceActive
   const { user } = useAuth()
   return (
 <Sidebar 
@@ -74,7 +80,7 @@ const ProjectSidebar = ({
 
       <SidebarContent className="gap-1">
         <SidebarGroup className="p-1 pt-0 pl-0">
-          <div className="flex w-full justify-center pt-1 pb-1 mb-2 group-data-[collapsible=icon]:pb-2">
+          <div className="flex w-full justify-center pt-1 pb-1 mb-4 group-data-[collapsible=icon]:pb-2">
             <StatusDropdown 
               trigger={
                 <div className="relative cursor-pointer">
@@ -97,28 +103,86 @@ const ProjectSidebar = ({
           </div>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
-              {navItems.map((item) => {
-                if (!item.show) return null;
-                return (
-                  <SidebarMenuItem key={item.id}>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="sm"
+                  onClick={() => onTabChange("overview")}
+                  isActive={activeTab === "overview"}
+                  tooltip="Overview"
+                  className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                >
+                  <LayoutDashboard className="size-3 shrink-0" />
+                  <span className="group-data-[collapsible=icon]:hidden">Overview</span>
+                  {hasOverviewNotifications && <NotificationBadge />}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <Collapsible asChild defaultOpen={workspaceDefaultOpen} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
                     <SidebarMenuButton
                       size="sm"
-                      onClick={() => onTabChange(item.id)}
-                      isActive={activeTab === item.id}
-                      tooltip={item.label}
-                      className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                      tooltip="Workspace"
+                      className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary [&>svg:last-child]:ml-auto [&>svg:last-child]:transition-transform group-data-[state=open]/collapsible:[&>svg:last-child]:rotate-90"
+                      data-active={isWorkspaceActive}
                     >
-                      <item.icon className="size-3 shrink-0" /> 
-                      <span className="group-data-[collapsible=icon]:hidden">
-                        {item.label}
-                      </span>
-                    {item.hasNotification && (
-                      <NotificationBadge />
-                    )}
+                      <FolderKanban className="size-3 shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">Workspace</span>
+                      {hasWorkspaceNotifications && <NotificationBadge />}
+                      <ChevronRight className="size-3 shrink-0 group-data-[collapsible=icon]:hidden" />
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {workspaceSubItems.map((item) => {
+                        if (item.show === false) return null
+                        return (
+                          <SidebarMenuSubItem key={item.id}>
+                            <SidebarMenuSubButton
+                              size="sm"
+                              onClick={() => onTabChange(item.id)}
+                              isActive={activeTab === item.id}
+                              className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                            >
+                              <item.icon className="size-3 shrink-0" />
+                              <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                              {item.hasNotification && <NotificationBadge />}
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="sm"
+                  onClick={() => onTabChange("activity")}
+                  isActive={activeTab === "activity"}
+                  tooltip="Activity"
+                  className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                >
+                  <History className="size-3 shrink-0" />
+                  <span className="group-data-[collapsible=icon]:hidden">Activity</span>
+                  {hasActivityNotifications && <NotificationBadge />}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="sm"
+                  onClick={() => onTabChange("comments")}
+                  isActive={activeTab === "comments"}
+                  tooltip="Chat"
+                  className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                >
+                  <MessageSquare className="size-3 shrink-0" />
+                  <span className="group-data-[collapsible=icon]:hidden">Chat</span>
+                  {hasCommentsNotifications && <NotificationBadge />}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

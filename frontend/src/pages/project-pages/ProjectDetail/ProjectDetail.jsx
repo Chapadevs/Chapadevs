@@ -323,7 +323,7 @@ function ProjectDetail() {
 
               {error && <Alert variant="error" className="mb-6">{error}</Alert>}
 
-              <section className="min-w-0 w-full">
+              <section className="min-w-0 w-full pt-6">
                 {activeTab === 'ai-preview' && showAIPreviewsSection && (
                   <AIPreviewTab
                     project={project}

@@ -13,6 +13,7 @@ export { default as NavDropdown } from './NavDropdown/NavDropdown'
 export { default as StatusDropdown } from './StatusDropdown/StatusDropdown'
 export * from './Textarea'
 export * from './Sidebar';
+export { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/shadcn-components/collapsible';
 export * from './Avatar'; 
 export * from './Card';
 export { Skeleton } from '@/components/shadcn-components/shadcn-sidebar/skeleton';
