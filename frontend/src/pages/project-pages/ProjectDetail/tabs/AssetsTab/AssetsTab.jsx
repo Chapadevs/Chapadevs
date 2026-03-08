@@ -145,101 +145,71 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate, onPro
         General project images and files, plus assets attached to phases and tasks. Copy links to share.
       </p>
 
-      {(canUploadAttachments || phases.length > 0 || items.length > 0) ? (
-        <div className="mb-4 flex flex-col gap-3 p-3 border border-border bg-surface">
-          {uploadError && <Alert variant="error">{uploadError}</Alert>}
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            {canUploadAttachments && (
-              <>
-                <div className="flex flex-col gap-1 items-center">
-                  <label className="font-heading text-xs uppercase tracking-wide text-ink-muted">Upload file</label>
-                  <label className="cursor-pointer shrink-0 flex flex-col items-center gap-0.5">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf,.doc,.docx"
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                      className="hidden"
-                    />
-                    <span className="inline-block font-button text-xs bg-primary text-white rounded-none hover:opacity-90 transition-opacity px-3 py-1.5">
-                      {uploading ? 'Uploading...' : '+ Choose file'}
-                    </span>
-                    <span className="font-body text-xs text-ink-muted">Max 10MB</span>
-                  </label>
-                </div>
-                {(phases.length > 0 || items.length > 0) && (
-                  <div className="h-6 w-px bg-border shrink-0 self-center" aria-hidden />
-                )}
-              </>
-            )}
-            {(phases.length > 0 || items.length > 0) && (
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-                {phases.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <label className="font-body text-xs text-ink-muted shrink-0">Phase</label>
-                    <select
-                      value={phaseFilter}
-                      onChange={(e) => setPhaseFilter(e.target.value)}
-                      className="font-body text-xs border border-border px-2 py-1.5 rounded-none bg-surface min-w-[120px]"
-                    >
-                      <option value="">All phases</option>
-                      {phases.map((p) => (
-                        <option key={p._id || p.id} value={p._id || p.id}>
-                          {p.title || `Phase ${p.order ?? ''}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <label className="font-body text-xs text-ink-muted shrink-0">Source</label>
-                  <select
-                    value={sourceFilter}
-                    onChange={(e) => setSourceFilter(e.target.value)}
-                    className="font-body text-xs border border-border px-2 py-1.5 rounded-none bg-surface min-w-[120px]"
-                  >
-                    <option value="">All</option>
-                    <option value="additional-assets">Additional assets</option>
-                    <option value="task">Task attachments</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="font-body text-xs text-ink-muted shrink-0">Status</label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="font-body text-xs border border-border px-2 py-1.5 rounded-none bg-surface min-w-[120px]"
-                  >
-                    <option value="">All</option>
-                    <option value="ok">OK</option>
-                    <option value="changes_needed">Changes needed</option>
-                  </select>
-                </div>
-                {(phaseFilter || sourceFilter || statusFilter) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhaseFilter('')
-                      setSourceFilter('')
-                      setStatusFilter('')
-                    }}
-                    className="font-button text-xs text-primary hover:underline shrink-0"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            )}
+      {(phases.length > 0 || items.length > 0) ? (
+        <div className="mb-3 flex flex-wrap items-start justify-start gap-x-4 gap-y-2 py-0.5 w-full min-w-0">
+          {phases.length > 0 && (
+            <div className="flex flex-col gap-0.5 shrink-0">
+              <label className="font-body text-[8px] text-ink-muted shrink-0 whitespace-nowrap leading-none">Phase</label>
+              <select
+                value={phaseFilter}
+                onChange={(e) => setPhaseFilter(e.target.value)}
+                className="font-body text-[8px] leading-tight border border-border px-0.5 py-0 rounded-none bg-surface w-[52px] h-6 shrink-0 min-h-0"
+              >
+                <option value="">All</option>
+                {phases.map((p) => (
+                  <option key={p._id || p.id} value={p._id || p.id}>
+                    {p.title || `Phase ${p.order ?? ''}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5 shrink-0">
+            <label className="font-body text-[8px] text-ink-muted shrink-0 whitespace-nowrap leading-none">Source</label>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="font-body text-[8px] leading-tight border border-border px-0.5 py-0 rounded-none bg-surface w-[52px] h-6 shrink-0 min-h-0"
+            >
+              <option value="">All</option>
+              <option value="additional-assets">Assets</option>
+              <option value="task">Tasks</option>
+            </select>
           </div>
+          <div className="flex flex-col gap-0.5 shrink-0">
+            <label className="font-body text-[8px] text-ink-muted shrink-0 whitespace-nowrap leading-none">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="font-body text-[8px] leading-tight border border-border px-0.5 py-0 rounded-none bg-surface w-[52px] h-6 shrink-0 min-h-0"
+            >
+              <option value="">All</option>
+              <option value="ok">OK</option>
+              <option value="changes_needed">Changes</option>
+            </select>
+          </div>
+          {(phaseFilter || sourceFilter || statusFilter) && (
+            <button
+              type="button"
+              onClick={() => {
+                setPhaseFilter('')
+                setSourceFilter('')
+                setStatusFilter('')
+              }}
+              className="font-button text-[8px] text-primary hover:underline shrink-0 leading-none self-center"
+            >
+              Clear
+            </button>
+          )}
         </div>
       ) : null}
 
       {filteredItems.length === 0 ? (
         <p className="font-body text-ink-muted py-8">
-          No attachments yet. {canUploadAttachments ? 'Upload files above or in task modals.' : 'Upload files in task modals.'}
+          No attachments yet. {canUploadAttachments ? 'Upload files below or in task modals.' : 'Upload files in task modals.'}
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1">
           {filteredItems.map((item) => {
             const fileUrl = getDisplayUrl(item)
             const itemId = item._id || item.url
@@ -254,7 +224,7 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate, onPro
               >
                 <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden relative">
                   {format && (
-                    <span className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] font-heading uppercase tracking-wide bg-black/60 text-white rounded-none">
+                    <span className="absolute top-0.5 right-0.5 px-1 py-0.5 text-[9px] font-heading uppercase tracking-wide bg-black/60 text-white rounded-none">
                       {format}
                     </span>
                   )}
@@ -271,62 +241,30 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate, onPro
                       />
                     </button>
                   ) : (
-                    <div className="text-4xl">{getFileIcon(item.type)}</div>
+                    <div className="text-2xl">{getFileIcon(item.type)}</div>
                   )}
                 </div>
-                <div className="p-2 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-body text-sm font-medium truncate" title={item.filename}>
-                      {item.filename}
-                    </span>
-                    {format && (
-                      <span className="font-heading text-[10px] uppercase tracking-wide text-ink-muted shrink-0">
-                        {format}
-                      </span>
-                    )}
+                <div className="p-1 min-w-0">
+                  <span className="font-body text-[11px] font-medium truncate block" title={item.filename}>
+                    {item.filename}
+                  </span>
+                  <div className="flex items-center gap-0.5 flex-wrap mt-0.5">
                     {(item.status || 'ok') === 'changes_needed' && (
-                      <Badge variant="warning" className="shrink-0">
-                        Changes needed
+                      <Badge variant="warning" className="shrink-0 text-[9px] !py-0 !px-1">
+                        Changes
                       </Badge>
                     )}
-                    <Badge
-                      variant="neutral"
-                      className="shrink-0 text-xs"
-                    >
-                      {(item.sourceType || (item.subStepName ? 'task' : 'additional-assets')) === 'additional-assets'
-                        ? 'Additional assets'
-                        : 'Task'}
-                    </Badge>
+                    <span className="font-heading text-[9px] uppercase text-ink-muted shrink-0">
+                      {(item.sourceType || (item.subStepName ? 'task' : 'additional-assets')) === 'additional-assets' ? 'Assets' : 'Task'}
+                    </span>
                   </div>
-                  {(item.status || 'ok') === 'changes_needed' && item.changesNeededFeedback && (
-                    <p className="text-xs text-amber-700 font-body truncate mt-0.5" title={item.changesNeededFeedback}>
-                      {item.changesNeededFeedback}
-                    </p>
-                  )}
-                  <div className="text-xs text-muted-foreground font-body truncate">
-                    {item.phaseName}
-                    {item.subStepName && ` • ${item.subStepName}`}
-                  </div>
-                  {item.uploadedAt && (
-                    <div className="text-xs text-muted-foreground font-body mt-0.5">
-                      {new Date(item.uploadedAt).toLocaleDateString()}
-                      {item.uploadedBy && (
-                        <span>
-                          {' by '}
-                          {typeof item.uploadedBy === 'object' && item.uploadedBy?.name
-                            ? item.uploadedBy.name
-                            : 'Unknown'}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
-                <div className="p-2 flex gap-1 flex-wrap">
+                <div className="p-1 flex gap-0.5 flex-wrap">
                   <a
                     href={fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-button text-primary hover:underline"
+                    className="text-[10px] font-button text-primary hover:underline"
                   >
                     Open
                   </a>
@@ -335,21 +273,43 @@ const AssetsTab = ({ project, canUploadAttachments = false, onPhaseUpdate, onPro
                     target="_blank"
                     rel="noopener noreferrer"
                     download
-                    className="text-xs font-button text-primary hover:underline"
+                    className="text-[10px] font-button text-primary hover:underline"
                   >
                     Download
                   </a>
                   <button
                     type="button"
                     onClick={() => handleCopyLink(item)}
-                    className="text-xs font-button text-primary hover:underline"
+                    className="text-[10px] font-button text-primary hover:underline"
                   >
-                    {copied ? 'Copied!' : 'Copy link'}
+                    {copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {canUploadAttachments && (
+        <div className="mt-6 p-3 flex flex-col items-center justify-center">
+          {uploadError && <Alert variant="error" className="mb-2">{uploadError}</Alert>}
+          <div className="flex flex-col gap-1 items-center">
+            <label className="font-heading text-[10px] uppercase tracking-wide text-ink-muted">Upload file</label>
+            <label className="cursor-pointer flex flex-col items-center gap-0.5">
+              <input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <span className="inline-block font-button text-xs bg-primary text-white rounded-none hover:opacity-90 transition-opacity px-3 py-1.5">
+                {uploading ? 'Uploading...' : '+ Choose file'}
+              </span>
+              <span className="font-body text-xs text-ink-muted">Max 10MB</span>
+            </label>
+          </div>
         </div>
       )}
 

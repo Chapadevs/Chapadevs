@@ -5,7 +5,7 @@ import { useAuth } from '../../../../../context/AuthContext'
 import { calculatePermissions } from '../../utils/userPermissionsUtils'
 import CycleDetail from './components/CycleDetail'
 import ProposalSubStepCard from './components/ProposalSubStepCard/ProposalSubStepCard'
-import { Button, Alert, Input } from '../../../../../components/ui-components'
+import { Button, Alert, Input, SectionTitle } from '../../../../../components/ui-components'
 import { formatDateOnly, getProjectDurationFromDates } from '../../../../../utils/dateUtils'
 import { usePhaseProposal } from './hooks/usePhaseProposal'
 import './Workspace.css'
@@ -95,7 +95,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
 
     return (
       <section className="project-section project-phases">
-        <h3 className="project-tab-panel-title">Review timeline</h3>
+        <SectionTitle className="mb-4">Review timeline</SectionTitle>
         <p className="timeline-proposal-intro">
           Review the proposed phases below. Edit title, description, or drag sub-steps to reorder. Then confirm to create the timeline.
         </p>
@@ -374,13 +374,13 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
 
   return (
     <section className="project-section project-phases">
-      <h3 className="project-tab-panel-title">Project Cycle</h3>
+      <SectionTitle className="mb-4">Project Cycle</SectionTitle>
 
       <div className="workspace-cycle">
         {currentPhase && (
-          <h2 id="phase-modal-title" className="workspace-cycle-title font-heading text-lg text-ink uppercase tracking-wide">
-            Cycle {currentPhase.order ?? selectedIndex + 1}: {currentPhase.title}
-          </h2>
+          <p id="phase-modal-title" className="font-body text-sm text-ink-muted mb-1">
+            {currentPhase.title}
+          </p>
         )}
         <div className="workspace-cycle-tabs" role="tablist" aria-label="Select cycle">
           {phases.map((phase, index) => {

@@ -4,7 +4,7 @@ import { projectAPI } from '../../../../../services/api'
 import { calculatePermissions } from '../../utils/userPermissionsUtils'
 import { getCalendarItems, getItemsForDate, toDateKey } from '../../../../../utils/calendarDateUtils'
 import { formatDateOnly } from '../../../../../utils/dateUtils'
-import { Calendar, Card, Badge } from '../../../../../components/ui-components'
+import { Calendar, Card, Badge, SectionTitle } from '../../../../../components/ui-components'
 import SubStepModal from '../../../../../components/modal-components/SubStepModal/SubStepModal'
 import { TASK_STATUS_LABELS } from '../../utils/workspaceConstants'
 
@@ -144,7 +144,7 @@ const CalendarTab = ({ project, onPhaseUpdate }) => {
 
   return (
     <section className="project-section project-phases w-full flex flex-col items-center">
-      <h2 className="font-heading text-lg uppercase text-ink mb-4 w-full text-center">Project Calendar</h2>
+      <SectionTitle className="mb-4 w-full">Project Calendar</SectionTitle>
 
       <div className="inline-flex flex-col items-stretch">
         <div className="sticky top-0 z-10 flex flex-col gap-2 p-2.5 pl-3 bg-surface rounded-none">

@@ -139,7 +139,8 @@ const CommentsTab = ({ project, user }) => {
 
   return (
     <div className="project-tab-panel chat-container">
-      <SectionTitle className="project-tab-panel-title mb-4">Comments</SectionTitle>
+      <SectionTitle className="mb-4">Comments</SectionTitle>
+      <p className="font-body text-sm text-ink-muted mt-1 mb-4">Project chat with the team.</p>
 
       {error && <Alert variant="error" className="mb-4">{error}</Alert>}
 

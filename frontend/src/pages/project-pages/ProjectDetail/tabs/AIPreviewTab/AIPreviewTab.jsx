@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { generateAIPreviewStream, deleteAIPreview } from '../../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
+import { SectionTitle } from '../../../../../components/ui-components'
 import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
 import AIPreviewCardSkeleton from './components/AIPreviewCardSkeleton/AIPreviewCardSkeleton'
@@ -107,22 +108,27 @@ const AIPreviewTab = ({
 
   return (
     <section className="project-section project-section-previews">
-        <AIPreviewForm
-          generateFormData={generateFormData}
-          setGenerateFormData={setGenerateFormData}
-          generating={generating}
-          streamedThinking={streamedThinking}
-          generateError={generateError}
-          techStackByCategory={TECH_STACK_BY_CATEGORY}
-          onSubmit={handleGenerateSubmit}
-          onCancel={() => { 
-            setGenerateError('')
-            setGenerateFormData(initialFormData)
-          }}
-        />
+      <SectionTitle className="mb-4">Generate AI Preview</SectionTitle>
+      <p className="font-body text-sm text-ink-muted mt-1 mb-4">
+        Describe your project and let AI generate a live website preview. Programmers can use the code once assigned.
+      </p>
 
-    <div className="text-center mb-4">
-        <h3 className="project-tab-panel-title font-heading text-sm uppercase tracking-wider border-0">AI PREVIEW</h3>
+      <AIPreviewForm
+        generateFormData={generateFormData}
+        setGenerateFormData={setGenerateFormData}
+        generating={generating}
+        streamedThinking={streamedThinking}
+        generateError={generateError}
+        techStackByCategory={TECH_STACK_BY_CATEGORY}
+        onSubmit={handleGenerateSubmit}
+        onCancel={() => {
+          setGenerateError('')
+          setGenerateFormData(initialFormData)
+        }}
+      />
+
+      <div className="mt-8 mb-4">
+        <h4 className="font-heading text-xs uppercase text-ink-muted tracking-wider mb-2">Generated Previews</h4>
         <p className="project-previews-intro font-body text-sm text-ink-secondary">
           {isClientOwner && (previews.length ? 'Your generated previews. Programmers can view and use the code once assigned.' : 'Generate up to 3 AI previews above.')}
           {isAssignedProgrammer && !isClientOwner && (previews.length ? "View and download the client's generated preview code to start development." : 'No preview yet.')}

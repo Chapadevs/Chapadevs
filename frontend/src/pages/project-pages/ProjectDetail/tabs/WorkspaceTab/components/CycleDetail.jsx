@@ -219,7 +219,7 @@ const CycleDetail = ({
             <div className="phase-cycle-progress-and-description">
               {subStepsProgress !== null && (
                 <div className="project-phase-modal-progress">
-                  <span className="project-phase-modal-progress-label font-body text-xs">
+                  <span className="project-phase-modal-progress-label font-body text-[10px] text-center">
                     {Math.round(subStepsProgress)}% complete
                   </span>
                   <div className="project-phase-modal-progress-bar">
@@ -231,7 +231,7 @@ const CycleDetail = ({
                 </div>
               )}
               {localPhase.description && (
-                <p className="phase-overview-description phase-overview-description-full font-body text-ink-muted text-sm">
+                <p className="phase-overview-description phase-overview-description-full font-body text-ink-muted text-xs text-center">
                   {localPhase.description}
                 </p>
               )}

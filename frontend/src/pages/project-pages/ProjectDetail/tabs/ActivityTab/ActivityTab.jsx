@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { projectAPI } from '../../../../../services/api'
-import { Button } from '../../../../../components/ui-components'
+import { Button, SectionTitle } from '../../../../../components/ui-components'
 import NotificationBadge from '../../../../../components/ui-components/NotificationBadge/NotificationBadge'
 
 const ACTION_LABELS = {
@@ -85,10 +85,8 @@ const ActivityTab = ({ project }) => {
 
   return (
     <section className="project-section project-activity">
-      <h3 className="project-tab-panel-title font-heading text-sm uppercase tracking-wider border-l-4 border-primary pl-3 mb-4">
-        Activity
-      </h3>
-      <p className="text-ink-muted text-sm mb-4">
+      <SectionTitle className="mb-4">Activity</SectionTitle>
+      <p className="font-body text-sm text-ink-muted mt-1 mb-4">
         Recent actions on this project. Client and team see the same feed.
       </p>
       {error && (
