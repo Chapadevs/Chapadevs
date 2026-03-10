@@ -56,7 +56,7 @@ const ConfirmPasswordChange = () => {
       <div className="login-container">
         <div className="login-brand">
           <Link to="/" className="login-brand-link">
-            <img src="assets/logos/chapadevs-logo.png" alt="Chapadevs" className="login-brand-logo" />
+            <img src="/assets/logos/chapadevs-logo.png" alt="Chapadevs" className="login-brand-logo" />
           </Link>
           <p className="login-brand-tagline">Build with us</p>
         </div>
@@ -81,7 +81,7 @@ const ConfirmPasswordChange = () => {
     <div className="login-container">
       <div className="login-brand">
         <Link to="/" className="login-brand-link">
-          <img src="assets/logos/chapadevs-logo.png" alt="Chapadevs" className="login-brand-logo" />
+          <img src="/assets/logos/chapadevs-logo.png" alt="Chapadevs" className="login-brand-logo" />
         </Link>
         <p className="login-brand-tagline">Build with us</p>
       </div>

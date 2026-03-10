@@ -75,7 +75,7 @@ const Register = () => {
       <div className="register-brand">
         <Link to="/" className="register-brand-link">
           <img
-            src="assets/logos/chapadevs-logo.png"
+            src="/assets/logos/chapadevs-logo.png"
             alt="Chapadevs"
             className="register-brand-logo"
           />

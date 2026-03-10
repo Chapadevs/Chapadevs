@@ -28,7 +28,7 @@ const Footer = () => {
               aria-label="Visit ChaPaDevs on LinkedIn"
             >
               <img
-                src="assets/images/linkedin.png"
+                src="/assets/images/linkedin.png"
                 alt="LinkedIn"
                 className="footer-linkedin-logo"
               />
