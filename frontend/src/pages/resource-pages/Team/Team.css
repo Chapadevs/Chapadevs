@@ -1,0 +1,49 @@
+/* Team page — layout and spacing only */
+.team-page {
+  min-height: 100vh;
+}
+
+.team-page-hero {
+  padding: 4rem 2rem 3rem;
+  text-align: center;
+}
+
+.team-page-hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.team-page-title {
+  margin: 0 0 1rem 0;
+}
+
+.team-page-subtitle {
+  margin: 0;
+}
+
+.team-page-cta {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.team-page-cta-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.team-page-cta-title {
+  margin: 0 0 0.75rem 0;
+  padding-left: 1rem;
+  text-align: left;
+}
+
+.team-page-cta-text {
+  margin: 0 0 1.5rem 0;
+}
+
+.team-page-cta-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}

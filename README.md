@@ -108,6 +108,26 @@ npm start
 
 For more details about the backend setup, see `backend/README.md`.
 
+### Admin access
+
+Admin users can access the Admin panel at `/admin` (Users list, Projects list, role management). Admin cannot self-register; the first admin must be created manually.
+
+**Option 1 – Script (recommended):** From the backend directory, run:
+```bash
+cd backend
+node scripts/create-admin.js admin@example.com
+# Or: npm run create-admin -- admin@example.com
+```
+Replace `admin@example.com` with the email of an existing user. Ensure `MONGO_URI` is set in `.env`.
+
+**Option 2 – MongoDB shell:** Update the user document directly:
+```javascript
+db.users.updateOne(
+  { email: "admin@example.com" },
+  { $set: { role: "admin" } }
+)
+```
+
 ## Components
 
 All components have been converted from Angular to React:

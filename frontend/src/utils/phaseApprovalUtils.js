@@ -1,21 +1,26 @@
 /**
- * Phase approval helpers – single source of truth for "pending approval" and "phases needing approval".
- */
-
-/**
- * @param {Object} phase - Phase object with requiresClientApproval, clientApproved
- * @returns {boolean}
+ * Phase object with requiresClientApproval, clientApproved.
+ * Defaults requiresClientApproval to true for legacy phases (undefined).
  */
 export function isPendingApproval(phase) {
   if (!phase) return false
-  return Boolean(phase.requiresClientApproval && !phase.clientApproved)
+  const requiresApproval = phase.requiresClientApproval !== false
+  return Boolean(requiresApproval && !phase.clientApproved)
 }
 
 /**
- * @param {Object[]} phases - Array of phase objects
- * @returns {Object[]} Phases that need approval, in original order
+ * Phase is awaiting client approval only when in_progress and requires approval but not yet approved.
+ * Phases in not_started or completed should not count as "awaiting approval".
  */
+export function isPhaseAwaitingApproval(phase) {
+  if (!phase) return false
+  return (
+    phase.status === 'in_progress' &&
+    Boolean(phase.requiresClientApproval && !phase.clientApproved)
+  )
+}
+
 export function getPhasesPendingApproval(phases) {
   if (!Array.isArray(phases)) return []
-  return phases.filter(isPendingApproval)
+  return phases.filter(isPhaseAwaitingApproval)
 }

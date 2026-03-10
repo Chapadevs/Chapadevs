@@ -1,69 +1,75 @@
-import Project from '../models/Project.js'
-import AIPreview from '../models/AIPreview.js'
-import Notification from '../models/Notification.js'
-import SupportTicket from '../models/SupportTicket.js'
-import asyncHandler from 'express-async-handler'
+import Project from "../models/Project.js";
+import AIPreview from "../models/AIPreview.js";
+import Notification from "../models/Notification.js";
+import asyncHandler from "express-async-handler";
 
 // @desc    Get dashboard data for current user
 // @route   GET /api/dashboard
 // @access  Private
 export const getDashboard = asyncHandler(async (req, res) => {
-  const userId = req.user._id
-  const userRole = req.user.role
+  const userId = req.user._id;
+  const userRole = req.user.role;
 
   const projectFilter =
-    userRole === 'user'
+    userRole === "user"
       ? { clientId: userId }
-      : userRole === 'programmer'
-      ? { assignedProgrammerId: userId }
-      : {}
+      : userRole === "programmer"
+        ? { assignedProgrammerId: userId }
+        : {};
 
   const projects = await Project.find(projectFilter)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
     .sort({ createdAt: -1 })
-    .limit(10)
+    .limit(10);
 
   const projectStatsRaw = await Project.aggregate([
     { $match: projectFilter },
     {
       $group: {
-        _id: '$status',
+        _id: "$status",
         count: { $sum: 1 },
       },
     },
-  ])
+  ]);
 
   const unreadNotificationsCount = await Notification.countDocuments({
     userId,
     isRead: false,
-  })
+  });
 
   const recentNotifications = await Notification.find({ userId })
-    .populate('projectId', 'title')
+    .populate("projectId", "title")
     .sort({ createdAt: -1 })
-    .limit(5)
+    .limit(5);
 
   const recentAIPreviews = await AIPreview.find({ userId })
-    .populate('projectId', 'title')
+    .populate("projectId", "title")
     .sort({ createdAt: -1 })
-    .limit(5)
+    .limit(5);
 
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
   const usageAgg = await AIPreview.aggregate([
-    { $match: { userId, status: 'completed', createdAt: { $gte: monthStart } } },
-    { $group: { _id: null, totalRequests: { $sum: 1 }, totalTokenCount: { $sum: '$tokenUsage' } } },
-  ])
+    {
+      $match: { userId, status: "completed", createdAt: { $gte: monthStart } },
+    },
+    {
+      $group: {
+        _id: null,
+        totalRequests: { $sum: 1 },
+        totalTokenCount: { $sum: "$tokenUsage" },
+      },
+    },
+  ]);
   const usageSummary = usageAgg[0]
-    ? { period: 'month', totalRequests: usageAgg[0].totalRequests, totalTokenCount: usageAgg[0].totalTokenCount }
-    : { period: 'month', totalRequests: 0, totalTokenCount: 0 }
-
-  const openTicketsCount = await SupportTicket.countDocuments({
-    userId,
-    status: { $in: ['open', 'in_progress'] },
-  })
+    ? {
+        period: "month",
+        totalRequests: usageAgg[0].totalRequests,
+        totalTokenCount: usageAgg[0].totalTokenCount,
+      }
+    : { period: "month", totalRequests: 0, totalTokenCount: 0 };
 
   const stats = {
     total: 0,
@@ -72,18 +78,18 @@ export const getDashboard = asyncHandler(async (req, res) => {
     development: 0,
     completed: 0,
     cancelled: 0,
-  }
+  };
 
   projectStatsRaw.forEach((stat) => {
-    const count = stat.count || 0
-    stats.total += count
-    const key = (stat._id || '').toLowerCase()
-    if (key === 'holding') stats.holding = count
-    if (key === 'ready') stats.ready = count
-    if (key === 'development') stats.development = count
-    if (key === 'completed') stats.completed = count
-    if (key === 'cancelled') stats.cancelled = count
-  })
+    const count = stat.count || 0;
+    stats.total += count;
+    const key = (stat._id || "").toLowerCase();
+    if (key === "holding") stats.holding = count;
+    if (key === "ready") stats.ready = count;
+    if (key === "development") stats.development = count;
+    if (key === "completed") stats.completed = count;
+    if (key === "cancelled") stats.cancelled = count;
+  });
 
   res.json({
     projects,
@@ -96,8 +102,5 @@ export const getDashboard = asyncHandler(async (req, res) => {
       recent: recentAIPreviews,
       usageSummary,
     },
-    support: {
-      openTicketsCount,
-    },
-  })
-})
+  });
+});

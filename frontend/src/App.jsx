@@ -4,22 +4,22 @@ import { NotificationProvider } from './context/NotificationContext'
 import ProtectedRoute from './components/layout-components/ProtectedRoute/ProtectedRoute'
 import RoleProtectedRoute from './components/layout-components/ProtectedRoute/RoleProtectedRoute'
 import Home from './pages/Home/Home'
-import Contact from './pages/Contact/Contact'
+import Contact from './pages/resource-pages/Contact/Contact'
 import Login from './pages/authentication-pages/Login/Login'
 import Register from './pages/authentication-pages/Register/Register'
 import VerifyEmail from './pages/authentication-pages/VerifyEmail/VerifyEmail'
 import ForgotPassword from './pages/authentication-pages/ForgotPassword/ForgotPassword'
 import ResetPassword from './pages/authentication-pages/ResetPassword/ResetPassword'
 import ConfirmPasswordChange from './pages/authentication-pages/ConfirmPasswordChange/ConfirmPasswordChange'
-import Dashboard from './pages/dashboard-pages/Dashboard/Dashboard'
-import Profile from './pages/dashboard-pages/Profile/Profile'
-import UserProfileView from './pages/UserProfileView/UserProfileView'
+import EditProfile from './pages/profile-pages/EditProfile/EditProfile'
+import DisplayProfile from './pages/profile-pages/DisplayProfile/DisplayProfile'
 import ChangePassword from './pages/authentication-pages/ChangePassword/ChangePassword'
 import ProjectList from './pages/project-pages/ProjectList/ProjectList'
 import CreateProject from './pages/project-pages/CreateProject/CreateProject'
 import ProjectDetail from './pages/project-pages/ProjectDetail/ProjectDetail'
-import Team from './pages/Team/Team'
-import Assignment from './pages/Assignment/Assignment'
+import Team from './pages/resource-pages/Team/Team'
+import AvailableProjects from './pages/explore-pages/AvailableProjects/AvailableProjects'
+import Admin from './pages/admin-pages/Admin/Admin'
 import './styles.css'
 
 function App() {
@@ -38,18 +38,10 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/confirm-password-change" element={<ConfirmPasswordChange />} />
           <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/profile"
             element={
               <ProtectedRoute>
-                <Profile />
+                <EditProfile />
               </ProtectedRoute>
             }
           />
@@ -57,24 +49,16 @@ function App() {
             path="/users/:id"
             element={
               <ProtectedRoute>
-                <UserProfileView />
+                <DisplayProfile />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/settings/change-password"
+            path="/overview/change-password"
             element={
               <ProtectedRoute>
                 <ChangePassword />
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <RoleProtectedRoute allowedRoles={['admin']}>
-                <Dashboard />
-              </RoleProtectedRoute>
             }
           />
           <Route
@@ -105,8 +89,16 @@ function App() {
             path="/assignments"
             element={
               <ProtectedRoute>
-                <Assignment />
+                <AvailableProjects />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <Admin />
+              </RoleProtectedRoute>
             }
           />
         </Routes>

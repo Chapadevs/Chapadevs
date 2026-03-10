@@ -1,4 +1,8 @@
-import { hashString } from './codeUtils.js';
+import { hashString } from "./responseParser.js";
+import {
+  extractColorScheme,
+  getTemplateType,
+} from "./templateStructureHelper.js";
 
 /**
  * Mock data generators for when Vertex AI is unavailable
@@ -6,70 +10,78 @@ import { hashString } from './codeUtils.js';
  */
 
 export function generateMockWebsite(prompt, userInputs) {
-  console.log('🎭🎭🎭 GENERATING MOCK DATA - NOT REAL AI 🎭🎭🎭');
-  console.log('   This is a placeholder. Vertex AI is not working.');
+  console.log("🎭🎭🎭 GENERATING MOCK DATA - NOT REAL AI 🎭🎭🎭");
+  console.log("   This is a placeholder. Vertex AI is not working.");
 
-  const projectType = userInputs.projectType || 'Website';
-  const lowerPrompt = (prompt || '').toLowerCase();
+  const projectType = userInputs.projectType || "Website";
+  const lowerPrompt = (prompt || "").toLowerCase();
 
   // NEVER use raw prompt as title/subtitle — use a friendly display name or generic text
-  let displayName = 'Your Project';
+  let displayName = "Your Project";
   const stripped = prompt
-    .replace(/i need (an?|the) /gi, '')
-    .replace(/i want (an?|the) /gi, '')
-    .replace(/^(build|create|make|design) (me )?(an?|a|the) /gi, '')
-    .replace(/\b(website|web app|site|landing page|store|ecommerce|portfolio|blog)\b/gi, '')
-    .replace(/\s+/g, ' ')
+    .replace(/i need (an?|the) /gi, "")
+    .replace(/i want (an?|the) /gi, "")
+    .replace(/^(build|create|make|design) (me )?(an?|a|the) /gi, "")
+    .replace(
+      /\b(website|web app|site|landing page|store|ecommerce|portfolio|blog)\b/gi,
+      "",
+    )
+    .replace(/\s+/g, " ")
     .trim();
-  const words = stripped.split(/\s+/).filter((w) => w.length > 1).slice(0, 4);
+  const words = stripped
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 4);
   if (words.length >= 1 && stripped.length >= 3) {
-    displayName = words.join(' ');
-    if (displayName.length > 40) displayName = displayName.substring(0, 37) + '...';
+    displayName = words.join(" ");
+    if (displayName.length > 40)
+      displayName = displayName.substring(0, 37) + "...";
   }
 
-  const subtitle = 'A professional landing page tailored to your needs. Get started today.';
+  const subtitle =
+    "A professional landing page tailored to your needs. Get started today.";
 
   // Business vs ecommerce - vary main content
   const isEcommerce =
-    lowerPrompt.includes('ecommerce') ||
-    lowerPrompt.includes('store') ||
-    lowerPrompt.includes('shop') ||
-    lowerPrompt.includes('selling');
+    lowerPrompt.includes("ecommerce") ||
+    lowerPrompt.includes("store") ||
+    lowerPrompt.includes("shop") ||
+    lowerPrompt.includes("selling");
 
-  // Theme variation: dark vs light, and accent color from keywords
-  const isDark = lowerPrompt.includes('dark');
-  const colorKeywords = ['blue', 'red', 'green', 'purple', 'amber', 'teal', 'rose', 'indigo'];
-  let accent = 'purple';
-  for (const c of colorKeywords) {
-    if (lowerPrompt.includes(c)) {
-      accent = c;
-      break;
-    }
-  }
-  const tailwindAccent = accent === 'purple' ? 'purple' : accent;
+  // Theme variation: dark vs light, and accent color (literal + contextual, e.g. grapes→purple)
+  const isDark = lowerPrompt.includes("dark");
+  const colorScheme = extractColorScheme(prompt);
+  const primaryColor = colorScheme.split(",")[0].trim(); // e.g. 'purple-600'
+  const tailwindAccent = primaryColor.split("-")[0] || "purple";
 
   const heroBg = isDark
-    ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900'
+    ? "bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900"
     : `bg-gradient-to-r from-${tailwindAccent}-600 to-indigo-600`;
-  const heroText = isDark ? 'text-white' : 'text-white';
-  const sectionBg = isDark ? 'bg-gray-900' : 'bg-gray-50';
-  const sectionTitle = isDark ? 'text-gray-100' : 'text-gray-800';
-  const cardBg = isDark ? 'bg-gray-800' : 'bg-white';
-  const cardTitle = isDark ? `text-${tailwindAccent}-400` : `text-${tailwindAccent}-600`;
-  const cardDesc = isDark ? 'text-gray-400' : 'text-gray-600';
-  const footerBg = isDark ? 'bg-black' : 'bg-gray-800';
+  const heroText = isDark ? "text-white" : "text-white";
+  const sectionBg = isDark ? "bg-gray-900" : "bg-gray-50";
+  const sectionTitle = isDark ? "text-gray-100" : "text-gray-800";
+  const cardBg = isDark ? "bg-gray-800" : "bg-white";
+  const cardTitle = isDark
+    ? `text-${tailwindAccent}-400`
+    : `text-${tailwindAccent}-600`;
+  const cardDesc = isDark ? "text-gray-400" : "text-gray-600";
+  const footerBg = isDark ? "bg-black" : "bg-gray-800";
   const btnClass = isDark
-    ? 'bg-white text-gray-900 hover:bg-gray-200'
+    ? "bg-white text-gray-900 hover:bg-gray-200"
     : `bg-white text-${tailwindAccent}-600 hover:bg-gray-100`;
 
-  const headerBg = isDark ? 'bg-gray-900' : 'bg-white';
-  const headerLogoClass = isDark ? 'text-white' : 'text-gray-800';
-  const navLinkClass = isDark ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900';
+  const headerBg = isDark ? "bg-gray-900" : "bg-white";
+  const headerLogoClass = isDark ? "text-white" : "text-gray-800";
+  const navLinkClass = isDark
+    ? "text-gray-300 hover:text-white"
+    : "text-gray-600 hover:text-gray-900";
   const hoverBorderAccent = `hover:border-${tailwindAccent}-500`;
-  const ctaBannerBg = isDark ? 'bg-gray-800' : 'bg-white';
-  const contactInputClass = isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300';
+  const ctaBannerBg = isDark ? "bg-gray-800" : "bg-white";
+  const contactInputClass = isDark
+    ? "bg-gray-700 border-gray-600 text-white"
+    : "bg-white border-gray-300";
 
-  const servicesPageLabel = isEcommerce ? 'Products' : 'Services';
+  const servicesPageLabel = isEcommerce ? "Products" : "Services";
 
   const mockReactComponent = `import React, { useState } from 'react';
 
@@ -144,7 +156,7 @@ function App() {
     <section className="py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <h2 className={"text-3xl font-bold mb-6 text-center " + "${sectionTitle}"}>About Us</h2>
-        <p className={"text-lg text-center max-w-3xl mx-auto mb-12 " + "${cardDesc}"}>We are a professional team dedicated to delivering quality ${isEcommerce ? 'products' : 'services'} tailored to your needs. Our commitment to excellence drives everything we do.</p>
+        <p className={"text-lg text-center max-w-3xl mx-auto mb-12 " + "${cardDesc}"}>We are a professional team dedicated to delivering quality ${isEcommerce ? "products" : "services"} tailored to your needs. Our commitment to excellence drives everything we do.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
           {stats.map((s, i) => (
             <div key={i} className={"${cardBg} p-6 rounded-lg shadow-md text-center"}>
@@ -161,8 +173,9 @@ function App() {
     <section className="py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <h2 className={"text-3xl md:text-5xl font-bold text-center mb-12 " + "${sectionTitle}"}>Our ${servicesPageLabel}</h2>
-        ${isEcommerce
-    ? `<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        ${
+          isEcommerce
+            ? `<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((p) => (
               <div key={p.id} className={"${cardBg} p-4 rounded-lg shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border-l-4 border-transparent ${hoverBorderAccent}"}>
                 <div className="relative">
@@ -178,7 +191,7 @@ function App() {
               </div>
             ))}
           </div>`
-    : `<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            : `<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <div key={index} className={"${cardBg} p-6 rounded-lg shadow-md transition-all duration-300 border-l-4 border-transparent ${hoverBorderAccent} " + (isHovered === index ? 'transform -translate-y-2 shadow-xl' : '')} onMouseEnter={() => setIsHovered(index)} onMouseLeave={() => setIsHovered(null)}>
                 <div className="text-4xl mb-4">{feature.icon}</div>
@@ -187,7 +200,7 @@ function App() {
               </div>
             ))}
           </div>`
-}
+        }
       </div>
     </section>
   );
@@ -214,7 +227,7 @@ function App() {
     <div className="min-h-screen ${sectionBg}">
       <header className={"sticky top-0 z-50 " + "${headerBg}" + " shadow-md"}>
         <nav className="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <button onClick={(e) => handleNav(e, 'home')} className={"text-xl font-bold text-left bg-transparent border-none cursor-pointer " + "${headerLogoClass}"}>${displayName.replace(/'/g, "\\'")}</button>
+          <button onClick={(e) => handleNav(e, 'home')} className={"flex items-center gap-2 text-xl font-bold text-left bg-transparent border-none cursor-pointer " + "${headerLogoClass}"}><img src="__LOGO__" alt="Logo" className="w-12 h-12 object-contain transition-transform duration-200 hover:scale-110" />${displayName.replace(/'/g, "\\'")}</button>
           <div className="flex items-center gap-6">
             <button onClick={(e) => handleNav(e, 'home')} className={"bg-transparent border-none cursor-pointer " + "${navLinkClass}"}>Home</button>
             <button onClick={(e) => handleNav(e, 'about')} className={"bg-transparent border-none cursor-pointer " + "${navLinkClass}"}>About</button>
@@ -234,7 +247,7 @@ function App() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
             <h3 className="font-bold text-lg mb-3">${displayName.replace(/'/g, "\\'")}</h3>
-            <p className="text-gray-300 text-sm">Quality ${isEcommerce ? 'products' : 'services'} for your business.</p>
+            <p className="text-gray-300 text-sm">Quality ${isEcommerce ? "products" : "services"} for your business.</p>
           </div>
           <div>
             <h3 className="font-bold text-lg mb-3">Quick Links</h3>
@@ -270,130 +283,119 @@ export default App;`;
 }
 
 export function generateMockAnalysis(prompt, userInputs, cache) {
-  console.log('🎭 Generating MOCK AI response');
+  console.log("🎭 Generating MOCK AI response");
+
+  const words = prompt
+    .replace(/\b(website|web|app|for|the|an?)\b/gi, "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 3);
+  const mockBusinessName = words.length
+    ? words
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ")
+    : "Your Business";
 
   const mockResponse = {
-    title: `${userInputs.projectType || 'Web'} Project Analysis`,
-    overview: `This comprehensive ${userInputs.projectType || 'web'} project addresses your requirements: "${prompt.substring(0, 100)}..." Our analysis suggests a modern, scalable solution with focus on user experience and business goals.`,
+    title: `${userInputs.projectType || "Web"} Project Analysis`,
+    businessName: mockBusinessName,
+    logoIconConcept: "abstract geometric mark",
+    overview: `This comprehensive ${userInputs.projectType || "web"} project addresses your requirements: "${prompt.substring(0, 100)}..." Our analysis suggests a modern, scalable solution with focus on user experience and business goals.`,
     features: [
-      'Responsive design optimized for all devices and screen sizes',
-      'User authentication and role-based authorization system',
-      'Admin dashboard with comprehensive management tools',
-      'Real-time notifications and live updates',
-      'Advanced search functionality with filtering options',
-      'Data analytics and reporting capabilities',
-      'API integration with third-party services',
-      'SEO optimization and performance tuning',
-      'Secure payment processing integration',
-      'Multi-language support and localization',
+      "Responsive design optimized for all devices",
+      "User authentication and role-based access",
+      "Admin dashboard with core management tools",
+      "API integration with third-party services",
+      "SEO optimization and performance tuning",
     ],
     techStack: {
-      frontend: ['React 18', 'TypeScript', 'Tailwind CSS', 'React Router'],
-      backend: ['Node.js', 'Express.js', 'JWT Authentication', 'RESTful API'],
-      database: ['MongoDB'],
-      deployment: ['Vercel', 'Docker', 'Nginx'],
-      other: ['Git', 'GitHub Actions', 'Jest', 'ESLint', 'Prettier'],
+      frontend: ["React 18", "TypeScript", "Tailwind CSS", "React Router"],
+      backend: ["Node.js", "Express.js", "JWT Authentication", "RESTful API"],
+      database: ["MongoDB"],
+      deployment: ["Vercel", "Docker", "Nginx"],
+      other: ["Git", "GitHub Actions", "Jest", "ESLint", "Prettier"],
     },
     timeline: {
-      totalWeeks: parseInt(userInputs.timeline) || 10,
+      totalWeeks: parseInt(userInputs.timeline) || 4,
       phases: [
         {
-          phase: 'Planning & Design',
+          phase: "Planning & Design",
+          weeks: 1,
+          deliverables: [
+            "Requirements documentation",
+            "Wireframes and mockups",
+          ],
+        },
+        {
+          phase: "Development",
           weeks: 2,
           deliverables: [
-            'Requirements documentation',
-            'User flow diagrams',
-            'Wireframes and mockups',
-            'Technical architecture design',
-            'Database schema design',
+            "Core features",
+            "API implementation",
+            "Authentication",
           ],
         },
         {
-          phase: 'Development Sprint 1',
-          weeks: 3,
-          deliverables: [
-            'Core feature development',
-            'API implementation',
-            'Database setup',
-            'Authentication system',
-          ],
-        },
-        {
-          phase: 'Development Sprint 2',
-          weeks: 3,
-          deliverables: [
-            'Advanced features',
-            'Third-party integrations',
-            'Admin dashboard',
-            'Payment processing',
-          ],
-        },
-        {
-          phase: 'Testing & Launch',
-          weeks: 2,
-          deliverables: [
-            'Unit and integration testing',
-            'User acceptance testing',
-            'Performance optimization',
-            'Production deployment',
-            'Documentation and training',
-          ],
+          phase: "Testing & Launch",
+          weeks: 1,
+          deliverables: ["QA testing", "Production deployment"],
         },
       ],
     },
     budgetBreakdown: {
-      total: userInputs.budget || '$15,000 - $25,000',
+      total: userInputs.budget || "$15,000 - $25,000",
       breakdown: [
         {
-          category: 'Planning & Design',
+          category: "Planning & Design",
           percentage: 20,
-          description: 'Requirements analysis, UI/UX design, wireframes, and system architecture',
+          description:
+            "Requirements analysis, UI/UX design, wireframes, and system architecture",
         },
         {
-          category: 'Frontend Development',
+          category: "Frontend Development",
           percentage: 30,
-          description: 'User interface implementation, responsive design, and client-side logic',
+          description:
+            "User interface implementation, responsive design, and client-side logic",
         },
         {
-          category: 'Backend Development',
+          category: "Backend Development",
           percentage: 30,
-          description: 'API development, database design, authentication, and business logic',
+          description:
+            "API development, database design, authentication, and business logic",
         },
         {
-          category: 'Testing & QA',
+          category: "Testing & QA",
           percentage: 12,
-          description: 'Comprehensive testing, bug fixes, and quality assurance',
+          description:
+            "Comprehensive testing, bug fixes, and quality assurance",
         },
         {
-          category: 'Deployment & Support',
+          category: "Deployment & Support",
           percentage: 8,
-          description: 'Production deployment, documentation, training, and initial support',
+          description:
+            "Production deployment, documentation, training, and initial support",
         },
       ],
     },
     risks: [
-      'Scope creep - Mitigated through clear requirements documentation and change request process with defined timelines and costs',
-      'Third-party API dependencies - Mitigated by implementing fallback mechanisms, thorough testing, and choosing reliable service providers',
-      'Timeline delays due to unforeseen complexities - Mitigated through agile methodology with regular check-ins and buffer time in estimates',
-      'Performance issues at scale - Mitigated through load testing, optimization during development, and scalable architecture design',
-      'Security vulnerabilities - Mitigated by following security best practices, regular security audits, and using proven security libraries',
-      'Browser compatibility issues - Mitigated through cross-browser testing and using modern, well-supported technologies',
+      "Scope creep - Mitigated through clear requirements and change request process",
+      "Third-party API dependencies - Mitigated by fallback mechanisms and reliable providers",
+      "Timeline delays - Mitigated through agile methodology with regular check-ins",
     ],
     recommendations: [
-      'Start with MVP approach to validate core features and gather user feedback before full-scale development',
-      'Implement CI/CD pipeline early for faster iterations, automated testing, and reliable deployments',
-      'Plan for regular security audits and updates to protect user data and maintain system integrity',
-      'Build with modular architecture to facilitate easier future enhancements and maintenance',
-      'Prioritize mobile-first design approach for better user experience across all devices',
-      'Set up comprehensive monitoring and analytics from day one to track performance and user behavior',
-      'Create detailed documentation for both users and developers to ensure smooth handoff and maintenance',
-      'Consider scalability from the start to accommodate future growth without major refactoring',
+      "Start with MVP approach to validate core features before full-scale development",
+      "Implement CI/CD pipeline early for faster iterations and reliable deployments",
+      "Prioritize mobile-first design for better user experience",
     ],
   };
 
   const result = JSON.stringify(mockResponse, null, 2);
   if (cache) {
-    cache.set(`project_${hashString(prompt + JSON.stringify(userInputs))}`, result);
+    cache.set(
+      `project_${hashString(prompt + JSON.stringify(userInputs))}`,
+      result,
+    );
   }
 
   return {
@@ -404,12 +406,479 @@ export function generateMockAnalysis(prompt, userInputs, cache) {
   };
 }
 
+/**
+ * Infer contextual mock data from prompt for management panel fallback.
+ * Returns { products, users, stats, productsPageTitle, usersPageTitle }
+ */
+function inferContextualMockData(prompt) {
+  const lower = (prompt || "").toLowerCase();
+
+  // Product-centric domains (inventory, items, T-shirts, etc.)
+  if (
+    /\b(t-shirt|tshirt|t shirt|clothing|apparel|fashion|garment)\b/.test(lower)
+  ) {
+    return {
+      productsPageTitle: "Products",
+      usersPageTitle: "Team",
+      products: [
+        {
+          name: "Cropped T-shirt",
+          size: "M",
+          price: "$39.99",
+          color: "Black",
+          status: "Active",
+        },
+        {
+          name: "Oversized Hoodie",
+          size: "L",
+          price: "$59.99",
+          color: "Gray",
+          status: "Active",
+        },
+        {
+          name: "Classic Tee",
+          size: "S",
+          price: "$24.99",
+          color: "White",
+          status: "Active",
+        },
+      ],
+      users: [
+        {
+          name: "Maria Lopez",
+          email: "maria@store.com",
+          role: "Store Manager",
+          status: "Active",
+        },
+        {
+          name: "James Chen",
+          email: "james@store.com",
+          role: "Inventory Lead",
+          status: "Active",
+        },
+      ],
+      stats: [
+        { label: "Total SKUs", value: "128" },
+        { label: "Sizes in Stock", value: "24" },
+        { label: "Low Stock Alerts", value: "5" },
+        { label: "Revenue", value: "$12,450" },
+      ],
+    };
+  }
+  if (/\b(bakery|bread|pastry|cake)\b/.test(lower)) {
+    return {
+      productsPageTitle: "Inventory",
+      usersPageTitle: "Staff",
+      products: [
+        {
+          name: "Sourdough Loaf",
+          weight: "500g",
+          price: "$6.99",
+          category: "Bread",
+          status: "Active",
+        },
+        {
+          name: "Croissant",
+          weight: "80g",
+          price: "$3.50",
+          category: "Pastry",
+          status: "Active",
+        },
+        {
+          name: "Chocolate Cake",
+          weight: "1kg",
+          price: "$24.99",
+          category: "Dessert",
+          status: "Active",
+        },
+      ],
+      users: [
+        {
+          name: "Ana Santos",
+          email: "ana@bakery.com",
+          role: "Head Baker",
+          status: "Active",
+        },
+        {
+          name: "Carlos Mendez",
+          email: "carlos@bakery.com",
+          role: "Cashier",
+          status: "Active",
+        },
+      ],
+      stats: [
+        { label: "Total Items", value: "45" },
+        { label: "Daily Sales", value: "142" },
+        { label: "Baking Today", value: "28" },
+        { label: "Revenue", value: "$2,890" },
+      ],
+    };
+  }
+  if (/\b(employee|staff|advocacy|legal|law firm|lawyer)\b/.test(lower)) {
+    return {
+      productsPageTitle: "Items",
+      usersPageTitle: "Employees",
+      products: [
+        {
+          name: "Case File #2024-001",
+          type: "Active",
+          client: "Smith Corp",
+          status: "Open",
+        },
+        {
+          name: "Contract Review",
+          type: "Pending",
+          client: "Johnson LLC",
+          status: "In Progress",
+        },
+      ],
+      users: [
+        {
+          name: "John Smith",
+          email: "j.smith@firm.com",
+          role: "Federal Laws Specialist",
+          dept: "Execution Dept",
+          status: "Active",
+        },
+        {
+          name: "Sarah Williams",
+          email: "s.williams@firm.com",
+          role: "Corporate Counsel",
+          dept: "Legal Affairs",
+          status: "Active",
+        },
+        {
+          name: "Michael Brown",
+          email: "m.brown@firm.com",
+          role: "Paralegal",
+          dept: "Research",
+          status: "Active",
+        },
+      ],
+      stats: [
+        { label: "Total Staff", value: "24" },
+        { label: "Active Today", value: "18" },
+        { label: "Open Cases", value: "12" },
+        { label: "Billable Hours", value: "340" },
+      ],
+    };
+  }
+  if (/\b(restaurant|food|menu)\b/.test(lower)) {
+    return {
+      productsPageTitle: "Menu Items",
+      usersPageTitle: "Staff",
+      products: [
+        {
+          name: "Grilled Salmon",
+          category: "Main",
+          price: "$24.99",
+          status: "Available",
+        },
+        {
+          name: "Caesar Salad",
+          category: "Starter",
+          price: "$12.99",
+          status: "Available",
+        },
+      ],
+      users: [
+        {
+          name: "Chef Rodriguez",
+          email: "chef@restaurant.com",
+          role: "Head Chef",
+          status: "Active",
+        },
+        {
+          name: "Emma Foster",
+          email: "emma@restaurant.com",
+          role: "Server",
+          status: "Active",
+        },
+      ],
+      stats: [
+        { label: "Menu Items", value: "32" },
+        { label: "Tables Today", value: "48" },
+        { label: "Orders Pending", value: "7" },
+        { label: "Revenue", value: "$4,200" },
+      ],
+    };
+  }
+
+  // Default generic
+  return {
+    productsPageTitle: "Products",
+    usersPageTitle: "Users",
+    products: [
+      { name: "Product A", price: "$29", status: "Active" },
+      { name: "Product B", price: "$49", status: "Active" },
+      { name: "Product C", price: "$39", status: "Draft" },
+    ],
+    users: [
+      {
+        name: "John Doe",
+        email: "john@example.com",
+        role: "Admin",
+        status: "Active",
+      },
+      {
+        name: "Jane Smith",
+        email: "jane@example.com",
+        role: "User",
+        status: "Active",
+      },
+    ],
+    stats: [
+      { label: "Total Products", value: "128" },
+      { label: "Total Users", value: "1,240" },
+      { label: "Recent Orders", value: "24" },
+      { label: "Revenue", value: "$12,450" },
+    ],
+  };
+}
+
+function generateMockManagementFiles(prompt, userInputs) {
+  const niche = userInputs.projectType || prompt;
+  const lower = (niche || "").toLowerCase();
+  const words = lower
+    .replace(/\b(management|panel|erp|crm|admin|dashboard)\b/gi, "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 2);
+  const displayName = words.length
+    ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+    : "Panel";
+  const ctx = inferContextualMockData(prompt);
+
+  const appJs = `import React, { useState } from 'react';
+import Sidebar from './components/Sidebar';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import ProductsPage from './pages/ProductsPage';
+import UsersPage from './pages/UsersPage';
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('login');
+  const handleNav = (e, p) => { e.preventDefault(); e.stopPropagation(); setCurrentPage(p); };
+
+  return (
+    <div className="min-h-screen flex bg-gray-50">
+      {['login', 'register'].includes(currentPage) ? (
+        <div className="w-full flex items-center justify-center">
+          {currentPage === 'login' && <LoginPage onNav={handleNav} />}
+          {currentPage === 'register' && <RegisterPage onNav={handleNav} />}
+        </div>
+      ) : (
+        <>
+          <Sidebar onNav={handleNav} />
+          <main className="flex-1 overflow-auto">
+            {currentPage === 'dashboard' && <DashboardPage />}
+            {currentPage === 'products' && <ProductsPage />}
+            {currentPage === 'users' && <UsersPage />}
+          </main>
+        </>
+      )}
+    </div>
+  );
+}
+export default App;`;
+
+  const sidebarJs = `import React from 'react';
+
+export default function Sidebar({ onNav }) {
+  const handleClick = (e, p) => { e.preventDefault(); if (onNav) onNav(e, p); };
+  return (
+    <aside className="w-64 bg-gray-900 text-white min-h-screen p-4 flex-shrink-0">
+      <h2 className="text-xl font-bold mb-6">${displayName}</h2>
+      <nav className="space-y-1">
+        <button onClick={(e) => handleClick(e, 'dashboard')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800">Dashboard</button>
+        <button onClick={(e) => handleClick(e, 'products')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800">Products</button>
+        <button onClick={(e) => handleClick(e, 'users')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800">Users</button>
+        <button onClick={(e) => handleClick(e, 'login')} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-800 mt-4 border-t border-gray-700 pt-4">Logout</button>
+      </nav>
+    </aside>
+  );
+}`;
+
+  const loginPageJs = `import React, { useState } from 'react';
+
+export default function LoginPage({ onNav }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const handleSubmit = (e) => { e.preventDefault(); };
+  const handleNav = (e, p) => { e.preventDefault(); if (onNav) onNav(e, p); };
+  return (
+    <div className="w-full max-w-md mx-auto p-8">
+      <div className="bg-white shadow-lg p-8">
+        <h1 className="text-2xl font-bold mb-2">Sign In</h1>
+        <p className="text-gray-600 mb-6">Welcome to ${displayName}</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="w-full py-2 bg-purple-600 text-white hover:bg-purple-700">Sign In</button>
+        </form>
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={(e) => handleNav(e, 'register')} className="text-purple-600 hover:underline">Don't have an account? Register</button>
+        </p>
+      </div>
+    </div>
+  );
+}`;
+
+  const registerPageJs = `import React, { useState } from 'react';
+
+export default function RegisterPage({ onNav }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const handleSubmit = (e) => { e.preventDefault(); };
+  const handleNav = (e, p) => { e.preventDefault(); if (onNav) onNav(e, p); };
+  return (
+    <div className="w-full max-w-md mx-auto p-8">
+      <div className="bg-white shadow-lg p-8">
+        <h1 className="text-2xl font-bold mb-2">Create Account</h1>
+        <p className="text-gray-600 mb-6">Join ${displayName} today</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" className="w-full py-2 bg-purple-600 text-white hover:bg-purple-700">Register</button>
+        </form>
+        <p className="mt-4 text-center text-sm">
+          <button type="button" onClick={(e) => handleNav(e, 'login')} className="text-purple-600 hover:underline">Already have an account? Login</button>
+        </p>
+      </div>
+    </div>
+  );
+}`;
+
+  const statsJson = JSON.stringify(ctx.stats, null, 2);
+  const productsJson = JSON.stringify(ctx.products, null, 2);
+  const usersJson = JSON.stringify(ctx.users, null, 2);
+
+  const productsColumns = ctx.products[0]
+    ? Object.keys(ctx.products[0])
+    : ["name", "price", "status"];
+  const usersColumns = ctx.users[0]
+    ? Object.keys(ctx.users[0])
+    : ["name", "email", "role", "status"];
+
+  const dashboardPageJs = `import React from 'react';
+
+export default function DashboardPage() {
+  const stats = ${statsJson};
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="grid md:grid-cols-4 gap-6">
+        {stats.map((s, i) => (
+          <div key={i} className="bg-white p-6 shadow rounded-lg border">
+            <p className="text-sm text-gray-600">{s.label}</p>
+            <p className="text-2xl font-bold mt-1">{s.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}`;
+
+  const productsPageJs = `import React from 'react';
+
+export default function ProductsPage() {
+  const products = ${productsJson};
+  const columns = ${JSON.stringify(productsColumns)};
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">${ctx.productsPageTitle}</h1>
+      <div className="bg-white shadow overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((c) => (
+                <th key={c} className="px-6 py-3 text-left text-sm font-semibold capitalize">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((p, i) => (
+              <tr key={i} className="border-t">
+                {columns.map((c) => (
+                  <td key={c} className="px-6 py-4">{p[c]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}`;
+
+  const usersPageJs = `import React from 'react';
+
+export default function UsersPage() {
+  const users = ${usersJson};
+  const columns = ${JSON.stringify(usersColumns)};
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-8">${ctx.usersPageTitle}</h1>
+      <div className="bg-white shadow overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              {columns.map((c) => (
+                <th key={c} className="px-6 py-3 text-left text-sm font-semibold capitalize">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u, i) => (
+              <tr key={i} className="border-t">
+                {columns.map((c) => (
+                  <td key={c} className="px-6 py-4">{u[c]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}`;
+
+  return {
+    "/App.js": appJs,
+    "/components/Sidebar.js": sidebarJs,
+    "/pages/LoginPage.js": loginPageJs,
+    "/pages/RegisterPage.js": registerPageJs,
+    "/pages/DashboardPage.js": dashboardPageJs,
+    "/pages/ProductsPage.js": productsPageJs,
+    "/pages/UsersPage.js": usersPageJs,
+  };
+}
+
 export function generateMockCombined(prompt, userInputs, cache) {
-  console.log('🎭 Generating MOCK combined response');
+  console.log("🎭 Generating MOCK combined response");
 
+  const templateType = getTemplateType(userInputs.projectType || prompt);
   const analysis = generateMockAnalysis(prompt, userInputs, cache);
-  const website = generateMockWebsite(prompt, userInputs);
 
+  if (templateType === "management") {
+    const files = generateMockManagementFiles(prompt, userInputs);
+    return {
+      result: {
+        analysis: JSON.parse(analysis.result),
+        files,
+        code: files["/App.js"],
+      },
+      fromCache: false,
+      isMock: true,
+      usage: null,
+    };
+  }
+
+  const website = generateMockWebsite(prompt, userInputs);
   return {
     result: {
       analysis: JSON.parse(analysis.result),
@@ -419,4 +888,281 @@ export function generateMockCombined(prompt, userInputs, cache) {
     isMock: true,
     usage: null,
   };
+}
+
+/**
+ * Mock for AI-generated project requirements (CreateProject form pre-fill).
+ * Returns structure matching buildProjectRequirementsPrompt output.
+ */
+export function generateMockProjectRequirements(prompt, cache) {
+  console.log("🎭 Generating MOCK project requirements");
+
+  const words = (prompt || "")
+    .replace(
+      /\b(website|web|app|for|the|an?|build|create|make|design|i need|i want)\b/gi,
+      "",
+    )
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 3);
+  const displayName = words.length
+    ? words
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ")
+    : "Custom Project";
+
+  const lower = (prompt || "").toLowerCase();
+  const isEcommerce =
+    lower.includes("ecommerce") ||
+    lower.includes("store") ||
+    lower.includes("shop");
+  const isManagement =
+    lower.includes("management") ||
+    lower.includes("erp") ||
+    lower.includes("crm") ||
+    lower.includes("panel");
+  const isLanding = lower.includes("landing");
+
+  let projectType = "Web Application";
+  if (isEcommerce) projectType = "E-commerce Store";
+  else if (isManagement) projectType = "Management Panel / ERP / CRM";
+  else if (isLanding) projectType = "Landing Page";
+
+  const result = {
+    title: `${displayName} - Web Project`,
+    description: `A professional ${projectType.toLowerCase()} project based on your requirements: "${(prompt || "").substring(0, 120)}...". This solution will deliver modern UI/UX, scalable architecture, and best practices.`,
+    projectType,
+    budget: "$10,000 - $25,000",
+    timeline: "4",
+    goals: [
+      "Deliver a modern, responsive user experience",
+      "Implement scalable architecture",
+      "Ensure security and performance",
+    ],
+    features: [
+      "Responsive design for all devices",
+      "User authentication",
+      "Admin dashboard or management interface",
+      "API integration",
+    ],
+    designStyles: ["Modern", "Clean", "Professional"],
+    techStack: {
+      frontend: ["React", "TypeScript", "Tailwind CSS"],
+      backend: ["Node.js", "Express"],
+      database: ["MongoDB"],
+    },
+    hasBranding: "Partial",
+    brandingDetails: null,
+    contentStatus: "Need creation",
+    referenceWebsites: null,
+    specialRequirements:
+      "Consider accessibility (WCAG) and mobile-first design.",
+    additionalComments:
+      "Generated from your description. Feel free to edit any field before creating the project.",
+    analysisExtras: {
+      businessName: displayName,
+      logoIconConcept: "abstract geometric mark",
+      overview: `A comprehensive ${projectType.toLowerCase()} project tailored to your needs.`,
+    },
+  };
+
+  return {
+    result,
+    fromCache: false,
+    usage: null,
+  };
+}
+
+/**
+ * Mock for AI-powered Workspace proposal generation.
+ * Returns phases with subSteps when Vertex AI is unavailable.
+ * @param {Object} project - Project document
+ * @param {Object} context - { analysis, codeStructure }
+ * @returns {Array} Phase definitions with subSteps
+ */
+import { getProjectDurationFromDates } from "../../utils/projectDuration.js";
+
+export function generateMockWorkspaceProposal(project, context = {}) {
+  console.log("🎭 Generating MOCK Workspace proposal");
+
+  const { analysis = {}, codeStructure = {} } = context;
+  const dateDuration = getProjectDurationFromDates(project);
+  const totalDaysFromDates = dateDuration?.totalDays ?? null;
+  const timelineWeeks = parseInt(project?.timeline, 10) || 5;
+  const totalDays = totalDaysFromDates ?? timelineWeeks * 7;
+  const pages = codeStructure?.pages || [];
+  const components = codeStructure?.components || [];
+
+  const subStepTodos = (title, count = 3) => {
+    const lower = (title || "").toLowerCase();
+    if (lower.includes("implement") || lower.includes("build")) {
+      return [
+        { text: "Setup structure and dependencies", order: 1 },
+        { text: "Implement core logic", order: 2 },
+        { text: "Add styling and polish", order: 3 },
+      ].slice(0, count);
+    }
+    if (
+      lower.includes("gather") ||
+      lower.includes("document") ||
+      lower.includes("requirements")
+    ) {
+      return [
+        { text: "Schedule kickoff", order: 1 },
+        { text: "Document scope", order: 2 },
+        { text: "Define milestones", order: 3 },
+      ].slice(0, count);
+    }
+    if (lower.includes("wireframe") || lower.includes("design")) {
+      return [
+        { text: "Create wireframe for main flow", order: 1 },
+        { text: "Review and iterate", order: 2 },
+        { text: "Get client approval", order: 3 },
+      ].slice(0, count);
+    }
+    if (lower.includes("test") || lower.includes("qa")) {
+      return [
+        { text: "Run unit tests", order: 1 },
+        { text: "Integration testing", order: 2 },
+        { text: "Document results", order: 3 },
+      ].slice(0, count);
+    }
+    if (lower.includes("deploy") || lower.includes("launch")) {
+      return [
+        { text: "Prepare production environment", order: 1 },
+        { text: "Deploy and verify", order: 2 },
+        { text: "Post-launch checklist", order: 3 },
+      ].slice(0, count);
+    }
+    return [
+      { text: "Setup and planning", order: 1 },
+      { text: "Implementation", order: 2 },
+      { text: "Review and complete", order: 3 },
+    ].slice(0, count);
+  };
+
+  const withTodos = (subSteps) =>
+    subSteps.map((s, i) => ({
+      ...s,
+      todos:
+        Array.isArray(s.todos) && s.todos.length > 0
+          ? s.todos.map((t, k) => ({ text: t.text ?? "", order: k + 1 }))
+          : subStepTodos(s.title, i < 2 ? 3 : 3),
+    }));
+
+  const developmentSubSteps = [];
+  const maxPages = 3;
+  if (pages.length > 0) {
+    pages
+      .slice(0, maxPages)
+      .forEach((p, i) =>
+        developmentSubSteps.push({ title: `Implement ${p}`, order: i + 1 }),
+      );
+  }
+  if (developmentSubSteps.length === 0) {
+    developmentSubSteps.push({ title: "Implement core features", order: 1 });
+  }
+  developmentSubSteps.push({
+    title: "Set up routing and integration",
+    order: developmentSubSteps.length + 1,
+  });
+
+  if (totalDays <= 7) {
+    const sprintSubSteps =
+      developmentSubSteps.length > 0
+        ? developmentSubSteps
+        : [
+            { title: "Implement core features", order: 1 },
+            { title: "Integration and testing", order: 2 },
+            { title: "Deploy and handoff", order: 3 },
+          ];
+    return [
+      {
+        title: "Sprint / Delivery",
+        description: "Focused development sprint, integration, and delivery",
+        order: 1,
+        weeks: totalDays / 7,
+        deliverables: ["Core features", "Integration", "Delivery"],
+        subSteps: withTodos(sprintSubSteps),
+      },
+    ];
+  }
+
+  let planningDays = Math.max(1, Math.floor(totalDays * 0.2));
+  let designDays = Math.max(1, Math.floor(totalDays * 0.2));
+  let testingDays = Math.max(1, Math.floor(totalDays * 0.15));
+  let launchDays = Math.max(1, Math.floor(totalDays * 0.1));
+  let devDays = Math.max(
+    2,
+    totalDays - planningDays - designDays - testingDays - launchDays,
+  );
+  let currentSum =
+    planningDays + designDays + devDays + testingDays + launchDays;
+  if (currentSum !== totalDays) {
+    devDays = Math.max(2, devDays + (totalDays - currentSum));
+  }
+
+  const devSubSteps =
+    developmentSubSteps.length > 0
+      ? developmentSubSteps.slice(0, 4)
+      : [
+          { title: "Implement core features", order: 1 },
+          { title: "Integration and testing", order: 2 },
+        ];
+
+  return [
+    {
+      title: "Planning & Requirements",
+      description: "Discovery, requirements gathering, and scope definition",
+      order: 1,
+      weeks: planningDays / 7,
+      deliverables: ["Requirements documentation", "Scope agreement"],
+      subSteps: withTodos([
+        { title: "Gather and document requirements", order: 1 },
+        { title: "Define scope and milestones", order: 2 },
+      ]),
+    },
+    {
+      title: "Design",
+      description: "Wireframes and design approval",
+      order: 2,
+      weeks: designDays / 7,
+      deliverables: ["Wireframes", "Design approval"],
+      subSteps: withTodos([
+        { title: "Create wireframes for main flows", order: 1 },
+        { title: "Client design review", order: 2 },
+      ]),
+    },
+    {
+      title: "Development",
+      description: "Core feature development and integration",
+      order: 3,
+      weeks: devDays / 7,
+      deliverables: ["Core features", "Integration", "Codebase"],
+      subSteps: withTodos(devSubSteps),
+    },
+    {
+      title: "Testing & QA",
+      description: "Quality assurance and user acceptance testing",
+      order: 4,
+      weeks: testingDays / 7,
+      deliverables: ["QA report", "UAT"],
+      subSteps: withTodos([
+        { title: "Unit and integration testing", order: 1 },
+        { title: "User acceptance testing", order: 2 },
+      ]),
+    },
+    {
+      title: "Launch & Handoff",
+      description: "Deployment and client handoff",
+      order: 5,
+      weeks: launchDays / 7,
+      deliverables: ["Deployment", "Handoff"],
+      subSteps: withTodos([
+        { title: "Production deployment", order: 1 },
+        { title: "Client handoff", order: 2 },
+      ]),
+    },
+  ];
 }

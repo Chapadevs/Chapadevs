@@ -1,125 +1,121 @@
+import { useRef, useEffect, useMemo } from 'react'
+import { SecondaryButton, Button, Alert, Textarea } from '../../../../../../../components/ui-components'
 import './AIPreviewForm.css'
+
+/** Make streamed JSON/code readable: literal \n → newline, \t → tab, \" → ", \\ → \ */
+function unescapeStreamDisplay(str) {
+  if (typeof str !== 'string' || !str) return ''
+  let out = str
+    .replace(/\\\\/g, '\u0000')
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\"/g, '"')
+    .replace(/\u0000/g, '\\')
+  // Strip markdown fences so we don't show raw ```json / ```
+  out = out.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/g, '')
+  return out.trim() || '…'
+}
+
+/** Infer current phase from streamed content for human-readable status */
+function getStreamPhase(raw) {
+  if (!raw || raw.length < 10) return 'Starting…'
+  const s = raw
+  if (s.includes('export default App') || s.includes('export default App;')) return 'Finalizing…'
+  if (s.includes('"code"') || s.includes('function App') || s.includes('import { useState }')) return 'Writing component…'
+  if (s.includes('<section') || s.includes('className=')) return 'Building layout…'
+  if (s.includes('features') || s.includes('techStack')) return 'Planning features & tech stack…'
+  if (s.includes('analysis') && (s.includes('overview') || s.includes('title'))) return 'Analyzing project…'
+  return 'Generating…'
+}
 
 const AIPreviewForm = ({
   generateFormData,
   setGenerateFormData,
   generating,
+  streamedThinking = '',
   generateError,
-  techStackByCategory,
   onSubmit,
   onCancel,
 }) => {
+  const thinkingEndRef = useRef(null)
+
+  const displayText = useMemo(() => unescapeStreamDisplay(streamedThinking), [streamedThinking])
+  const phase = useMemo(() => getStreamPhase(streamedThinking), [streamedThinking])
+
+  useEffect(() => {
+    if (generating && streamedThinking && thinkingEndRef.current) {
+      thinkingEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  }, [generating, streamedThinking])
+
+  const handleChange = (field, value) => {
+    setGenerateFormData({ ...generateFormData, [field]: value })
+  }
+
   return (
-    <form onSubmit={onSubmit} className="project-preview-form">
-      <div className="project-preview-form-group">
-        <label htmlFor="preview-prompt">Project description *</label>
-        <textarea
-          id="preview-prompt"
-          value={generateFormData.prompt}
-          onChange={(e) => setGenerateFormData({ ...generateFormData, prompt: e.target.value })}
-          placeholder="Describe the preview you want..."
-          rows={3}
-          required
-        />
-      </div>
-      <div className="project-preview-form-row">
-        <div className="project-preview-form-group">
-          <label htmlFor="preview-budget">Budget</label>
-          <select
-            id="preview-budget"
-            value={generateFormData.budget}
-            onChange={(e) => setGenerateFormData({ ...generateFormData, budget: e.target.value })}
-          >
-            <option value="">Select...</option>
-            <option value="Under $5,000">Under $5,000</option>
-            <option value="$5,000 - $10,000">$5,000 - $10,000</option>
-            <option value="$10,000 - $25,000">$10,000 - $25,000</option>
-            <option value="$25,000+">$25,000+</option>
-          </select>
+    <form onSubmit={onSubmit} className="project-preview-form space-y-6">
+      {generating ? (
+        <div className="project-preview-form-thinking-wrap">
+          <div className="project-preview-form-thinking-header font-heading text-xs uppercase tracking-wider text-ink flex items-center gap-2">
+            <span className="project-preview-form-thinking-dot" aria-hidden />
+            Generating — {phase}
+          </div>
+          <div className="project-preview-form-thinking-body font-body text-ink-secondary text-sm whitespace-pre-wrap break-words overflow-y-auto">
+            {displayText || 'Starting…'}
+            <span ref={thinkingEndRef} />
+          </div>
         </div>
-        <div className="project-preview-form-group">
-          <label htmlFor="preview-timeline">Timeline</label>
-          <select
-            id="preview-timeline"
-            value={generateFormData.timeline}
-            onChange={(e) => setGenerateFormData({ ...generateFormData, timeline: e.target.value })}
+      ) : (
+        <>
+          <Textarea
+            id="preview-prompt"
+            label="Project description"
+            value={generateFormData.prompt}
+            onChange={(e) => handleChange('prompt', e.target.value)}
+            placeholder="Describe the preview you want AI to generate..."
+            required
+            autoExpand
+            minRows={5}
+            maxHeight="200px"
           >
-            <option value="">Select...</option>
-            <option value="1-2 weeks">1-2 weeks</option>
-            <option value="2-4 weeks">2-4 weeks</option>
-            <option value="1-2 months">1-2 months</option>
-            <option value="2-3 months">2-3 months</option>
-          </select>
-        </div>
-      </div>
-      <div className="project-preview-form-group">
-        <label htmlFor="preview-modelId">AI Model</label>
-        <select
-          id="preview-modelId"
-          value={generateFormData.modelId}
-          onChange={(e) => setGenerateFormData({ ...generateFormData, modelId: e.target.value })}
-        >
-          <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Economical) - Recommended</option>
-          <option value="gemini-2.5-pro">Gemini 2.5 Pro (Premium Quality)</option>
-        </select>
-        <p className="project-preview-form-hint">Flash: Faster, lower cost. Pro: Higher quality, higher cost.</p>
-      </div>
-      <div className="project-preview-form-group">
-        <label>Tech Stack</label>
-        <div className="tech-stack-categories">
-          {Object.entries(techStackByCategory).map(([category, options]) => {
-            const currentSelection = generateFormData.techStack.find((tech) =>
-              options.some((opt) => opt.value === tech)
-            ) || ''
-            
-            return (
-              <div key={category} className="tech-stack-category">
-                <label htmlFor={`preview-tech-${category}`} className="tech-stack-category-label">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </label>
-                <select
-                  id={`preview-tech-${category}`}
-                  name={`preview-tech-${category}`}
-                  className="tech-stack-select"
-                  value={currentSelection}
-                  onChange={(e) => {
-                    const selectedValue = e.target.value
-                    const otherCategoryTechs = generateFormData.techStack.filter((tech) =>
-                      !options.some((opt) => opt.value === tech)
-                    )
-                    setGenerateFormData((prev) => ({
-                      ...prev,
-                      techStack: selectedValue
-                        ? [...otherCategoryTechs, selectedValue]
-                        : otherCategoryTechs,
-                    }))
-                  }}
+
+            <div className="flex w-full items-center justify-between gap-4 sm:gap-8">
+
+              <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block whitespace-nowrap">
+                {generateFormData.prompt?.length || 0} characters
+              </span>
+
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <SecondaryButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-ink-muted hover:text-ink font-normal lowercase px-2"
+                  onClick={onCancel}
                 >
-                  <option value="">Select {category}</option>
-                  {options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  cancel
+                </SecondaryButton>
+                <Button
+                  type="submit"
+                  disabled={!generateFormData.prompt}
+                  size="sm"
+                  className="rounded-none shadow-sm"
+                >
+                  Generate
+                </Button>
               </div>
-            )
-          })}
-        </div>
-      </div>
-      {generateError && <div className="error-message">{generateError}</div>}
-      <div className="project-preview-form-actions">
-        <button type="submit" className="btn btn-primary" disabled={generating}>
-          {generating ? 'Generating...' : 'Generate preview'}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={onCancel}
-        >
-          Cancel
-        </button>
-      </div>
+
+            </div>
+
+          </Textarea>
+        </>
+      )}
+
+      {generateError && (
+        <Alert variant="error" className="mt-4">
+          {generateError}
+        </Alert>
+      )}
     </form>
   )
 }

@@ -1,17 +1,17 @@
-import mongoose from 'mongoose'
-import bcrypt from 'bcryptjs'
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please add a name'],
+      required: [true, "Please add a name"],
       trim: true,
       maxlength: 255,
     },
     email: {
       type: String,
-      required: [true, 'Please add an email'],
+      required: [true, "Please add an email"],
       unique: true,
       trim: true,
       lowercase: true,
@@ -19,14 +19,14 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Please add a password'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      required: [true, "Please add a password"],
+      minlength: [6, "Password must be at least 6 characters"],
       select: false, // Exclude password by default
     },
     role: {
       type: String,
-      enum: ['user', 'programmer', 'admin'],
-      default: 'user',
+      enum: ["user", "programmer", "admin"],
+      default: "user",
     },
     // Programmer-specific fields
     skills: {
@@ -81,8 +81,8 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['online', 'away', 'busy', 'offline'],
-      default: 'offline',
+      enum: ["online", "away", "busy", "offline"],
+      default: "offline",
     },
     lastSeen: {
       type: Date,
@@ -107,29 +107,29 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
-)
+  },
+);
 
 // Indexes
-userSchema.index({ email: 1 })
-userSchema.index({ role: 1 })
+userSchema.index({ email: 1 });
+userSchema.index({ role: 1 });
 
 // Hash password before save
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next()
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
+    return next();
   }
 
-  const salt = await bcrypt.genSalt(10)
-  this.password = await bcrypt.hash(this.password, salt)
-  next()
-})
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
 // Instance method to match password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password)
-}
+  return bcrypt.compare(enteredPassword, this.password);
+};
 
-const User = mongoose.model('User', userSchema)
+const User = mongoose.model("User", userSchema);
 
-export default User
+export default User;

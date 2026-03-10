@@ -1,4 +1,5 @@
 import React from 'react'
+import { Tag } from '../../ui-components'
 import './Team.css'
 
 const Team = () => {
@@ -35,11 +36,11 @@ const Team = () => {
             ensures perfect user experiences.
           </p>
           <div className="team-skills">
-            <span className="skill">React</span>
-            <span className="skill">TypeScript</span>
-            <span className="skill">UI/UX</span>
-            <span className="skill">Visual Design</span>
-            <span className="skill">Responsive Design</span>
+            <Tag variant="skill" className="skill">React</Tag>
+            <Tag variant="skill" className="skill">TypeScript</Tag>
+            <Tag variant="skill" className="skill">UI/UX</Tag>
+            <Tag variant="skill" className="skill">Visual Design</Tag>
+            <Tag variant="skill" className="skill">Responsive Design</Tag>
           </div>
         </article>
         <article className="team-card">
@@ -56,11 +57,11 @@ const Team = () => {
             and oversees end-to-end project delivery.
           </p>
           <div className="team-skills">
-            <span className="skill">Project Management</span>
-            <span className="skill">Docker</span>
-            <span className="skill">Google Cloud</span>
-            <span className="skill">DevOps</span>
-            <span className="skill">System Design</span>
+            <Tag variant="skill" className="skill">Project Management</Tag>
+            <Tag variant="skill" className="skill">Docker</Tag>
+            <Tag variant="skill" className="skill">Google Cloud</Tag>
+            <Tag variant="skill" className="skill">DevOps</Tag>
+            <Tag variant="skill" className="skill">System Design</Tag>
           </div>
         </article>
         <article className="team-card">
@@ -77,11 +78,11 @@ const Team = () => {
             applications.
           </p>
           <div className="team-skills">
-            <span className="skill">Java/Spring Boot</span>
-            <span className="skill">Databases</span>
-            <span className="skill">API Design</span>
-            <span className="skill">Security</span>
-            <span className="skill">Google Cloud</span>
+            <Tag variant="skill" className="skill">Java/Spring Boot</Tag>
+            <Tag variant="skill" className="skill">Databases</Tag>
+            <Tag variant="skill" className="skill">API Design</Tag>
+            <Tag variant="skill" className="skill">Security</Tag>
+            <Tag variant="skill" className="skill">Google Cloud</Tag>
           </div>
         </article>
       </div>

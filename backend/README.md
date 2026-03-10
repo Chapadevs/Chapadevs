@@ -35,6 +35,18 @@ Inquiry form and account confirmation emails are sent via Gmail API when these a
 
 If Gmail env vars are not set, the server still runs; inquiry and welcome emails are not sent (and the API returns an error for inquiry submit when email is unavailable).
 
+**Optional – Project attachments (GCS):**  
+Phase and sub-step attachments are stored in Google Cloud Storage when configured:
+
+- `GCS_PROJECT_ATTACHMENTS_BUCKET` – Bucket name for project attachments (default: `chapadevs-project-attachments`). Create the bucket in GCP and set uniform bucket-level access for public read if you want shareable URLs.
+- Uses the same service account as Gmail (`GMAIL_SERVICE_ACCOUNT_PATH` or `GOOGLE_APPLICATION_CREDENTIALS`).
+
+**Optional – User avatars (GCS):**  
+User profile avatars are stored in `chapadevs-website/assets/avatars/` when GCS is configured:
+
+- `GCS_BUCKET_NAME` – Bucket name (default: `chapadevs-website`). Uses the same service account as above.
+- Ensure `assets/avatars/*` is publicly readable if the bucket is private, or configure uniform bucket-level access for public read.
+
 **Next steps to enable email (after adding the client in Workspace Admin):**
 
 1. **Local development**

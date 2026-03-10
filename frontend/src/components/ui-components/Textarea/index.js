@@ -1,0 +1,1 @@
+export * from "@/components/shadcn-components/shadcn-textarea/textarea";

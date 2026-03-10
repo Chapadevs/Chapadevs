@@ -1,0 +1,127 @@
+/* NotificationBell — layout & structure only */
+.notification-bell-container {
+  position: relative;
+  display: inline-block;
+}
+
+.notification-bell-button {
+  position: relative;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-bell-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.notification-bell-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  z-index: 1000;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.notification-dropdown-header {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-mark-all-read {
+  padding: 0.25rem 0.5rem;
+  height: 37px;
+}
+
+.notification-list {
+  overflow-y: auto;
+  max-height: 400px;
+  flex: 1;
+}
+
+.notification-empty {
+  padding: 2rem;
+}
+
+.notification-item {
+  padding: 1rem;
+}
+
+.notification-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notification-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.notification-item-title {
+  margin: 0;
+  flex: 1;
+}
+
+.notification-item-unread-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.notification-item-message {
+  margin: 0;
+}
+
+.notification-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-item-delete {
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-dropdown-footer {
+  padding: 0.75rem 1rem;
+}
+
+.notification-view-all {
+  padding: 0.5rem 1rem;
+}
+
+@media (max-width: 768px) {
+  .notification-dropdown {
+    width: 320px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

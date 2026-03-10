@@ -1,0 +1,28 @@
+.substep-status-badge {
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 0;
+}
+
+.substep-status-badge--pending {
+  background: rgba(5, 150, 105, 0.08);
+  color: #047857;
+}
+
+.substep-status-badge--client-approval {
+  background: rgba(5, 150, 105, 0.15);
+  color: #059669;
+}
+
+.substep-status-badge--in-progress {
+  background: rgba(5, 150, 105, 0.2);
+  color: #059669;
+}
+
+.substep-status-badge--completed {
+  background: rgba(5, 150, 105, 0.12);
+  color: var(--primary, #059669);
+}

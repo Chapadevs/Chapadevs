@@ -1,5 +1,3 @@
-import './TeamStatusBanner.css'
-
 const TeamStatusBanner = ({ project }) => {
   if (project.status !== 'Open' && project.status !== 'Ready') return null
 
@@ -15,18 +13,31 @@ const TeamStatusBanner = ({ project }) => {
   const confirmedCount = [...teamIds].filter((id) => id && confirmedIds.has(id)).length
   const teamCount = teamIds.size
 
+  const clientMarkedReady = project.clientMarkedReady === true
   let statusText
   if (isOpen) {
-    statusText = teamCount > 0
-      ? `Team is Open - ${confirmedCount} of ${teamCount} programmer${teamCount !== 1 ? 's' : ''} ready`
-      : 'Team is Open - Programmers can still join'
+    if (!clientMarkedReady) {
+      statusText = teamCount > 0
+        ? 'Team is Open - Waiting for client to mark ready (then you can create steps and confirm ready)'
+        : 'Team is Open - Programmers can still join'
+    } else {
+      statusText = teamCount > 0
+        ? `Client has marked ready - ${confirmedCount} of ${teamCount} programmer${teamCount !== 1 ? 's' : ''} confirmed ready`
+        : 'Team is Open - Client has marked ready'
+    }
   } else {
     statusText = 'Team is Closed - Ready for development'
   }
 
   return (
-    <div className={`team-status-banner ${isOpen ? 'team-open' : 'team-closed'}`}>
-      <span className="team-status-text">{statusText}</span>
+    <div
+      className={
+        isOpen
+          ? 'flex items-center gap-2 py-0.5 px-3 mb-3 font-body text-sm text-ink-muted bg-primary/5 border-l-2 border-primary'
+          : 'flex items-center gap-2 py-0.5 px-3 mb-3 font-body text-sm text-ink-muted bg-surface-gray border-l-2 border-ink-muted'
+      }
+    >
+      {statusText}
     </div>
   )
 }

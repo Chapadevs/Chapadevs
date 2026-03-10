@@ -1,30 +1,20 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { generateAIPreview, deleteAIPreview } from '../../../../../services/api'
+import { generateAIPreviewStream, deleteAIPreview } from '../../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
+import { SectionTitle, HoverGuidance } from '../../../../../components/ui-components'
 import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
+import AIPreviewCardSkeleton from './components/AIPreviewCardSkeleton/AIPreviewCardSkeleton'
 import './AIPreviewTab.css'
 
-const MAX_PREVIEWS_PER_PROJECT = 5
-
-// Helper function to map project budget to form budget format
-const mapBudgetToForm = (projectBudget) => {
-  if (!projectBudget) return ''
-  const budgetStr = String(projectBudget).replace(/[$,]/g, '')
-  const budgetNum = parseFloat(budgetStr)
-  if (isNaN(budgetNum)) return ''
-  if (budgetNum < 5000) return 'Under $5,000'
-  if (budgetNum < 10000) return '$5,000 - $10,000'
-  if (budgetNum < 25000) return '$10,000 - $25,000'
-  return '$25,000+'
-}
+const MAX_PREVIEWS_PER_PROJECT = 3
 
 // Helper function to map project timeline to form timeline format
-const mapTimelineToForm = (projectTimeline) => {
-  if (!projectTimeline) return ''
-  const weeks = parseInt(projectTimeline, 10)
+const mapWorkspaceToForm = (projectWorkspace) => {
+  if (!projectWorkspace) return ''
+  const weeks = parseInt(projectWorkspace, 10)
   if (isNaN(weeks)) return ''
   if (weeks <= 2) return '1-2 weeks'
   if (weeks <= 4) return '2-4 weeks'
@@ -43,22 +33,20 @@ const AIPreviewTab = ({
   setError,
 }) => {
   const { id } = useParams()
-  const [showGenerateForm, setShowGenerateForm] = useState(false)
   
   // Initialize form data with project data when form is shown
   const initialFormData = useMemo(() => ({
     prompt: project?.description || '',
-    budget: project?.budget ? mapBudgetToForm(project.budget) : '',
-    timeline: project?.timeline ? mapTimelineToForm(project.timeline) : '',
+    timeline: project?.timeline ? mapWorkspaceToForm(project.timeline) : '',
     projectType: project?.projectType || '',
     techStack: Array.isArray(project?.technologies) ? project.technologies : [],
-    modelId: 'gemini-2.0-flash',
+    modelId: 'gemini-2.5-pro',
   }), [project])
   
   const [generateFormData, setGenerateFormData] = useState(initialFormData)
   const [generating, setGenerating] = useState(false)
+  const [streamedThinking, setStreamedThinking] = useState('')
   const [generateError, setGenerateError] = useState('')
-  const [expandedPreviewId, setExpandedPreviewId] = useState(null)
   const [copySuccessId, setCopySuccessId] = useState(null)
 
   const handleGenerateSubmit = async (e) => {
@@ -69,26 +57,31 @@ const AIPreviewTab = ({
     }
     setGenerating(true)
     setGenerateError('')
-    try {
-      const payload = {
-        ...generateFormData,
-        projectId: id,
-        techStack: Array.isArray(generateFormData.techStack)
-          ? generateFormData.techStack.join(', ')
-          : String(generateFormData.techStack || ''),
-      }
-      await generateAIPreview(payload)
-      await loadPreviews()
-      setShowGenerateForm(false)
-      setGenerateFormData(initialFormData)
-    } catch (err) {
-      setGenerateError(err.message || 'Failed to generate preview')
-    } finally {
-      setGenerating(false)
+    setStreamedThinking('')
+    const payload = {
+      ...generateFormData,
+      projectId: id,
+      techStack: Array.isArray(generateFormData.techStack)
+        ? generateFormData.techStack.join(', ')
+        : String(generateFormData.techStack || ''),
     }
+    generateAIPreviewStream(payload, {
+      onChunk: (text) => setStreamedThinking((prev) => prev + text),
+      onDone: async () => {
+        setGenerating(false)
+        setStreamedThinking('')
+        setGenerateFormData(initialFormData)
+        await loadPreviews()
+      },
+      onError: (message) => {
+        setGenerating(false)
+        setStreamedThinking('')
+        setGenerateError(message || 'Failed to generate preview')
+      },
+    })
   }
 
-  const handleDeletePreview = async (previewId) => {
+  const handleDeletePreview = useCallback(async (previewId) => {
     if (!window.confirm('Delete this AI preview?')) return
     try {
       await deleteAIPreview(previewId)
@@ -96,9 +89,9 @@ const AIPreviewTab = ({
     } catch (err) {
       setError(err.message || 'Failed to delete preview')
     }
-  }
+  }, [loadPreviews, setError])
 
-  const handleCopyPreviewCode = async (previewId, code) => {
+  const handleCopyPreviewCode = useCallback(async (previewId, code) => {
     if (!code) return
     try {
       await navigator.clipboard.writeText(code)
@@ -107,72 +100,84 @@ const AIPreviewTab = ({
     } catch (err) {
       console.error('Failed to copy', err)
     }
-  }
+  }, [])
 
-  const handleDownloadPreviewCode = async (code) => {
+  const handleDownloadPreviewCode = useCallback(async (code) => {
     await downloadPreviewCode(code)
-  }
+  }, [])
 
   return (
     <section className="project-section project-section-previews">
-      <h3 className="project-tab-panel-title">AI Previews</h3>
-      <p className="project-previews-intro">
-        {previews.length} / {MAX_PREVIEWS_PER_PROJECT} previews.
-        {isClientOwner && ' Generate up to 5 AI previews for this project. Programmers can view and use the code once assigned.'}
-        {isAssignedProgrammer && !isClientOwner && " View and download the client's generated preview code to start development."}
-      </p>
+      <HoverGuidance content="Generate up to 3 AI website previews. Describe your project and get live code.">
+        <SectionTitle className="mb-4">Generate AI Preview</SectionTitle>
+      </HoverGuidance>
+      <HoverGuidance content="Describe your project and let AI generate a live website preview. Programmers can use the code once assigned.">
+        <p className="font-body text-sm text-ink-muted mt-1 mb-4">
+          Describe your project and let AI generate a live website preview. Programmers can use the code once assigned.
+        </p>
+      </HoverGuidance>
 
-      {isClientOwner && canGeneratePreviews && !showGenerateForm && (
-        <button
-          type="button"
-          className="btn btn-primary project-generate-preview-btn"
-          onClick={() => {
-            setGenerateFormData(initialFormData)
-            setShowGenerateForm(true)
-          }}
-        >
-          Generate new Website
-        </button>
-      )}
+      <AIPreviewForm
+        generateFormData={generateFormData}
+        setGenerateFormData={setGenerateFormData}
+        generating={generating}
+        streamedThinking={streamedThinking}
+        generateError={generateError}
+        techStackByCategory={TECH_STACK_BY_CATEGORY}
+        onSubmit={handleGenerateSubmit}
+        onCancel={() => {
+          setGenerateError('')
+          setGenerateFormData(initialFormData)
+        }}
+      />
 
-      {showGenerateForm && (
-        <AIPreviewForm
-          generateFormData={generateFormData}
-          setGenerateFormData={setGenerateFormData}
-          generating={generating}
-          generateError={generateError}
-          techStackByCategory={TECH_STACK_BY_CATEGORY}
-          onSubmit={handleGenerateSubmit}
-          onCancel={() => { 
-            setShowGenerateForm(false)
-            setGenerateError('')
-            setGenerateFormData(initialFormData)
-          }}
-        />
-      )}
+      <HoverGuidance
+        content={
+          isClientOwner
+            ? previews.length
+              ? 'Your generated previews. Programmers can view and use the code once assigned.'
+              : 'Generate up to 3 AI previews above.'
+            : isAssignedProgrammer
+              ? previews.length
+                ? "View and download the client's generated preview code to start development."
+                : 'No preview yet.'
+              : 'Generated previews will appear here.'
+        }
+      >
+        <div className="mt-8 mb-4">
+          <h4 className="font-heading text-xs uppercase text-ink-muted tracking-wider mb-2">Generated Previews</h4>
+          <p className="project-previews-intro font-body text-sm text-ink-secondary">
+            {isClientOwner && (previews.length ? 'Your generated previews. Programmers can view and use the code once assigned.' : 'Generate up to 3 AI previews above.')}
+            {isAssignedProgrammer && !isClientOwner && (previews.length ? "View and download the client's generated preview code to start development." : 'No preview yet.')}
+          </p>
+        </div>
+      </HoverGuidance>
 
       {previewsLoading ? (
-        <p className="project-previews-loading">Loading previews...</p>
-      ) : previews.length === 0 ? (
-        <p className="project-previews-empty">No AI previews yet. {isClientOwner && 'Generate one above.'}</p>
+        <p className="project-previews-loading font-body text-sm text-ink-secondary">Loading previews...</p>
+      ) : previews.length === 0 && !isClientOwner ? (
+        <p className="project-previews-empty font-body text-sm text-ink-secondary">No AI preview yet.</p>
       ) : (
-        <div className="project-previews-list">
-          {previews.map((preview) => {
-            const previewId = preview._id || preview.id
-            const isExpanded = expandedPreviewId === previewId
-            return (
-              <AIPreviewCard
-                key={previewId}
-                preview={preview}
-                isExpanded={isExpanded}
-                copySuccessId={copySuccessId}
-                isClientOwner={isClientOwner}
-                onToggleExpand={() => setExpandedPreviewId(isExpanded ? null : previewId)}
-                onCopyCode={handleCopyPreviewCode}
-                onDownloadCode={handleDownloadPreviewCode}
-                onDeletePreview={handleDeletePreview}
-              />
-            )
+        <div className="flex flex-nowrap gap-4 w-full items-start justify-center">
+          {Array.from({ length: MAX_PREVIEWS_PER_PROJECT }, (_, i) => {
+            const preview = previews[i]
+            if (preview) {
+              return (
+                <AIPreviewCard
+                  key={preview._id || preview.id}
+                  preview={preview}
+                  copySuccessId={copySuccessId}
+                  isClientOwner={isClientOwner}
+                  onCopyCode={handleCopyPreviewCode}
+                  onDownloadCode={handleDownloadPreviewCode}
+                  onDeletePreview={handleDeletePreview}
+                />
+              )
+            }
+            if (isClientOwner && previews.length < MAX_PREVIEWS_PER_PROJECT) {
+              return <AIPreviewCardSkeleton key={`skeleton-${i}`} />
+            }
+            return null
           })}
         </div>
       )}

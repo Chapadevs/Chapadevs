@@ -1,41 +1,31 @@
-import express from 'express'
+import express from "express";
 import {
   generateAIPreview,
+  generateAIPreviewStream,
   getAIPreviewUsage,
   getAIPreviews,
   getAIPreviewById,
+  getCodesandboxEmbed,
   deleteAIPreview,
-  regenerateAIPreview
-} from '../controllers/aiPreviewController.js'
-import { protect } from '../middleware/authMiddleware.js'
+  regenerateAIPreview,
+} from "../controllers/aiPreviewController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // All routes are protected
-router.use(protect)
+router.use(protect);
 
-router.get('/usage', getAIPreviewUsage)
+router.get("/usage", getAIPreviewUsage);
 
-router.route('/')
-  .post(generateAIPreview)
-  .get(getAIPreviews)
+router.post("/stream", generateAIPreviewStream);
 
-router.route('/:id')
-  .get(getAIPreviewById)
-  .delete(deleteAIPreview)
+router.route("/").post(generateAIPreview).get(getAIPreviews);
 
-router.post('/:id/regenerate', regenerateAIPreview)
+router.get("/:id/codesandbox-embed", getCodesandboxEmbed);
 
-export default router
+router.route("/:id").get(getAIPreviewById).delete(deleteAIPreview);
 
+router.post("/:id/regenerate", regenerateAIPreview);
 
-
-
-
-
-
-
-
-
-
-
+export default router;

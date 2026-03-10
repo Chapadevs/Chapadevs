@@ -1,14 +1,15 @@
 import React from 'react'
+import { Button, SecondaryButton, Textarea } from '../../ui-components'
+import { useState } from 'react'
 import './Hero.css'
 
 const Hero = () => {
-  const scrollToInquiryForm = () => {
-    const el = document.getElementById('inquiry-form')
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-
+  const [generateFormData, setGenerateFormData] = useState({
+    prompt: '',
+  })
+  const handleChange = (field, value) => {
+    setGenerateFormData({ ...generateFormData, [field]: value });
+  };
   return (
     <section className="hero-section">
       <div className="container">
@@ -25,11 +26,43 @@ const Hero = () => {
             <span className="highlight">control</span> you need.
           </p>
 
-          <div className="hero-buttons">
-            <button className="btn btn--primary" onClick={scrollToInquiryForm}>
-              Start Your Project
-            </button>
-          </div>
+          <Textarea
+            id="preview-prompt"
+            label="Project description"
+            value={generateFormData.prompt}
+            onChange={(e) => handleChange('prompt', e.target.value)}
+            placeholder="Describe the preview you want AI to generate..."
+            required
+            autoExpand
+            minRows={5}
+            maxHeight="200px"
+          >
+            <div className="flex w-full items-center justify-between">
+              <span className="text-[10px] text-ink-muted/60 font-medium uppercase tracking-wider hidden sm:inline-block">
+                {generateFormData.prompt?.length || 0} characters
+              </span>
+              
+              <div className="flex items-center gap-1.5">
+                <SecondaryButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-ink-muted hover:text-ink font-normal lowercase" 
+                  to="/login"
+                >
+                  cancel
+                </SecondaryButton>
+                <Button 
+                  type="submit" 
+                  size="sm"
+                  className="rounded-none shadow-sm"
+                  to="/login"
+                >
+                  Generate
+                </Button>
+              </div>
+            </div>
+          </Textarea>
         </div>
       </div>
     </section>
