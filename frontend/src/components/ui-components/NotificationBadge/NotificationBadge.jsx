@@ -1,6 +1,5 @@
 import React from 'react'
 import { useNotifications } from '../../../context/NotificationContext'
-import './NotificationBadge.css'
 
 const NotificationBadge = ({ className = '' }) => {
   const { hasUnread } = useNotifications()
@@ -9,7 +8,12 @@ const NotificationBadge = ({ className = '' }) => {
     return null
   }
 
-  return <span className={`notification-badge ${className}`} aria-label="Unread notifications"></span>
+  return (
+    <span
+      className={`inline-flex w-2 h-2 ml-2 align-middle rounded-full bg-green-600 animate-pulse ${className}`}
+      aria-label="Unread notifications"
+    />
+  )
 }
 
 export default NotificationBadge

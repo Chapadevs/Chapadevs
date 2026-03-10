@@ -1,10 +1,10 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
 const projectPhaseSchema = new mongoose.Schema(
   {
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Project',
+      ref: "Project",
       required: true,
     },
     title: {
@@ -21,10 +21,11 @@ const projectPhaseSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    /** Phase status: snake_case for internal workflow (not_started, in_progress, completed) */
     status: {
       type: String,
-      enum: ['not_started', 'in_progress', 'completed'],
-      default: 'not_started',
+      enum: ["not_started", "in_progress", "completed"],
+      default: "not_started",
     },
     completedAt: {
       type: Date,
@@ -55,17 +56,17 @@ const projectPhaseSchema = new mongoose.Schema(
         {
           assignedTo: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: "User",
             default: null,
           },
           title: { type: String, required: true },
           completed: { type: Boolean, default: false },
           order: { type: Number, required: true },
-          notes: { type: String, default: '' },
+          notes: { type: String, default: "" },
           status: {
             type: String,
-            enum: ['pending', 'client_approval', 'in_progress', 'completed'],
-            default: 'pending',
+            enum: ["pending", "client_approval", "in_progress", "completed"],
+            default: "pending",
           },
           startDate: { type: Date, default: null },
           dueDate: { type: Date, default: null },
@@ -75,7 +76,7 @@ const projectPhaseSchema = new mongoose.Schema(
             type: [
               {
                 order: { type: Number, required: true },
-                answer: { type: String, default: '' },
+                answer: { type: String, default: "" },
               },
             ],
             default: [],
@@ -97,12 +98,16 @@ const projectPhaseSchema = new mongoose.Schema(
                 url: { type: String, required: true },
                 uploadedBy: {
                   type: mongoose.Schema.Types.ObjectId,
-                  ref: 'User',
+                  ref: "User",
                   required: true,
                 },
                 uploadedAt: { type: Date, default: Date.now },
-                type: { type: String, default: 'file' },
-                status: { type: String, enum: ['ok', 'changes_needed'], default: 'ok' },
+                type: { type: String, default: "file" },
+                status: {
+                  type: String,
+                  enum: ["ok", "changes_needed"],
+                  default: "ok",
+                },
                 changesNeededFeedback: { type: String, default: null },
               },
             ],
@@ -112,7 +117,7 @@ const projectPhaseSchema = new mongoose.Schema(
             type: [
               {
                 label: { type: String, required: true },
-                description: { type: String, default: '' },
+                description: { type: String, default: "" },
                 order: { type: Number, default: 0 },
                 receivedAt: { type: Date, default: null },
                 minWidth: { type: Number, default: null },
@@ -132,11 +137,15 @@ const projectPhaseSchema = new mongoose.Schema(
       type: [
         {
           question: { type: String, required: true },
-          answer: { type: String, default: '' },
+          answer: { type: String, default: "" },
           required: { type: Boolean, default: false },
           order: { type: Number, required: true },
           subStepOrder: { type: Number, default: null },
-          createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+          createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+          },
         },
       ],
       default: [],
@@ -164,12 +173,16 @@ const projectPhaseSchema = new mongoose.Schema(
           url: { type: String, required: true },
           uploadedBy: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: "User",
             required: true,
           },
           uploadedAt: { type: Date, default: Date.now },
-          type: { type: String, default: 'file' },
-          status: { type: String, enum: ['ok', 'changes_needed'], default: 'ok' },
+          type: { type: String, default: "file" },
+          status: {
+            type: String,
+            enum: ["ok", "changes_needed"],
+            default: "ok",
+          },
           changesNeededFeedback: { type: String, default: null },
         },
       ],
@@ -179,7 +192,7 @@ const projectPhaseSchema = new mongoose.Schema(
       type: [
         {
           label: { type: String, required: true },
-          description: { type: String, default: '' },
+          description: { type: String, default: "" },
           order: { type: Number, default: 0 },
           receivedAt: { type: Date, default: null },
           minWidth: { type: Number, default: null },
@@ -193,22 +206,22 @@ const projectPhaseSchema = new mongoose.Schema(
     },
     notes: {
       type: String,
-      default: '',
+      default: "",
     },
     blockedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'ProjectPhase',
+      ref: "ProjectPhase",
       default: null,
     },
   },
   {
     timestamps: true,
-  }
-)
+  },
+);
 
-projectPhaseSchema.index({ projectId: 1 })
-projectPhaseSchema.index({ projectId: 1, order: 1 })
+projectPhaseSchema.index({ projectId: 1 });
+projectPhaseSchema.index({ projectId: 1, order: 1 });
 
-const ProjectPhase = mongoose.model('ProjectPhase', projectPhaseSchema)
+const ProjectPhase = mongoose.model("ProjectPhase", projectPhaseSchema);
 
-export default ProjectPhase
+export default ProjectPhase;

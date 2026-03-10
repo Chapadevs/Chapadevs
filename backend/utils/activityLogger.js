@@ -1,4 +1,4 @@
-import ProjectActivity from '../models/ProjectActivity.js'
+import ProjectActivity from "../models/ProjectActivity.js";
 
 /**
  * Log a project activity event (one row per event).
@@ -9,7 +9,14 @@ import ProjectActivity from '../models/ProjectActivity.js'
  * @param {string|import('mongoose').Types.ObjectId} [targetId]
  * @param {Object} [metadata] - e.g. { fromStatus, toStatus }, { phaseTitle }
  */
-export async function logProjectActivity(projectId, actorId, action, targetType = null, targetId = null, metadata = null) {
+export async function logProjectActivity(
+  projectId,
+  actorId,
+  action,
+  targetType = null,
+  targetId = null,
+  metadata = null,
+) {
   try {
     await ProjectActivity.create({
       projectId,
@@ -18,8 +25,8 @@ export async function logProjectActivity(projectId, actorId, action, targetType 
       targetType: targetType || undefined,
       targetId: targetId || undefined,
       metadata: metadata || undefined,
-    })
+    });
   } catch (err) {
-    console.error('Failed to log project activity:', err)
+    console.error("Failed to log project activity:", err);
   }
 }

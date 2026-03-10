@@ -7,14 +7,16 @@ import {
   buildUIRulesPrompt,
   buildCodeRulesPrompt,
   buildFontRulesPrompt,
-} from './templateStructureHelper.js';
+} from "./templateStructureHelper.js";
 
 /**
  * Prompt building functions for Vertex AI
  */
 
 export function buildOptimizedPrompt(prompt, userInputs) {
-  const techPref = userInputs.techStack?.trim() || 'React or Angular, Node.js, Express, MongoDB or PostgreSQL — JavaScript/TypeScript only'
+  const techPref =
+    userInputs.techStack?.trim() ||
+    "React or Angular, Node.js, Express, MongoDB or PostgreSQL — JavaScript/TypeScript only";
   // Concise prompt to minimize tokens
   return `You are an expert web development agency project analyst. Generate a comprehensive project specification in JSON format.
 
@@ -25,9 +27,9 @@ CRITICAL: Our team ONLY works with the JavaScript ecosystem. You MUST suggest ON
 - NO Python, Java, C#, PHP, Ruby, or other non-JS languages.
 
 CLIENT REQUEST: ${prompt}
-BUDGET: ${userInputs.budget || 'Not specified'}
-TIMELINE: ${userInputs.timeline || 'Not specified'}
-PROJECT TYPE: ${userInputs.projectType || 'General web project'}
+BUDGET: ${userInputs.budget || "Not specified"}
+TIMELINE: ${userInputs.timeline || "Not specified"}
+PROJECT TYPE: ${userInputs.projectType || "General web project"}
 TECH PREFERENCES (from user, must stay within JS ecosystem): ${techPref}
 
 Provide a detailed analysis in the following JSON structure (respond ONLY with valid JSON, no markdown):
@@ -81,21 +83,28 @@ Generate the response now:`;
 
 /** Project type enum values for schema validation */
 const PROJECT_TYPE_ENUM = [
-  'New Website Design & Development',
-  'Website Redesign/Refresh',
-  'E-commerce Store',
-  'Management Panel / ERP / CRM',
-  'Landing Page',
-  'Web Application',
-  'Maintenance/Updates to Existing Site',
-  'Other',
-]
+  "New Website Design & Development",
+  "Website Redesign/Refresh",
+  "E-commerce Store",
+  "Management Panel / ERP / CRM",
+  "Landing Page",
+  "Web Application",
+  "Maintenance/Updates to Existing Site",
+  "Other",
+];
 
 /** Allowed technology values (must match frontend techStack.js) */
 const ALLOWED_TECHNOLOGIES = [
-  'React', 'Angular', 'Node.js', 'Express', 'MongoDB', 'PostgreSQL',
-  'TypeScript', 'Next.js', 'Tailwind CSS',
-]
+  "React",
+  "Angular",
+  "Node.js",
+  "Express",
+  "MongoDB",
+  "PostgreSQL",
+  "TypeScript",
+  "Next.js",
+  "Tailwind CSS",
+];
 
 /**
  * Build prompt for AI-generated project requirements from user's natural-language input.
@@ -104,7 +113,7 @@ const ALLOWED_TECHNOLOGIES = [
 export function buildProjectRequirementsPrompt(prompt) {
   return `You are an expert web development agency project analyst. A client has described their project in their own words. Generate a complete project specification in JSON format that maps to our project creation form.
 
-CRITICAL: Our team ONLY works with the JavaScript ecosystem. You MUST suggest ONLY these technologies: ${ALLOWED_TECHNOLOGIES.join(', ')}. NO Python, Java, C#, PHP, Ruby, or other non-JS languages.
+CRITICAL: Our team ONLY works with the JavaScript ecosystem. You MUST suggest ONLY these technologies: ${ALLOWED_TECHNOLOGIES.join(", ")}. NO Python, Java, C#, PHP, Ruby, or other non-JS languages.
 
 CLIENT REQUEST: "${prompt}"
 
@@ -113,7 +122,7 @@ Respond ONLY with valid JSON (no markdown, no code fences). Use this exact struc
 {
   "title": "Short, professional project title",
   "description": "2-4 sentence project description based on the client request",
-  "projectType": "EXACTLY one of: ${PROJECT_TYPE_ENUM.join(' | ')}",
+  "projectType": "EXACTLY one of: ${PROJECT_TYPE_ENUM.join(" | ")}",
   "budget": "Numeric string e.g. 5000 or range e.g. $5,000 - $10,000",
   "timeline": "Number of weeks as string, e.g. 8",
   "goals": ["Goal 1", "Goal 2", "Goal 3"],
@@ -139,7 +148,7 @@ Respond ONLY with valid JSON (no markdown, no code fences). Use this exact struc
 
 Rules:
 - projectType MUST match one of the enum values exactly.
-- techStack values MUST be from: ${ALLOWED_TECHNOLOGIES.join(', ')}.
+- techStack values MUST be from: ${ALLOWED_TECHNOLOGIES.join(", ")}.
 - Infer projectType, budget, timeline from the client request when not explicit.
 - Keep goals (3–4), features (4–6), designStyles (2–4) specific to the domain — prefer lean scope.
 - analysisExtras is for future AI preview use; always include it.
@@ -148,35 +157,51 @@ Generate the response now:`;
 }
 
 export function buildWebsitePrompt(prompt, userInputs) {
-  const projectType = userInputs.projectType || 'Website';
+  const projectType = userInputs.projectType || "Website";
   const lowerPrompt = prompt.toLowerCase();
 
   // Color scheme: literal keywords first, then contextual (e.g. grapes→purple)
   let colorScheme = extractColorScheme(prompt);
-  if (lowerPrompt.includes('colorful')) {
-    colorScheme = 'pink-500, orange-500, yellow-400, cyan-400';
+  if (lowerPrompt.includes("colorful")) {
+    colorScheme = "pink-500, orange-500, yellow-400, cyan-400";
   }
 
   // Extract style
-  const styleKeywords = ['modern', 'minimal', 'clean', 'bold', 'elegant', 'fun', 'professional', 'creative', 'playful', 'vibrant'];
-  let style = 'modern';
+  const styleKeywords = [
+    "modern",
+    "minimal",
+    "clean",
+    "bold",
+    "elegant",
+    "fun",
+    "professional",
+    "creative",
+    "playful",
+    "vibrant",
+  ];
+  let style = "modern";
   for (const keyword of styleKeywords) {
     if (lowerPrompt.includes(keyword)) {
       style = keyword;
       break;
     }
   }
-  
+
   // Determine business type (only business and ecommerce)
-  const businessType = lowerPrompt.includes('ecommerce') || lowerPrompt.includes('store') || lowerPrompt.includes('selling') || lowerPrompt.includes('shop')
-    ? 'e-commerce'
-    : 'business';
+  const businessType =
+    lowerPrompt.includes("ecommerce") ||
+    lowerPrompt.includes("store") ||
+    lowerPrompt.includes("selling") ||
+    lowerPrompt.includes("shop")
+      ? "e-commerce"
+      : "business";
 
   // Create main content suggestions based on business type
-  const mainContentSuggestions = businessType === 'e-commerce'
-    ? 'Product showcase grid (6-12 items with image, name, price) - use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only (repeat as needed) for img src'
-    : 'Services offered (4-6 cards with icon, title, description)';
-  
+  const mainContentSuggestions =
+    businessType === "e-commerce"
+      ? "Product showcase grid (6-12 items with image, name, price) - use __IMAGE_1__, __IMAGE_2__, __IMAGE_3__ only (repeat as needed) for img src"
+      : "Services offered (4-6 cards with icon, title, description)";
+
   return `You are an expert React developer. Generate a HIGH-QUALITY, PERSONALIZED, PRODUCTION-READY React component.
 
 MANDATORY: Generate ONLY React/JavaScript code. No Angular templates, no Vue, no other frameworks. Use React 18 functional components.
@@ -187,9 +212,9 @@ PROJECT DETAILS:
 - Type: ${projectType}
 - Full Description: "${prompt}"
 - Business Type: ${businessType}
-- Color Scheme: ${colorScheme} (use Tailwind classes like bg-${colorScheme.split(',')[0].trim()}, text-${colorScheme.split(',')[0].trim()})
+- Color Scheme: ${colorScheme} (use Tailwind classes like bg-${colorScheme.split(",")[0].trim()}, text-${colorScheme.split(",")[0].trim()})
 - Style: ${style}
-- Budget: ${userInputs.budget || 'Not specified'}
+- Budget: ${userInputs.budget || "Not specified"}
 
 CRITICAL REQUIREMENTS:
 1. Use the professional brand name you invent in the hero title, header, footer (not prompt fragments)
@@ -253,7 +278,7 @@ NAV LINKS CRITICAL: Use button elements with onClick={(e) => { e.preventDefault(
    - Quick links: buttons with onClick setCurrentPage (NOT href)
 
 COLOR IMPLEMENTATION:
-- Use Tailwind color classes: bg-${colorScheme.split(',')[0].trim().split('-')[0]}-${colorScheme.split(',')[0].trim().split('-')[1] || '600'}
+- Use Tailwind color classes: bg-${colorScheme.split(",")[0].trim().split("-")[0]}-${colorScheme.split(",")[0].trim().split("-")[1] || "600"}
 - For gradients: bg-gradient-to-r from-COLOR to-COLOR
 - If colorful requested: Use multiple colors (pink, orange, yellow, cyan)
 - Ensure good contrast for readability
@@ -289,37 +314,53 @@ Generate the complete component NOW:`;
 }
 
 function getFileStructureForTemplate(template) {
-  const isEcommerce = template.type === 'ecommerce';
-  const isManagement = template.type === 'management';
+  const isEcommerce = template.type === "ecommerce";
+  const isManagement = template.type === "management";
   if (isManagement) {
     return `FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. MANDATORY paths (you MUST include ALL of these): /App.js (shell: imports from ./pages and ./components, useState currentPage, Sidebar, page switch), /components/Sidebar.js, /components/Header.js, /pages/LoginPage.js, /pages/RegisterPage.js, /pages/DashboardPage.js, /pages/ProductsPage.js, /pages/UsersPage.js. Optional: /components/Footer.js. Management panel: extremely simple, beautiful UI; table/card layouts; good spacing; frontend-only, 0 backend. Include Login and Register pages. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.`;
   }
-  const basePaths = `/App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? 'ProductsPage' : 'ServicesPage'}.js, /pages/ContactPage.js`;
-  const authPaths = isEcommerce ? ', /pages/LoginPage.js, /pages/RegisterPage.js' : '';
+  const basePaths = `/App.js (shell: imports from ./pages and ./components, useState currentPage, Header, Footer, page switch), /components/Header.js, /components/Footer.js, /pages/HomePage.js, /pages/AboutPage.js, /pages/${isEcommerce ? "ProductsPage" : "ServicesPage"}.js, /pages/ContactPage.js`;
+  const authPaths = isEcommerce
+    ? ", /pages/LoginPage.js, /pages/RegisterPage.js"
+    : "";
   return `FILE STRUCTURE (preferred): Output a "files" object with path keys and file content strings. MANDATORY paths (you MUST include ALL of these): ${basePaths}${authPaths}. ContactPage.js is REQUIRED — never omit it. Optional: /components/ui/Button.js, /components/ui/Card.js. In each string use \\n for newlines and \\" for quotes. App.js must import and render pages; use button onClick for nav, never href.`;
 }
 
 export function buildCombinedPrompt(prompt, userInputs) {
-  const template = getTemplate(userInputs.projectType, prompt, userInputs.previewTemplate);
-  const techPref = userInputs.techStack?.trim() || 'React, Node.js, MongoDB — JavaScript/TypeScript only';
-  const isEcommerce = template.type === 'ecommerce';
-  const isManagement = template.type === 'management';
+  const template = getTemplate(
+    userInputs.projectType,
+    prompt,
+    userInputs.previewTemplate,
+  );
+  const techPref =
+    userInputs.techStack?.trim() ||
+    "React, Node.js, MongoDB — JavaScript/TypeScript only";
+  const isEcommerce = template.type === "ecommerce";
+  const isManagement = template.type === "management";
 
   // Instruct AI to generate a short brand name (2–3 words, no additions like Artisans/lovers/Co.)
-  const businessNamePlaceholder = 'the short core brand name you generate in analysis.businessName (2–3 words only, no suffixes)';
+  const businessNamePlaceholder =
+    "the short core brand name you generate in analysis.businessName (2–3 words only, no suffixes)";
 
   // Extract color and style from prompt using template structure data
   const colorScheme = extractColorScheme(prompt);
   const style = extractStyle(prompt);
 
   // Build prompt sections from template structure (use placeholder so AI generates name)
-  const pageStructure = buildPageStructurePrompt(template, businessNamePlaceholder, colorScheme);
-  const sharedComponents = buildSharedComponentsPrompt(template, businessNamePlaceholder);
+  const pageStructure = buildPageStructurePrompt(
+    template,
+    businessNamePlaceholder,
+    colorScheme,
+  );
+  const sharedComponents = buildSharedComponentsPrompt(
+    template,
+    businessNamePlaceholder,
+  );
   const uiRules = buildUIRulesPrompt(template);
   const codeRules = buildCodeRulesPrompt();
 
   const adaptLine = isManagement
-    ? 'Adapt: management → simple ERP/CRM panel with Login, Register, Dashboard, Products, Users; extremely simple and beautiful; frontend-only.'
+    ? "Adapt: management → simple ERP/CRM panel with Login, Register, Dashboard, Products, Users; extremely simple and beautiful; frontend-only."
     : `Adapt: ecommerce → product cards; business → service cards.`;
 
   const managementGuidance = isManagement
@@ -331,7 +372,7 @@ export function buildCombinedPrompt(prompt, userInputs) {
 - Sidebar: fixed left w-64 bg-gray-900. Header: flex. main: flex-1 overflow-auto. NEVER omit these wrappers.
 
 CONTEXTUAL MOCK DATA: Stats, table rows must reflect project domain. No "Product A" or "User 1".`
-    : '';
+    : "";
 
   return `Generate a complete project analysis and React component in JSON format.
 
@@ -342,7 +383,7 @@ CORE RULES:
 
 ANALYSIS (required for code + images): businessName (SHORT core name only — 2–3 words, NO additions like "Artisans", "lovers", "community", "Co." e.g. "Terra Stone", "Sweet Crust"), logoIconConcept (abstract phrase for header logo, e.g. "abstract pie slice"). Use businessName in Hero, Header, Footer, About. Header logo: <img src="__LOGO__" /> only.
 
-REQUIREMENTS: Project: "${prompt}" | Type: ${template.type} | Budget: ${userInputs.budget || 'Not specified'} | Timeline: ${userInputs.timeline || 'Not specified'} | Tech: ${techPref}. ${adaptLine} Keep page list and section list from template.${managementGuidance}
+REQUIREMENTS: Project: "${prompt}" | Type: ${template.type} | Budget: ${userInputs.budget || "Not specified"} | Timeline: ${userInputs.timeline || "Not specified"} | Tech: ${techPref}. ${adaptLine} Keep page list and section list from template.${managementGuidance}
 
 ${pageStructure}
 
@@ -417,9 +458,13 @@ function App() {
 }
 export default App;
 
-${isManagement ? `MANAGEMENT LAYOUT (fixed): const isAuth = currentPage==='login'||currentPage==='register'; return <div className="flex min-h-screen bg-gray-100">{isAuth?(currentPage==='login'?<LoginPage onNavigate={handleNav}/>:<RegisterPage onNavigate={handleNav}/>):(<><Sidebar onNavigate={handleNav} currentPage={currentPage}/><div className="flex-1 flex flex-col"><Header title={pageTitles[currentPage]}/><main className="flex-1 p-6 overflow-auto">{currentPage==='dashboard'&&<DashboardPage/>}{currentPage==='products'&&<ProductsPage/>}{currentPage==='users'&&<UsersPage/>}</main></div></>)}</div>;
+${
+  isManagement
+    ? `MANAGEMENT LAYOUT (fixed): const isAuth = currentPage==='login'||currentPage==='register'; return <div className="flex min-h-screen bg-gray-100">{isAuth?(currentPage==='login'?<LoginPage onNavigate={handleNav}/>:<RegisterPage onNavigate={handleNav}/>):(<><Sidebar onNavigate={handleNav} currentPage={currentPage}/><div className="flex-1 flex flex-col"><Header title={pageTitles[currentPage]}/><main className="flex-1 p-6 overflow-auto">{currentPage==='dashboard'&&<DashboardPage/>}{currentPage==='products'&&<ProductsPage/>}{currentPage==='users'&&<UsersPage/>}</main></div></>)}</div>;
 
-EXPORTS: export default DashboardPage; export default UsersPage; etc. Never export App from page files. handleNav=(e,p)=>{e?.preventDefault?.();setCurrentPage(p);}. Login onSubmit: onNavigate(e,'dashboard').` : ''}
+EXPORTS: export default DashboardPage; export default UsersPage; etc. Never export App from page files. handleNav=(e,p)=>{e?.preventDefault?.();setCurrentPage(p);}. Login onSubmit: onNavigate(e,'dashboard').`
+    : ""
+}
 
 Generate now:`;
 }

@@ -11,7 +11,7 @@
  * @returns {string} Executable JavaScript/JSX code
  */
 export function unescapeCode(code) {
-  if (code == null || typeof code !== 'string') return '';
+  if (code == null || typeof code !== "string") return "";
 
   let c = String(code).trim();
 
@@ -24,9 +24,9 @@ export function unescapeCode(code) {
   }
 
   return c
-    .replace(/\\n/g, '\n')
-    .replace(/\\r/g, '\r')
-    .replace(/\\t/g, '\t')
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .replace(/\\t/g, "\t")
     .replace(/\\"/g, '"')
-    .replace(/\\\\/g, '\\');
+    .replace(/\\\\/g, "\\");
 }

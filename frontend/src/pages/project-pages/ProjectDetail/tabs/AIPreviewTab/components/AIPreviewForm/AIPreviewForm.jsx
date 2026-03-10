@@ -99,7 +99,7 @@ const AIPreviewForm = ({
                   type="submit"
                   disabled={!generateFormData.prompt}
                   size="sm"
-                  className="rounded-lg shadow-sm"
+                  className="rounded-none shadow-sm"
                 >
                   Generate
                 </Button>

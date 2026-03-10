@@ -3,23 +3,27 @@
  * Stores project phase and sub-step attachments in chapadevs-website/attachments/.
  */
 
-import { Storage } from '@google-cloud/storage'
-import path from 'path'
-import { getSignedUrlsForPaths } from './gcsImageStorage.js'
+import { Storage } from "@google-cloud/storage";
+import path from "path";
+import { getSignedUrlsForPaths } from "./gcsImageStorage.js";
 
-const BUCKET_NAME = process.env.GCS_PROJECT_ATTACHMENTS_BUCKET || 'chapadevs-website'
-const PREFIX = 'attachments'
+const BUCKET_NAME =
+  process.env.GCS_PROJECT_ATTACHMENTS_BUCKET || "chapadevs-website";
+const PREFIX = "attachments";
 
-let storage = null
+let storage = null;
 
 function getStorage() {
-  if (storage) return storage
-  const keyPath = process.env.GMAIL_SERVICE_ACCOUNT_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS
+  if (storage) return storage;
+  const keyPath =
+    process.env.GMAIL_SERVICE_ACCOUNT_PATH ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if (keyPath) {
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS || keyPath
+    process.env.GOOGLE_APPLICATION_CREDENTIALS =
+      process.env.GOOGLE_APPLICATION_CREDENTIALS || keyPath;
   }
-  storage = new Storage()
-  return storage
+  storage = new Storage();
+  return storage;
 }
 
 /**
@@ -28,8 +32,8 @@ function getStorage() {
  * @returns {string}
  */
 function getExt(filename) {
-  const ext = path.extname(filename)
-  return ext || '.bin'
+  const ext = path.extname(filename);
+  return ext || ".bin";
 }
 
 /**
@@ -42,37 +46,46 @@ function getExt(filename) {
  * @param {number} [subStepOrder] - Optional sub-step order for sub-step attachments
  * @returns {Promise<string>} Public URL of the uploaded file
  */
-export async function uploadProjectAttachment(projectId, phaseId, fileBuffer, filename, mimeType, subStepOrder) {
+export async function uploadProjectAttachment(
+  projectId,
+  phaseId,
+  fileBuffer,
+  filename,
+  mimeType,
+  subStepOrder,
+) {
   if (!projectId || !phaseId || !fileBuffer || !filename) {
-    throw new Error('projectId, phaseId, fileBuffer, and filename are required')
+    throw new Error(
+      "projectId, phaseId, fileBuffer, and filename are required",
+    );
   }
 
   try {
-    const client = getStorage()
-    const bucket = client.bucket(BUCKET_NAME)
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-    const ext = getExt(filename)
-    const safeFilename = `${uniqueSuffix}${ext}`
+    const client = getStorage();
+    const bucket = client.bucket(BUCKET_NAME);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = getExt(filename);
+    const safeFilename = `${uniqueSuffix}${ext}`;
 
-    let objectPath
+    let objectPath;
     if (subStepOrder != null) {
-      objectPath = `${PREFIX}/${projectId}/phases/${phaseId}/substeps/${subStepOrder}/${safeFilename}`
+      objectPath = `${PREFIX}/${projectId}/phases/${phaseId}/substeps/${subStepOrder}/${safeFilename}`;
     } else {
-      objectPath = `${PREFIX}/${projectId}/phases/${phaseId}/${safeFilename}`
+      objectPath = `${PREFIX}/${projectId}/phases/${phaseId}/${safeFilename}`;
     }
 
-    const file = bucket.file(objectPath)
+    const file = bucket.file(objectPath);
     await file.save(fileBuffer, {
       metadata: {
-        contentType: mimeType || 'application/octet-stream',
-        cacheControl: 'public, max-age=31536000',
+        contentType: mimeType || "application/octet-stream",
+        cacheControl: "public, max-age=31536000",
       },
-    })
+    });
 
-    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`
+    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`;
   } catch (err) {
-    console.warn('GCS project attachment upload failed:', err.message)
-    throw err
+    console.warn("GCS project attachment upload failed:", err.message);
+    throw err;
   }
 }
 
@@ -84,31 +97,36 @@ export async function uploadProjectAttachment(projectId, phaseId, fileBuffer, fi
  * @param {string} mimeType - MIME type (e.g. image/jpeg)
  * @returns {Promise<string>} Public URL of the uploaded file
  */
-export async function uploadProjectLevelAttachment(projectId, fileBuffer, filename, mimeType) {
+export async function uploadProjectLevelAttachment(
+  projectId,
+  fileBuffer,
+  filename,
+  mimeType,
+) {
   if (!projectId || !fileBuffer || !filename) {
-    throw new Error('projectId, fileBuffer, and filename are required')
+    throw new Error("projectId, fileBuffer, and filename are required");
   }
 
   try {
-    const client = getStorage()
-    const bucket = client.bucket(BUCKET_NAME)
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-    const ext = getExt(filename)
-    const safeFilename = `${uniqueSuffix}${ext}`
-    const objectPath = `${PREFIX}/${projectId}/general/${safeFilename}`
+    const client = getStorage();
+    const bucket = client.bucket(BUCKET_NAME);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = getExt(filename);
+    const safeFilename = `${uniqueSuffix}${ext}`;
+    const objectPath = `${PREFIX}/${projectId}/general/${safeFilename}`;
 
-    const file = bucket.file(objectPath)
+    const file = bucket.file(objectPath);
     await file.save(fileBuffer, {
       metadata: {
-        contentType: mimeType || 'application/octet-stream',
-        cacheControl: 'public, max-age=31536000',
+        contentType: mimeType || "application/octet-stream",
+        cacheControl: "public, max-age=31536000",
       },
-    })
+    });
 
-    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`
+    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`;
   } catch (err) {
-    console.warn('GCS project-level attachment upload failed:', err.message)
-    throw err
+    console.warn("GCS project-level attachment upload failed:", err.message);
+    throw err;
   }
 }
 
@@ -120,31 +138,36 @@ export async function uploadProjectLevelAttachment(projectId, fileBuffer, filena
  * @param {string} mimeType - MIME type (e.g. image/jpeg)
  * @returns {Promise<string>} Public URL of the uploaded file
  */
-export async function uploadChatAttachment(projectId, fileBuffer, filename, mimeType) {
+export async function uploadChatAttachment(
+  projectId,
+  fileBuffer,
+  filename,
+  mimeType,
+) {
   if (!projectId || !fileBuffer || !filename) {
-    throw new Error('projectId, fileBuffer, and filename are required')
+    throw new Error("projectId, fileBuffer, and filename are required");
   }
 
   try {
-    const client = getStorage()
-    const bucket = client.bucket(BUCKET_NAME)
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-    const ext = getExt(filename)
-    const safeFilename = `${uniqueSuffix}${ext}`
-    const objectPath = `${PREFIX}/chat/${projectId}/${safeFilename}`
+    const client = getStorage();
+    const bucket = client.bucket(BUCKET_NAME);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = getExt(filename);
+    const safeFilename = `${uniqueSuffix}${ext}`;
+    const objectPath = `${PREFIX}/chat/${projectId}/${safeFilename}`;
 
-    const file = bucket.file(objectPath)
+    const file = bucket.file(objectPath);
     await file.save(fileBuffer, {
       metadata: {
-        contentType: mimeType || 'application/octet-stream',
-        cacheControl: 'public, max-age=31536000',
+        contentType: mimeType || "application/octet-stream",
+        cacheControl: "public, max-age=31536000",
       },
-    })
+    });
 
-    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`
+    return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`;
   } catch (err) {
-    console.warn('GCS chat attachment upload failed:', err.message)
-    throw err
+    console.warn("GCS chat attachment upload failed:", err.message);
+    throw err;
   }
 }
 
@@ -154,16 +177,16 @@ export async function uploadChatAttachment(projectId, fileBuffer, filename, mime
  * @returns {string|null} Object path (e.g. project-attachments/.../file.ext) or null
  */
 function parseObjectPath(urlOrPath) {
-  if (!urlOrPath || typeof urlOrPath !== 'string') return null
-  const trimmed = urlOrPath.trim()
-  const gcsPrefix = `https://storage.googleapis.com/${BUCKET_NAME}/`
+  if (!urlOrPath || typeof urlOrPath !== "string") return null;
+  const trimmed = urlOrPath.trim();
+  const gcsPrefix = `https://storage.googleapis.com/${BUCKET_NAME}/`;
   if (trimmed.startsWith(gcsPrefix)) {
-    return trimmed.slice(gcsPrefix.length)
+    return trimmed.slice(gcsPrefix.length);
   }
-  if (trimmed.startsWith(PREFIX + '/')) {
-    return trimmed
+  if (trimmed.startsWith(PREFIX + "/")) {
+    return trimmed;
   }
-  return null
+  return null;
 }
 
 /**
@@ -172,22 +195,22 @@ function parseObjectPath(urlOrPath) {
  * @returns {Promise<boolean>} True if deleted, false if not found or not a GCS URL
  */
 export async function deleteProjectAttachment(urlOrPath) {
-  const objectPath = parseObjectPath(urlOrPath)
-  if (!objectPath) return false
+  const objectPath = parseObjectPath(urlOrPath);
+  if (!objectPath) return false;
 
   try {
-    const client = getStorage()
-    const bucket = client.bucket(BUCKET_NAME)
-    const file = bucket.file(objectPath)
-    const [exists] = await file.exists()
+    const client = getStorage();
+    const bucket = client.bucket(BUCKET_NAME);
+    const file = bucket.file(objectPath);
+    const [exists] = await file.exists();
     if (exists) {
-      await file.delete()
-      return true
+      await file.delete();
+      return true;
     }
-    return false
+    return false;
   } catch (err) {
-    console.warn('GCS project attachment delete failed:', err.message)
-    return false
+    console.warn("GCS project attachment delete failed:", err.message);
+    return false;
   }
 }
 
@@ -200,8 +223,8 @@ export async function deleteProjectAttachment(urlOrPath) {
 export async function getSignedUrlsForAttachments(urls, expiresInMs = 3600000) {
   const paths = (Array.isArray(urls) ? urls : [])
     .map((u) => parseObjectPath(u))
-    .filter(Boolean)
-  if (paths.length === 0) return []
-  const signed = await getSignedUrlsForPaths(paths, expiresInMs)
-  return signed
+    .filter(Boolean);
+  if (paths.length === 0) return [];
+  const signed = await getSignedUrlsForPaths(paths, expiresInMs);
+  return signed;
 }

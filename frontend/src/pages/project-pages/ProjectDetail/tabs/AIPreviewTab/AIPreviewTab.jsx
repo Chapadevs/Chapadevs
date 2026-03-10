@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { generateAIPreviewStream, deleteAIPreview } from '../../../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../../../utils/techStack'
 import { downloadPreviewCode } from '../../utils/downloadUtils'
-import { SectionTitle } from '../../../../../components/ui-components'
+import { SectionTitle, HoverGuidance } from '../../../../../components/ui-components'
 import AIPreviewForm from './components/AIPreviewForm/AIPreviewForm'
 import AIPreviewCard from './components/AIPreviewCard/AIPreviewCard'
 import AIPreviewCardSkeleton from './components/AIPreviewCardSkeleton/AIPreviewCardSkeleton'
@@ -108,10 +108,14 @@ const AIPreviewTab = ({
 
   return (
     <section className="project-section project-section-previews">
-      <SectionTitle className="mb-4">Generate AI Preview</SectionTitle>
-      <p className="font-body text-sm text-ink-muted mt-1 mb-4">
-        Describe your project and let AI generate a live website preview. Programmers can use the code once assigned.
-      </p>
+      <HoverGuidance content="Generate up to 3 AI website previews. Describe your project and get live code.">
+        <SectionTitle className="mb-4">Generate AI Preview</SectionTitle>
+      </HoverGuidance>
+      <HoverGuidance content="Describe your project and let AI generate a live website preview. Programmers can use the code once assigned.">
+        <p className="font-body text-sm text-ink-muted mt-1 mb-4">
+          Describe your project and let AI generate a live website preview. Programmers can use the code once assigned.
+        </p>
+      </HoverGuidance>
 
       <AIPreviewForm
         generateFormData={generateFormData}
@@ -127,13 +131,27 @@ const AIPreviewTab = ({
         }}
       />
 
-      <div className="mt-8 mb-4">
-        <h4 className="font-heading text-xs uppercase text-ink-muted tracking-wider mb-2">Generated Previews</h4>
-        <p className="project-previews-intro font-body text-sm text-ink-secondary">
-          {isClientOwner && (previews.length ? 'Your generated previews. Programmers can view and use the code once assigned.' : 'Generate up to 3 AI previews above.')}
-          {isAssignedProgrammer && !isClientOwner && (previews.length ? "View and download the client's generated preview code to start development." : 'No preview yet.')}
-        </p>
-      </div>
+      <HoverGuidance
+        content={
+          isClientOwner
+            ? previews.length
+              ? 'Your generated previews. Programmers can view and use the code once assigned.'
+              : 'Generate up to 3 AI previews above.'
+            : isAssignedProgrammer
+              ? previews.length
+                ? "View and download the client's generated preview code to start development."
+                : 'No preview yet.'
+              : 'Generated previews will appear here.'
+        }
+      >
+        <div className="mt-8 mb-4">
+          <h4 className="font-heading text-xs uppercase text-ink-muted tracking-wider mb-2">Generated Previews</h4>
+          <p className="project-previews-intro font-body text-sm text-ink-secondary">
+            {isClientOwner && (previews.length ? 'Your generated previews. Programmers can view and use the code once assigned.' : 'Generate up to 3 AI previews above.')}
+            {isAssignedProgrammer && !isClientOwner && (previews.length ? "View and download the client's generated preview code to start development." : 'No preview yet.')}
+          </p>
+        </div>
+      </HoverGuidance>
 
       {previewsLoading ? (
         <p className="project-previews-loading font-body text-sm text-ink-secondary">Loading previews...</p>

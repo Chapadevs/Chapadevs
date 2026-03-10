@@ -1,60 +1,63 @@
-import User from '../models/User.js'
-import asyncHandler from 'express-async-handler'
-import { isGcsAvatar, getSignedAvatarUrl } from '../utils/avatarStorage.js'
-import { deleteUserFully } from '../services/userDeletionService.js'
+import User from "../models/User.js";
+import asyncHandler from "express-async-handler";
+import { isGcsAvatar, getSignedAvatarUrl } from "../utils/avatarStorage.js";
+import { deleteUserFully } from "../services/userDeletionService.js";
 
 // @desc    Get all users (Admin only)
 // @route   GET /api/users
 // @access  Private/Admin
 export const getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select('-password')
-  res.json(users)
-})
+  const users = await User.find().select("-password");
+  res.json(users);
+});
 
 // @desc    Get all programmers
 // @route   GET /api/users/programmers
 // @access  Private
 export const getProgrammers = asyncHandler(async (req, res) => {
-  const programmers = await User.find({ role: 'programmer' }).select('-password')
-  res.json(programmers)
-})
+  const programmers = await User.find({ role: "programmer" }).select(
+    "-password",
+  );
+  res.json(programmers);
+});
 
 // @desc    Get user by ID
 // @route   GET /api/users/:id
 // @access  Private/Admin
 export const getUserById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password')
+  const user = await User.findById(req.params.id).select("-password");
 
   if (user) {
-    res.json(user)
+    res.json(user);
   } else {
-    res.status(404)
-    throw new Error('User not found')
+    res.status(404);
+    throw new Error("User not found");
   }
-})
+});
 
 // @desc    Update user
 // @route   PUT /api/users/:id
 // @access  Private/Admin
 export const updateUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id)
+  const user = await User.findById(req.params.id);
 
   if (!user) {
-    res.status(404)
-    throw new Error('User not found')
+    res.status(404);
+    throw new Error("User not found");
   }
 
-  user.name = req.body.name || user.name
-  user.email = req.body.email || user.email
-  user.role = req.body.role || user.role
+  user.name = req.body.name || user.name;
+  user.email = req.body.email || user.email;
+  user.role = req.body.role || user.role;
 
-  if (user.role === 'programmer') {
-    if (req.body.skills !== undefined) user.skills = req.body.skills
-    if (req.body.bio !== undefined) user.bio = req.body.bio
-    if (req.body.hourlyRate !== undefined) user.hourlyRate = req.body.hourlyRate
+  if (user.role === "programmer") {
+    if (req.body.skills !== undefined) user.skills = req.body.skills;
+    if (req.body.bio !== undefined) user.bio = req.body.bio;
+    if (req.body.hourlyRate !== undefined)
+      user.hourlyRate = req.body.hourlyRate;
   }
 
-  const updatedUser = await user.save()
+  const updatedUser = await user.save();
 
   res.json({
     _id: updatedUser._id,
@@ -64,46 +67,46 @@ export const updateUser = asyncHandler(async (req, res) => {
     skills: updatedUser.skills,
     bio: updatedUser.bio,
     hourlyRate: updatedUser.hourlyRate,
-  })
-})
+  });
+});
 
 // @desc    Delete user
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
 export const deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id)
+  const user = await User.findById(req.params.id);
 
   if (!user) {
-    res.status(404)
-    throw new Error('User not found')
+    res.status(404);
+    throw new Error("User not found");
   }
 
   // Full cascade: projects, notifications, messages, assets, avatar, user
-  await deleteUserFully(req.params.id)
+  await deleteUserFully(req.params.id);
 
-  res.json({ message: 'User removed' })
-})
+  res.json({ message: "User removed" });
+});
 
 // @desc    Update current user's status
 // @route   PUT /api/users/status
 // @access  Private
 export const updateStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body
+  const { status } = req.body;
 
-  if (!['online', 'away', 'busy', 'offline'].includes(status)) {
-    res.status(400)
-    throw new Error('Invalid status. Must be: online, away, busy, or offline')
+  if (!["online", "away", "busy", "offline"].includes(status)) {
+    res.status(400);
+    throw new Error("Invalid status. Must be: online, away, busy, or offline");
   }
 
-  const user = await User.findById(req.user._id)
+  const user = await User.findById(req.user._id);
   if (!user) {
-    res.status(404)
-    throw new Error('User not found')
+    res.status(404);
+    throw new Error("User not found");
   }
 
-  user.status = status
-  user.lastSeen = new Date()
-  await user.save()
+  user.status = status;
+  user.lastSeen = new Date();
+  await user.save();
 
   res.json({
     _id: user._id,
@@ -111,51 +114,51 @@ export const updateStatus = asyncHandler(async (req, res) => {
     email: user.email,
     status: user.status,
     lastSeen: user.lastSeen,
-  })
-})
+  });
+});
 
 // @desc    Get user statuses by IDs
 // @route   POST /api/users/statuses
 // @access  Private
 export const getUserStatuses = asyncHandler(async (req, res) => {
-  const { userIds } = req.body
+  const { userIds } = req.body;
 
   if (!Array.isArray(userIds) || userIds.length === 0) {
-    return res.json({})
+    return res.json({});
   }
 
   const users = await User.find({ _id: { $in: userIds } })
-    .select('_id status lastSeen')
-    .lean()
+    .select("_id status lastSeen")
+    .lean();
 
-  const statusMap = {}
+  const statusMap = {};
   users.forEach((user) => {
     statusMap[user._id.toString()] = {
-      status: user.status || 'offline',
+      status: user.status || "offline",
       lastSeen: user.lastSeen,
-    }
-  })
+    };
+  });
 
-  res.json(statusMap)
-})
+  res.json(statusMap);
+});
 
 // @desc    Get user profile (for viewing by collaborators)
 // @route   GET /api/users/:id/profile
 // @access  Private (users who share a project or clients viewing programmers)
 export const getUserProfile = asyncHandler(async (req, res) => {
-  const targetUserId = req.params.id
-  const currentUserId = req.user._id.toString()
+  const targetUserId = req.params.id;
+  const currentUserId = req.user._id.toString();
 
   // If viewing own profile, return own profile data
   if (targetUserId === currentUserId) {
-    const user = await User.findById(req.user._id).select('-password')
+    const user = await User.findById(req.user._id).select("-password");
     if (!user) {
-      res.status(404)
-      throw new Error('User not found')
+      res.status(404);
+      throw new Error("User not found");
     }
-    let avatar = user.avatar
+    let avatar = user.avatar;
     if (avatar && isGcsAvatar(avatar)) {
-      avatar = await getSignedAvatarUrl(avatar)
+      avatar = await getSignedAvatarUrl(avatar);
     }
     return res.json({
       _id: user._id,
@@ -170,61 +173,65 @@ export const getUserProfile = asyncHandler(async (req, res) => {
       bio: user.bio,
       hourlyRate: user.hourlyRate,
       createdAt: user.createdAt,
-    })
+    });
   }
 
-  const targetUser = await User.findById(targetUserId).select('-password')
+  const targetUser = await User.findById(targetUserId).select("-password");
 
   if (!targetUser) {
-    res.status(404)
-    throw new Error('User not found')
+    res.status(404);
+    throw new Error("User not found");
   }
 
   // Check if users share a project together
-  const Project = (await import('../models/Project.js')).default
+  const Project = (await import("../models/Project.js")).default;
   const sharedProjects = await Project.find({
     $or: [
       { clientId: { $in: [currentUserId, targetUserId] } },
       { assignedProgrammerId: { $in: [currentUserId, targetUserId] } },
       { assignedProgrammerIds: { $in: [currentUserId, targetUserId] } },
     ],
-  })
+  });
 
   const hasSharedProject = sharedProjects.some((project) => {
-    const clientId = project.clientId?.toString()
-    const assignedProgrammerId = project.assignedProgrammerId?.toString()
+    const clientId = project.clientId?.toString();
+    const assignedProgrammerId = project.assignedProgrammerId?.toString();
     const assignedProgrammerIds =
-      project.assignedProgrammerIds?.map((id) => id?.toString()) || []
+      project.assignedProgrammerIds?.map((id) => id?.toString()) || [];
 
     const currentUserInProject =
       clientId === currentUserId ||
       assignedProgrammerId === currentUserId ||
-      assignedProgrammerIds.includes(currentUserId)
+      assignedProgrammerIds.includes(currentUserId);
 
     const targetUserInProject =
       clientId === targetUserId ||
       assignedProgrammerId === targetUserId ||
-      assignedProgrammerIds.includes(targetUserId)
+      assignedProgrammerIds.includes(targetUserId);
 
-    return currentUserInProject && targetUserInProject
-  })
+    return currentUserInProject && targetUserInProject;
+  });
 
   // Allow access if:
   // 1. Users share a project
   // 2. Current user is a client and target is a programmer (for browsing)
   // 3. Current user is admin
   const isClientViewingProgrammer =
-    (req.user.role === 'client' || req.user.role === 'user') &&
-    targetUser.role === 'programmer'
+    (req.user.role === "client" || req.user.role === "user") &&
+    targetUser.role === "programmer";
 
-  if (!hasSharedProject && !isClientViewingProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to view this profile')
+  if (
+    !hasSharedProject &&
+    !isClientViewingProgrammer &&
+    req.user.role !== "admin"
+  ) {
+    res.status(403);
+    throw new Error("Not authorized to view this profile");
   }
 
-  let avatar = targetUser.avatar
+  let avatar = targetUser.avatar;
   if (avatar && isGcsAvatar(avatar)) {
-    avatar = await getSignedAvatarUrl(avatar)
+    avatar = await getSignedAvatarUrl(avatar);
   }
 
   // Return public profile data
@@ -241,5 +248,5 @@ export const getUserProfile = asyncHandler(async (req, res) => {
     bio: targetUser.bio,
     hourlyRate: targetUser.hourlyRate,
     createdAt: targetUser.createdAt,
-  })
-})
+  });
+});

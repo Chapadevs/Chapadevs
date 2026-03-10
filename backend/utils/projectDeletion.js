@@ -3,38 +3,41 @@
  * Used by projectController.deleteProject and userDeletionService.
  */
 
-import Project from '../models/Project.js'
-import ProjectPhase from '../models/ProjectPhase.js'
-import ProjectActivity from '../models/ProjectActivity.js'
-import Message from '../models/Message.js'
-import Notification from '../models/Notification.js'
-import AIPreview from '../models/AIPreview.js'
-import { deleteProjectAttachment } from './projectAttachmentStorage.js'
+import Project from "../models/Project.js";
+import ProjectPhase from "../models/ProjectPhase.js";
+import ProjectActivity from "../models/ProjectActivity.js";
+import Message from "../models/Message.js";
+import Notification from "../models/Notification.js";
+import AIPreview from "../models/AIPreview.js";
+import { deleteProjectAttachment } from "./projectAttachmentStorage.js";
 
 /**
  * Delete all GCS attachments from a phase (phase-level and sub-step attachments).
  * @param {Object} phase - ProjectPhase document
  */
 async function deletePhaseAttachmentsFromGCS(phase) {
-  const urlsToDelete = []
+  const urlsToDelete = [];
 
   // Phase-level attachments
   for (const a of phase.attachments || []) {
-    if (a?.url) urlsToDelete.push(a.url)
+    if (a?.url) urlsToDelete.push(a.url);
   }
 
   // Sub-step attachments
   for (const sub of phase.subSteps || []) {
     for (const a of sub.attachments || []) {
-      if (a?.url) urlsToDelete.push(a.url)
+      if (a?.url) urlsToDelete.push(a.url);
     }
   }
 
   for (const url of urlsToDelete) {
-    if (url?.startsWith('https://storage.googleapis.com/') || url?.startsWith('attachments/')) {
+    if (
+      url?.startsWith("https://storage.googleapis.com/") ||
+      url?.startsWith("attachments/")
+    ) {
       await deleteProjectAttachment(url).catch((err) =>
-        console.warn('GCS delete failed for phase attachment:', err?.message)
-      )
+        console.warn("GCS delete failed for phase attachment:", err?.message),
+      );
     }
   }
 }
@@ -47,29 +50,32 @@ async function deletePhaseAttachmentsFromGCS(phase) {
  */
 async function deleteAllProjectAssetsFromGCS(project, phases, messages) {
   const deleteUrl = async (url) => {
-    if (url?.startsWith('https://storage.googleapis.com/') || url?.startsWith('attachments/')) {
+    if (
+      url?.startsWith("https://storage.googleapis.com/") ||
+      url?.startsWith("attachments/")
+    ) {
       await deleteProjectAttachment(url).catch((err) =>
-        console.warn('GCS delete failed for project asset:', err?.message)
-      )
+        console.warn("GCS delete failed for project asset:", err?.message),
+      );
     }
-  }
+  };
 
   // Project-level attachments
   for (const a of project.attachments || []) {
-    const url = typeof a === 'object' ? a?.url : null
-    if (url) await deleteUrl(url)
+    const url = typeof a === "object" ? a?.url : null;
+    if (url) await deleteUrl(url);
   }
 
   // Message attachments
   for (const msg of messages || []) {
     for (const a of msg.attachments || []) {
-      if (a?.url) await deleteUrl(a.url)
+      if (a?.url) await deleteUrl(a.url);
     }
   }
 
   // Phase and sub-step attachments
   for (const phase of phases || []) {
-    await deletePhaseAttachmentsFromGCS(phase)
+    await deletePhaseAttachmentsFromGCS(phase);
   }
 }
 
@@ -80,21 +86,20 @@ async function deleteAllProjectAssetsFromGCS(project, phases, messages) {
  * @param {string} projectId - MongoDB ObjectId of the project
  */
 export async function deleteProjectFully(projectId) {
-  const project = await Project.findById(projectId)
-  if (!project) return
+  const project = await Project.findById(projectId);
+  if (!project) return;
 
-  const phases = await ProjectPhase.find({ projectId: project._id })
-  const messages = await Message.find({ projectId: project._id })
+  const phases = await ProjectPhase.find({ projectId: project._id });
+  const messages = await Message.find({ projectId: project._id });
 
   // Delete GCS assets first
-  await deleteAllProjectAssetsFromGCS(project, phases, messages)
+  await deleteAllProjectAssetsFromGCS(project, phases, messages);
 
-  // Delete related documents
-  await ProjectPhase.deleteMany({ projectId: project._id })
-  await ProjectActivity.deleteMany({ projectId: project._id })
-  await Message.deleteMany({ projectId: project._id })
-  await Notification.deleteMany({ projectId: project._id })
-  await AIPreview.deleteMany({ projectId: project._id })
+  // Delete related documents (keep ProjectActivity for audit trail)
+  await ProjectPhase.deleteMany({ projectId: project._id });
+  await Message.deleteMany({ projectId: project._id });
+  await Notification.deleteMany({ projectId: project._id });
+  await AIPreview.deleteMany({ projectId: project._id });
 
-  await project.deleteOne()
+  await project.deleteOne();
 }

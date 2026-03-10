@@ -5,7 +5,7 @@ import { useAuth } from '../../../../../context/AuthContext'
 import { calculatePermissions } from '../../utils/userPermissionsUtils'
 import CycleDetail from './components/CycleDetail'
 import ProposalSubStepCard from './components/ProposalSubStepCard/ProposalSubStepCard'
-import { Button, Alert, Input, SectionTitle } from '../../../../../components/ui-components'
+import { Button, Alert, Input, SectionTitle, HoverGuidance } from '../../../../../components/ui-components'
 import { formatDateOnly, getProjectDurationFromDates } from '../../../../../utils/dateUtils'
 import { usePhaseProposal } from './hooks/usePhaseProposal'
 import './Workspace.css'
@@ -56,12 +56,14 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
 
   if (hasNoPhases && !canConfirmWorkspace) {
     return (
-      <div className="timeline-empty">
-        <p>No phases have been created for this project yet.</p>
-        <p className="timeline-empty-hint">
-          The assigned programmer will review and confirm the timeline from this Workspace.
-        </p>
-      </div>
+      <HoverGuidance content="The assigned programmer will review and confirm the timeline from this Workspace.">
+        <div className="timeline-empty">
+          <p>No phases have been created for this project yet.</p>
+          <p className="timeline-empty-hint">
+            The assigned programmer will review and confirm the timeline from this Workspace.
+          </p>
+        </div>
+      </HoverGuidance>
     )
   }
 
@@ -75,15 +77,23 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
               The client must review the project and mark Ready first to unlock this.
             </p>
           )}
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => canCreateSteps && setUserRequestedCreateSteps(true)}
-            disabled={!canCreateSteps}
-            aria-label="Create project steps"
+          <HoverGuidance
+            content={
+              canCreateSteps
+                ? 'Create the project timeline. Plan phases and sub-steps.'
+                : 'The client must review the project and mark Ready first to unlock this.'
+            }
           >
-            Create steps
-          </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => canCreateSteps && setUserRequestedCreateSteps(true)}
+              disabled={!canCreateSteps}
+              aria-label="Create project steps"
+            >
+              Create steps
+            </Button>
+          </HoverGuidance>
         </div>
       </section>
     )
@@ -343,15 +353,17 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
                 })()}
               </ul>
             </DndContext>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => handleConfirmWorkspace(onWorkspaceConfirmed)}
-              disabled={confirming}
-              className="mt-4"
-            >
-              {confirming ? 'Confirming...' : 'Confirm timeline'}
-            </Button>
+            <HoverGuidance content="Confirm the timeline to create phases and sub-steps. Programmers can then start work.">
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => handleConfirmWorkspace(onWorkspaceConfirmed)}
+                disabled={confirming}
+                className="mt-4"
+              >
+                {confirming ? 'Confirming...' : 'Confirm timeline'}
+              </Button>
+            </HoverGuidance>
           </div>
         )}
       </section>
@@ -390,9 +402,24 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
             const isNotStarted = phase.status === 'not_started'
             const cycleNumber = phase.order ?? index + 1
             const isSelected = index === selectedIndex
+            const prevPhase = index > 0 ? phases[index - 1] : null
+            const isBlocked = isNotStarted && prevPhase && prevPhase.status !== 'completed'
             return (
               <div key={phaseId} className="flex flex-col items-center gap-1">
-                <Button
+                <HoverGuidance
+                  content={
+                    isBlocked
+                      ? 'You need to complete the previous phase first.'
+                      : isNotStarted
+                        ? 'This phase has not started yet.'
+                        : isInProgress
+                          ? 'This phase is in progress.'
+                          : isCompleted
+                            ? 'This phase is complete.'
+                            : null
+                  }
+                >
+                  <Button
                   type="button"
                   variant={isSelected ? 'primary' : 'ghost'}
                   role="tab"
@@ -405,6 +432,7 @@ const Workspace = ({ project, previews = [], onPhaseUpdate, onWorkspaceConfirmed
                 >
                   Cycle {cycleNumber}
                 </Button>
+                </HoverGuidance>
                 {isSelected && (
                   <div className="flex flex-col gap-1">
                     {cycleActions?.phaseId === (currentPhase?._id || currentPhase?.id) && cycleActions?.canStartPhase && (

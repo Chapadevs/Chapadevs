@@ -4,69 +4,87 @@
  * CodeSandbox format: { [path]: { content: string, isBinary?: boolean } }
  */
 
-import LZString from 'lz-string'
-import { unescapeCode } from './codeUtils.js'
+import LZString from "lz-string";
+import { unescapeCode } from "./codeUtils.js";
 
 function isJsonLike(str) {
-  const s = (str || '').trim()
-  return s.length > 20 && s.startsWith('{') && (s.includes('"analysis"') || s.includes('"files"'))
+  const s = (str || "").trim();
+  return (
+    s.length > 20 &&
+    s.startsWith("{") &&
+    (s.includes('"analysis"') || s.includes('"files"'))
+  );
 }
 
 function extractAppCodeFromJson(raw) {
-  if (!raw || typeof raw !== 'string') return ''
-  const s = raw.trim()
-  if (!s.startsWith('{') || (!s.includes('"analysis"') && !s.includes('"files"'))) return ''
+  if (!raw || typeof raw !== "string") return "";
+  const s = raw.trim();
+  if (
+    !s.startsWith("{") ||
+    (!s.includes('"analysis"') && !s.includes('"files"'))
+  )
+    return "";
   try {
-    const parsed = JSON.parse(s)
-    const filesObj = parsed?.files && typeof parsed.files === 'object' ? parsed.files : {}
+    const parsed = JSON.parse(s);
+    const filesObj =
+      parsed?.files && typeof parsed.files === "object" ? parsed.files : {};
     return (
-      filesObj['/App.js'] ||
-      filesObj['App.js'] ||
-      (typeof parsed.code === 'string' && !isJsonLike(parsed.code) ? parsed.code : '') ||
-      ''
-    )
+      filesObj["/App.js"] ||
+      filesObj["App.js"] ||
+      (typeof parsed.code === "string" && !isJsonLike(parsed.code)
+        ? parsed.code
+        : "") ||
+      ""
+    );
   } catch {
-    return ''
+    return "";
   }
 }
 
 /** Convert Sandpack-style { code } to CodeSandbox { content } */
 function toDefineFile(code) {
-  return { content: typeof code === 'string' ? code : '', isBinary: false }
+  return { content: typeof code === "string" ? code : "", isBinary: false };
 }
 
 const FIXED_FILES = {
-  '/package.json': toDefineFile(
+  "/package.json": toDefineFile(
     JSON.stringify(
       {
-        name: 'preview',
-        version: '0.0.1',
-        main: 'index.js',
+        name: "preview",
+        version: "0.0.1",
+        main: "index.js",
         dependencies: {
-          react: '^18.2.0',
-          'react-dom': '^18.2.0',
+          react: "^18.2.0",
+          "react-dom": "^18.2.0",
         },
       },
       null,
-      2
-    )
+      2,
+    ),
   ),
-  '/index.js': toDefineFile(`import React from "react";
+  "/index.js": toDefineFile(
+    `import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
 const root = createRoot(document.getElementById("root"));
-root.render(<App />);`.trim()),
-  '/index.css': toDefineFile(`@tailwind base;
+root.render(<App />);`.trim(),
+  ),
+  "/index.css": toDefineFile(
+    `@tailwind base;
 @tailwind components;
-@tailwind utilities;`.trim()),
-  '/tailwind.config.js': toDefineFile(`module.exports = {
+@tailwind utilities;`.trim(),
+  ),
+  "/tailwind.config.js": toDefineFile(
+    `module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}", "./**/*.js"],
   theme: { extend: {} },
   plugins: [],
-};`.trim()),
-  '/public/index.html': toDefineFile(`<!DOCTYPE html>
+};`.trim(),
+  ),
+  "/public/index.html": toDefineFile(
+    `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -81,8 +99,9 @@ root.render(<App />);`.trim()),
     <div id="root"></div>
     <script src="https://cdn.tailwindcss.com"></script>
   </body>
-</html>`.trim()),
-}
+</html>`.trim(),
+  ),
+};
 
 /**
  * Build files object for CodeSandbox define API.
@@ -90,32 +109,36 @@ root.render(<App />);`.trim()),
  * @returns {{ [path: string]: { content: string, isBinary: boolean } }}
  */
 export function buildDefineFiles(metadata) {
-  const code = metadata?.websitePreviewCode || ''
-  const files = metadata?.websitePreviewFiles || null
-  const cleanCode = unescapeCode(code)
+  const code = metadata?.websitePreviewCode || "";
+  const files = metadata?.websitePreviewFiles || null;
+  const cleanCode = unescapeCode(code);
 
-  const result = { ...FIXED_FILES }
+  const result = { ...FIXED_FILES };
 
-  if (files && typeof files === 'object' && Object.keys(files).length > 0) {
+  if (files && typeof files === "object" && Object.keys(files).length > 0) {
     for (const [path, content] of Object.entries(files)) {
-      if (typeof content !== 'string') continue
-      let fileCode = unescapeCode(content)
-      if (isJsonLike(fileCode)) fileCode = ''
-      if (fileCode === '') continue
-      const normPath = path.startsWith('/') ? path : `/${path}`
-      result[normPath] = toDefineFile(fileCode)
+      if (typeof content !== "string") continue;
+      let fileCode = unescapeCode(content);
+      if (isJsonLike(fileCode)) fileCode = "";
+      if (fileCode === "") continue;
+      const normPath = path.startsWith("/") ? path : `/${path}`;
+      result[normPath] = toDefineFile(fileCode);
     }
-    let appCode = result['/App.js']?.content
+    let appCode = result["/App.js"]?.content;
     if (!appCode && cleanCode) {
-      appCode = isJsonLike(cleanCode) ? extractAppCodeFromJson(cleanCode) : cleanCode
-      if (appCode) result['/App.js'] = toDefineFile(appCode)
+      appCode = isJsonLike(cleanCode)
+        ? extractAppCodeFromJson(cleanCode)
+        : cleanCode;
+      if (appCode) result["/App.js"] = toDefineFile(appCode);
     }
   } else {
-    const appCode = isJsonLike(cleanCode) ? extractAppCodeFromJson(cleanCode) : cleanCode
-    if (appCode) result['/App.js'] = toDefineFile(appCode)
+    const appCode = isJsonLike(cleanCode)
+      ? extractAppCodeFromJson(cleanCode)
+      : cleanCode;
+    if (appCode) result["/App.js"] = toDefineFile(appCode);
   }
 
-  return result
+  return result;
 }
 
 /**
@@ -124,6 +147,6 @@ export function buildDefineFiles(metadata) {
  * @returns {string} Encoded parameters string for query
  */
 export function encodeDefineParameters(files) {
-  const payload = { files }
-  return LZString.compressToEncodedURIComponent(JSON.stringify(payload))
+  const payload = { files };
+  return LZString.compressToEncodedURIComponent(JSON.stringify(payload));
 }

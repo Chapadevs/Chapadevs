@@ -3,17 +3,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { useRole } from '../../../hooks/useRole'
 import Header from '../../../components/layout-components/Header/Header'
-import NotificationBadge from '../../../components/ui-components/NotificationBadge/NotificationBadge'
-import { 
-  Button, 
-  Card, 
-  Alert, 
-  SectionTitle, 
-  Input, 
+import {
+  Button,
+  Card,
+  Alert,
+  SectionTitle,
+  Input,
   Textarea,
-  Avatar,        // Add these
-  AvatarImage, 
-  AvatarFallback 
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+  NotificationBadge,
 } from '../../../components/ui-components'
 import { getAvatarUrl } from '../../../utils/avatarUtils'
 import { Camera, Pencil, Trash2 } from 'lucide-react'

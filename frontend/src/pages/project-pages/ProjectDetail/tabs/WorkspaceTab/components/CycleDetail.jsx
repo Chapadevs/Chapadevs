@@ -11,7 +11,7 @@ import AssigneeChip from './CycleDetail/AssigneeChip'
 import { KANBAN_COLUMNS } from '../../../utils/workspaceConstants'
 import { useCyclePhase } from '../hooks/useCyclePhase'
 import { useCycleKanban } from '../hooks/useCycleKanban'
-import { Button, Alert, HoverCard, HoverCardTrigger, HoverCardContent } from '../../../../../../components/ui-components'
+import { Button, Alert, HoverGuidance } from '../../../../../../components/ui-components'
 import './CycleDetail.css'
 
 const CycleDetail = ({
@@ -201,20 +201,23 @@ const CycleDetail = ({
       {error && <Alert variant="error">{error}</Alert>}
 
       {localPhase.status === 'completed' && (
-        <Alert variant="info" className="mb-4">
-          This cycle is complete. Dates and tasks are locked. You can still answer questions below.
-        </Alert>
+        <HoverGuidance content="This cycle is complete. Dates and tasks are locked. You can still answer questions below.">
+          <div className="mb-4 py-2 px-3 border-l-4 border-l-primary/30 bg-primary/5 text-ink-muted text-sm font-body">
+            Cycle complete
+          </div>
+        </HoverGuidance>
       )}
 
-      {isPhaseLocked && (
-        <Alert variant="info" className="mb-4">
-          {canStartPhase
-            ? 'This phase has not started yet. Start phase to begin work.'
-            : 'This phase has not started yet.'}
-        </Alert>
-      )}
-
-      <div className={`project-phase-modal-body phase-cycle-two-column ${isPhaseLocked ? 'phase-cycle-locked' : ''}`}>
+      <HoverGuidance
+        content={
+          isPhaseLocked
+            ? canStartPhase
+              ? 'Click Start Phase to begin work on this cycle.'
+              : 'This phase has not started. You need to complete the previous phase first.'
+            : null
+        }
+      >
+        <div className={`project-phase-modal-body phase-cycle-two-column ${isPhaseLocked ? 'phase-cycle-locked' : ''}`}>
           {(subStepsProgress !== null || localPhase.description) && (
             <div className="phase-cycle-progress-and-description">
               {subStepsProgress !== null && (
@@ -376,23 +379,18 @@ const CycleDetail = ({
                           if (!canCompletePhase || needsClientApproval) return null
                           if (markCompleteBlockedReason) {
                             return (
-                              <HoverCard openDelay={200} closeDelay={150}>
-                                <HoverCardTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="primary"
-                                    size="sm"
-                                    disabled={loading || !phaseCompletionReadiness.ready}
-                                    onClick={() => handleStatusChange('completed')}
-                                    className="!py-1 !px-2 text-xs w-full"
-                                  >
-                                    Mark Complete
-                                  </Button>
-                                </HoverCardTrigger>
-                                <HoverCardContent side="top" align="start" className="max-w-xs">
-                                  <p className="text-sm font-body text-amber-700">{markCompleteBlockedReason}</p>
-                                </HoverCardContent>
-                              </HoverCard>
+                              <HoverGuidance content={markCompleteBlockedReason}>
+                                <Button
+                                  type="button"
+                                  variant="primary"
+                                  size="sm"
+                                  disabled={loading || !phaseCompletionReadiness.ready}
+                                  onClick={() => handleStatusChange('completed')}
+                                  className="!py-1 !px-2 text-xs w-full"
+                                >
+                                  Mark Complete
+                                </Button>
+                              </HoverGuidance>
                             )
                           }
                           return (
@@ -417,6 +415,7 @@ const CycleDetail = ({
           </div>
           </div>
         </div>
+      </HoverGuidance>
 
       <SubStepModal
         open={selectedSubStep != null}

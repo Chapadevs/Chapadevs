@@ -3,14 +3,20 @@
  * Only supports: gemini-2.5-pro
  */
 
-export async function getModel(vertex, modelInstances, modelId = 'gemini-2.5-pro') {
+export async function getModel(
+  vertex,
+  modelInstances,
+  modelId = "gemini-2.5-pro",
+) {
   if (!vertex) {
     return null;
   }
 
-  if (modelId !== 'gemini-2.5-pro') {
-    console.warn(`⚠️ Unsupported model: ${modelId}. Using gemini-2.5-pro instead.`);
-    modelId = 'gemini-2.5-pro';
+  if (modelId !== "gemini-2.5-pro") {
+    console.warn(
+      `⚠️ Unsupported model: ${modelId}. Using gemini-2.5-pro instead.`,
+    );
+    modelId = "gemini-2.5-pro";
   }
 
   // Return cached model instance if available
@@ -28,7 +34,7 @@ export async function getModel(vertex, modelInstances, modelId = 'gemini-2.5-pro
         topP: 0.95,
       },
     });
-    
+
     // Cache the instance
     modelInstances.set(modelId, model);
     console.log(`✅ Model instance created: ${modelId}`);

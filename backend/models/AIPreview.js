@@ -1,15 +1,15 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
 const aiPreviewSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Project',
+      ref: "Project",
       default: null,
     },
     prompt: {
@@ -18,36 +18,36 @@ const aiPreviewSchema = new mongoose.Schema(
     },
     previewResult: {
       type: String,
-      default: '',
+      default: "",
     },
     previewType: {
       type: String,
-      enum: ['text', 'layout', 'design'],
-      default: 'text',
+      enum: ["text", "layout", "design"],
+      default: "text",
     },
     status: {
       type: String,
-      enum: ['generating', 'completed', 'failed'],
-      default: 'generating',
+      enum: ["generating", "completed", "failed"],
+      default: "generating",
     },
     metadata: {
       type: mongoose.Schema.Types.Mixed,
-      default: {}
+      default: {},
     },
     tokenUsage: {
       type: Number,
-      default: 0
+      default: 0,
     },
   },
   {
     timestamps: true,
-  }
-)
+  },
+);
 
-aiPreviewSchema.index({ userId: 1 })
-aiPreviewSchema.index({ projectId: 1 })
-aiPreviewSchema.index({ createdAt: -1 })
+aiPreviewSchema.index({ userId: 1 });
+aiPreviewSchema.index({ projectId: 1 });
+aiPreviewSchema.index({ createdAt: -1 });
 
-const AIPreview = mongoose.model('AIPreview', aiPreviewSchema)
+const AIPreview = mongoose.model("AIPreview", aiPreviewSchema);
 
-export default AIPreview
+export default AIPreview;

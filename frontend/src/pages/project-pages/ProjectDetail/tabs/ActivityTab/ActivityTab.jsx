@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { projectAPI } from '../../../../../services/api'
-import { Button, SectionTitle } from '../../../../../components/ui-components'
-import NotificationBadge from '../../../../../components/ui-components/NotificationBadge/NotificationBadge'
+import { Button, SectionTitle, HoverGuidance, NotificationBadge } from '../../../../../components/ui-components'
 
 const ACTION_LABELS = {
   'project.created': 'Created project',
@@ -18,6 +17,9 @@ const ACTION_LABELS = {
   'programmer.left': 'Left the project',
   'programmer.removed': 'Removed a programmer from the project',
   'programmer.confirmed_ready': "Confirmed they're ready for development",
+  'project.client_marked_ready': 'Marked project ready for development',
+  'project.client_unmarked_ready': 'Unmarked project ready',
+  'phase.unlocked': 'Unlocked phase for edits',
   'phase.notes_updated': 'Updated phase notes',
   'phase.description_updated': 'Updated phase description',
   'phase.deliverables_updated': 'Updated phase deliverables',
@@ -27,7 +29,8 @@ const ACTION_LABELS = {
   'phase.question_answered': 'Answered question',
   'phase.attachment_uploaded': 'Uploaded attachment',
   'phase.attachment_deleted': 'Deleted attachment',
-  'project.updated': 'Updated project',
+  'phase.attachment_status_updated': 'Updated attachment status',
+  'project.attachment_uploaded': 'Uploaded project asset',
   'project.deleted': 'Deleted project',
 }
 
@@ -37,12 +40,27 @@ function formatActionLabel(action, metadata) {
     return `${base} (${metadata.fromStatus} → ${metadata.toStatus})`
   }
   if (metadata?.phaseTitle) {
-    return `${base}: ${metadata.phaseTitle}`
+    const suffix = metadata.subStepTitle ? ` (${metadata.subStepTitle})` : ''
+    return `${base}: ${metadata.phaseTitle}${suffix}`
+  }
+  if (metadata?.subStepTitle && !metadata?.phaseTitle) {
+    return `${base}: ${metadata.subStepTitle}`
   }
   if (action === 'programmer.joined' && metadata?.role) {
     return metadata.role === 'accepted' ? 'Joined the project' : 'Was assigned to the project'
   }
   return base
+}
+
+function getActionHoverContent(action, metadata) {
+  if (action === 'project.status_changed' && metadata?.fromStatus && metadata?.toStatus) {
+    return `Project status changed from ${metadata.fromStatus} to ${metadata.toStatus}. This affects the project workflow.`
+  }
+  if (action === 'phase.completed') return 'This phase was marked complete. The team can move to the next phase.'
+  if (action === 'phase.started') return 'This phase has started. The team can now work on tasks.'
+  if (action === 'phases.confirmed') return 'The timeline was confirmed. Phases and sub-steps are now locked for the project.'
+  if (action === 'preview.generated') return 'An AI preview was generated. Programmers can view and use the code.'
+  return formatActionLabel(action, metadata)
 }
 
 function formatDate(createdAt) {
@@ -85,10 +103,14 @@ const ActivityTab = ({ project }) => {
 
   return (
     <section className="project-section project-activity">
-      <SectionTitle className="mb-4">Activity</SectionTitle>
-      <p className="font-body text-sm text-ink-muted mt-1 mb-4">
-        Recent actions on this project. Client and team see the same feed.
-      </p>
+      <HoverGuidance content="Activity feed with recent project actions.">
+        <SectionTitle className="mb-4">Activity</SectionTitle>
+      </HoverGuidance>
+      <HoverGuidance content="Recent actions on this project. Client and team see the same feed.">
+        <span className="block font-body text-sm text-ink-muted mt-1 mb-4">
+          Recent actions on this project. Client and team see the same feed.
+        </span>
+      </HoverGuidance>
       {error && (
         <p className="text-red-600 text-sm mb-4">{error}</p>
       )}
@@ -100,22 +122,24 @@ const ActivityTab = ({ project }) => {
         <>
           <ul className="space-y-3 list-none p-0 m-0">
             {activities.map((item) => (
-              <li
+              <HoverGuidance
                 key={item._id}
-                className="flex items-start gap-3 py-2 border-b border-border last:border-0"
+                content={getActionHoverContent(item.action, item.metadata)}
               >
-                <span className="text-ink-muted text-xs shrink-0 mt-0.5">
-                  {formatDate(item.createdAt)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <span className="font-body text-ink">
-                    {item.actorId?.name ?? 'Someone'}
+                <li className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                  <span className="text-ink-muted text-xs shrink-0 mt-0.5">
+                    {formatDate(item.createdAt)}
                   </span>
-                  <span className="text-ink-muted"> {formatActionLabel(item.action, item.metadata)}</span>
-                </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-body text-ink">
+                      {item.actorId?.name ?? 'Someone'}
+                    </span>
+                    <span className="text-ink-muted"> {formatActionLabel(item.action, item.metadata)}</span>
+                  </div>
 
-                <NotificationBadge className="ml-2 inline-block h-2 w-2 rounded-full bg-green-600 align-middle" />
-              </li>
+                  <NotificationBadge className="ml-2 inline-block h-2 w-2 rounded-full bg-green-600 align-middle" />
+                </li>
+              </HoverGuidance>
             ))}
           </ul>
           {pagination.pages > 1 && (

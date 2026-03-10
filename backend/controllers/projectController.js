@@ -1,36 +1,51 @@
-import Project from '../models/Project.js'
-import ProjectPhase from '../models/ProjectPhase.js'
-import ProjectActivity from '../models/ProjectActivity.js'
-import AIPreview from '../models/AIPreview.js'
-import vertexAIService from '../services/vertexAI/index.js'
-import { getPhasesForProjectType } from '../utils/phaseTemplates.js'
-import { logProjectActivity } from '../utils/activityLogger.js'
-import { getPhasesFromAIAnalysis, extractClientQuestionsFromPreview } from '../utils/aiAnalysisPhases.js'
-import { getProjectDurationFromDates } from '../utils/projectDuration.js'
-import { normalizePreviewMetadata, injectGeneratedImages } from '../services/vertexAI/responseParser.js'
-import { getSignedUrlsForPaths } from '../utils/gcsImageStorage.js'
-import { uploadProjectAttachment, uploadProjectLevelAttachment as uploadProjectLevelAttachmentToGcs, deleteProjectAttachment, getSignedUrlsForAttachments } from '../utils/projectAttachmentStorage.js'
-import { deleteProjectFully } from '../utils/projectDeletion.js'
-import { validateAttachmentForRequired } from '../utils/attachmentValidation.js'
-import { calculatePhaseDuration, checkClientApprovalRequired, getDefaultQuestionsForPhase } from '../utils/phaseWorkflow.js'
-import { derivePhaseDatesFromSubSteps } from '../utils/phaseDateUtils.js'
-import { generateSubStepTodos } from '../utils/subStepTodoGenerator.js'
-import { createNotification } from './notificationController.js'
-import mongoose from 'mongoose'
-import asyncHandler from 'express-async-handler'
-import multer from 'multer'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'url'
+import Project from "../models/Project.js";
+import ProjectPhase from "../models/ProjectPhase.js";
+import ProjectActivity from "../models/ProjectActivity.js";
+import AIPreview from "../models/AIPreview.js";
+import vertexAIService from "../services/vertexAI/index.js";
+import { getPhasesForProjectType } from "../utils/phaseTemplates.js";
+import { logProjectActivity } from "../utils/activityLogger.js";
+import {
+  getPhasesFromAIAnalysis,
+  extractClientQuestionsFromPreview,
+} from "../utils/aiAnalysisPhases.js";
+import { getProjectDurationFromDates } from "../utils/projectDuration.js";
+import {
+  normalizePreviewMetadata,
+  injectGeneratedImages,
+} from "../services/vertexAI/responseParser.js";
+import { getSignedUrlsForPaths } from "../utils/gcsImageStorage.js";
+import {
+  uploadProjectAttachment,
+  uploadProjectLevelAttachment as uploadProjectLevelAttachmentToGcs,
+  deleteProjectAttachment,
+  getSignedUrlsForAttachments,
+} from "../utils/projectAttachmentStorage.js";
+import { deleteProjectFully } from "../utils/projectDeletion.js";
+import { validateAttachmentForRequired } from "../utils/attachmentValidation.js";
+import {
+  calculatePhaseDuration,
+  checkClientApprovalRequired,
+  getDefaultQuestionsForPhase,
+} from "../utils/phaseWorkflow.js";
+import { derivePhaseDatesFromSubSteps } from "../utils/phaseDateUtils.js";
+import { generateSubStepTodos } from "../utils/subStepTodoGenerator.js";
+import { createNotification } from "./notificationController.js";
+import mongoose from "mongoose";
+import asyncHandler from "express-async-handler";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configure multer for file uploads (memory storage for GCS upload)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-})
+});
 
 // @desc    Create a new project
 // @route   POST /api/projects
@@ -39,132 +54,184 @@ export const createProject = asyncHandler(async (req, res) => {
   const projectData = {
     ...req.body,
     clientId: req.user._id,
-    status: 'Holding',
+    status: "Holding",
     teamClosed: true,
-  }
+  };
 
-  const project = await Project.create(projectData)
+  const project = await Project.create(projectData);
 
-  await logProjectActivity(project._id, req.user._id, 'project.created', 'project', project._id, { title: project.title })
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.created",
+    "project",
+    project._id,
+    { title: project.title },
+  );
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate");
 
-  res.status(201).json(populated)
-})
+  res.status(201).json(populated);
+});
 
 /** Allowed project types and technologies for AI response normalization */
 const PROJECT_TYPE_ENUM = [
-  'New Website Design & Development',
-  'Website Redesign/Refresh',
-  'E-commerce Store',
-  'Management Panel / ERP / CRM',
-  'Landing Page',
-  'Web Application',
-  'Maintenance/Updates to Existing Site',
-  'Other',
-]
-const ALLOWED_TECH_VALUES = ['React', 'Angular', 'Node.js', 'Express', 'MongoDB', 'PostgreSQL', 'TypeScript', 'Next.js', 'Tailwind CSS']
+  "New Website Design & Development",
+  "Website Redesign/Refresh",
+  "E-commerce Store",
+  "Management Panel / ERP / CRM",
+  "Landing Page",
+  "Web Application",
+  "Maintenance/Updates to Existing Site",
+  "Other",
+];
+const ALLOWED_TECH_VALUES = [
+  "React",
+  "Angular",
+  "Node.js",
+  "Express",
+  "MongoDB",
+  "PostgreSQL",
+  "TypeScript",
+  "Next.js",
+  "Tailwind CSS",
+];
 
 function normalizeProjectRequirements(parsed) {
-  const techStack = parsed.techStack || {}
-  const flatTech = []
-  for (const key of ['frontend', 'backend', 'database', 'deployment', 'other']) {
-    const arr = techStack[key]
+  const techStack = parsed.techStack || {};
+  const flatTech = [];
+  for (const key of [
+    "frontend",
+    "backend",
+    "database",
+    "deployment",
+    "other",
+  ]) {
+    const arr = techStack[key];
     if (Array.isArray(arr)) {
       for (const t of arr) {
-        const val = (typeof t === 'string' ? t : String(t)).trim().toLowerCase()
+        const val = (typeof t === "string" ? t : String(t))
+          .trim()
+          .toLowerCase();
         for (const allowed of ALLOWED_TECH_VALUES) {
-          if (val.includes(allowed.toLowerCase()) || val === allowed.toLowerCase()) {
-            if (!flatTech.includes(allowed)) flatTech.push(allowed)
-            break
+          if (
+            val.includes(allowed.toLowerCase()) ||
+            val === allowed.toLowerCase()
+          ) {
+            if (!flatTech.includes(allowed)) flatTech.push(allowed);
+            break;
           }
         }
       }
     }
   }
-  const toArr = (v) => (Array.isArray(v) ? v : typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : [])
-  const projectType = PROJECT_TYPE_ENUM.includes(parsed.projectType) ? parsed.projectType : 'Other'
-  const timeline = parsed.timeline != null ? String(parsed.timeline) : (parsed.timeline?.totalWeeks != null ? String(parsed.timeline.totalWeeks) : null)
+  const toArr = (v) =>
+    Array.isArray(v)
+      ? v
+      : typeof v === "string"
+        ? v
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+  const projectType = PROJECT_TYPE_ENUM.includes(parsed.projectType)
+    ? parsed.projectType
+    : "Other";
+  const timeline =
+    parsed.timeline != null
+      ? String(parsed.timeline)
+      : parsed.timeline?.totalWeeks != null
+        ? String(parsed.timeline.totalWeeks)
+        : null;
   return {
-    title: parsed.title || 'Untitled Project',
-    description: parsed.description || parsed.overview || parsed.analysisExtras?.overview || '',
+    title: parsed.title || "Untitled Project",
+    description:
+      parsed.description ||
+      parsed.overview ||
+      parsed.analysisExtras?.overview ||
+      "",
     projectType,
     timeline,
     goals: toArr(parsed.goals),
     features: toArr(parsed.features),
     designStyles: toArr(parsed.designStyles),
-    technologies: flatTech.length ? flatTech : ['React', 'Node.js', 'MongoDB'],
-    hasBranding: ['Yes', 'No', 'Partial'].includes(parsed.hasBranding) ? parsed.hasBranding : null,
+    technologies: flatTech.length ? flatTech : ["React", "Node.js", "MongoDB"],
+    hasBranding: ["Yes", "No", "Partial"].includes(parsed.hasBranding)
+      ? parsed.hasBranding
+      : null,
     brandingDetails: parsed.brandingDetails || null,
     contentStatus: parsed.contentStatus || null,
     referenceWebsites: parsed.referenceWebsites || null,
     specialRequirements: parsed.specialRequirements || null,
     additionalComments: parsed.additionalComments || null,
-  }
+  };
 }
 
 // @desc    Generate project requirements from AI (for CreateProject form pre-fill)
 // @route   POST /api/projects/generate-requirements
 // @access  Private
 export const generateProjectRequirements = asyncHandler(async (req, res) => {
-  const { prompt } = req.body
-  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-    res.status(400)
-    throw new Error('Please provide a prompt describing your project')
+  const { prompt } = req.body;
+  if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+    res.status(400);
+    throw new Error("Please provide a prompt describing your project");
   }
-  const { result, fromCache, usage } = await vertexAIService.generateProjectRequirements(prompt.trim())
-  const projectData = normalizeProjectRequirements(result)
-  const analysisExtras = result.analysisExtras || null
-  res.status(200).json({ projectData, analysisExtras, fromCache: fromCache === true })
-})
+  const { result, fromCache, usage } =
+    await vertexAIService.generateProjectRequirements(prompt.trim());
+  const projectData = normalizeProjectRequirements(result);
+  const analysisExtras = result.analysisExtras || null;
+  res
+    .status(200)
+    .json({ projectData, analysisExtras, fromCache: fromCache === true });
+});
 
 // @desc    Get all projects (filtered by user role)
 // @route   GET /api/projects
 // @access  Private
 export const getProjects = asyncHandler(async (req, res) => {
-  const filter = {}
+  const filter = {};
 
-  if (req.user.role === 'user') {
-    filter.clientId = req.user._id
-  } else if (req.user.role === 'programmer') {
+  if (req.user.role === "user") {
+    filter.clientId = req.user._id;
+  } else if (req.user.role === "programmer") {
     filter.$or = [
       { assignedProgrammerId: req.user._id },
       { assignedProgrammerIds: req.user._id },
-      { status: 'Open' },
-    ]
+      { status: "Open" },
+    ];
   }
 
   const projects = await Project.find(filter)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .sort({ createdAt: -1 })
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .sort({ createdAt: -1 });
 
   // Exclude orphaned projects (client deleted but project still in DB)
-  const validProjects = projects.filter((p) => p.clientId != null)
-  res.json(validProjects)
-})
+  const validProjects = projects.filter((p) => p.clientId != null);
+  res.json(validProjects);
+});
 
 // @desc    Get current user's projects
 // @route   GET /api/projects/my-projects
 // @access  Private
 export const getMyProjects = asyncHandler(async (req, res) => {
   const projects = await Project.find({ clientId: req.user._id })
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .sort({ createdAt: -1 })
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .sort({ createdAt: -1 });
 
-  res.json(projects)
-})
+  res.json(projects);
+});
 
 // @desc    Get projects assigned to current programmer
 // @route   GET /api/projects/assigned
 // @access  Private/Programmer
 export const getAssignedProjects = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'programmer' && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to access assigned projects')
+  if (req.user.role !== "programmer" && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to access assigned projects");
   }
 
   const projects = await Project.find({
@@ -173,141 +240,168 @@ export const getAssignedProjects = asyncHandler(async (req, res) => {
       { assignedProgrammerIds: req.user._id },
     ],
   })
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
-    .sort({ createdAt: -1 })
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email")
+    .sort({ createdAt: -1 });
 
-  res.json(projects)
-})
+  res.json(projects);
+});
 
 // @desc    Get project by ID
 // @route   GET /api/projects/:id
 // @access  Private
 export const getProjectById = asyncHandler(async (req, res) => {
   let project = await Project.findById(req.params.id)
-    .populate('clientId', 'name email company status')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
-    .populate('assignedProgrammerIds', 'name email skills bio hourlyRate status')
-    .lean()
+    .populate("clientId", "name email company status")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate status")
+    .populate(
+      "assignedProgrammerIds",
+      "name email skills bio hourlyRate status",
+    )
+    .lean();
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
   let phases = await ProjectPhase.find({ projectId: project._id })
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
     .sort({ order: 1 })
-    .lean()
+    .lean();
 
   for (const phase of phases) {
     if (!phase.subSteps || phase.subSteps.length === 0) {
-      const doc = await ProjectPhase.findById(phase._id)
+      const doc = await ProjectPhase.findById(phase._id);
 
       if (doc && (!doc.subSteps || doc.subSteps.length === 0)) {
-        doc.subSteps = [{
-          title: doc.title,
-          completed: false,
-          order: 1,
-          notes: '',
-          status: 'pending',
-        }]
+        doc.subSteps = [
+          {
+            title: doc.title,
+            completed: false,
+            order: 1,
+            notes: "",
+            status: "pending",
+          },
+        ];
 
-        await doc.save()
+        await doc.save();
       }
     }
   }
 
   phases = await ProjectPhase.find({ projectId: project._id })
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
     .sort({ order: 1 })
-    .lean()
+    .lean();
 
   const previewCount = await AIPreview.countDocuments({
     projectId: project._id,
-    status: 'completed'
-  })
+    status: "completed",
+  });
 
-  res.json({ ...project, phases, previewCount })
-})
+  res.json({ ...project, phases, previewCount });
+});
 
 const normalizePhaseProposal = (proposal) =>
   (Array.isArray(proposal) ? proposal : []).map((d) => ({
-    title: d.title ?? '',
+    title: d.title ?? "",
     description: d.description ?? null,
-    order: typeof d.order === 'number' ? d.order : 0,
+    order: typeof d.order === "number" ? d.order : 0,
     deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
     weeks: d.weeks ?? null,
     dueDate: d.dueDate ?? null,
     subSteps: Array.isArray(d.subSteps)
       ? d.subSteps.map((s, i) => ({
-          title: typeof s.title === 'string' ? s.title.trim() : '',
-          order: typeof s.order === 'number' ? s.order : i + 1,
+          title: typeof s.title === "string" ? s.title.trim() : "",
+          order: typeof s.order === "number" ? s.order : i + 1,
           todos: Array.isArray(s.todos)
             ? s.todos
-                .map((t, k) => ({ text: t.text ?? '', completed: false, order: k + 1 }))
-                .filter((t) => (t.text || '').trim())
+                .map((t, k) => ({
+                  text: t.text ?? "",
+                  completed: false,
+                  order: k + 1,
+                }))
+                .filter((t) => (t.text || "").trim())
                 .map((t, k) => ({ ...t, order: k + 1 }))
             : [],
         }))
       : [],
-  }))
+  }));
 
 const ensureProgrammerOrAdminForProposal = (project, user) => {
-  const assignedId = project.assignedProgrammerId?.toString?.()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => id?.toString())
-  const userId = user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
-  if (user.role !== 'admin' && !isProgrammer) {
-    throw new Error('Only the assigned programmer or admin can modify the phase proposal')
+  const assignedId = project.assignedProgrammerId?.toString?.();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    id?.toString(),
+  );
+  const userId = user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
+  if (user.role !== "admin" && !isProgrammer) {
+    throw new Error(
+      "Only the assigned programmer or admin can modify the phase proposal",
+    );
   }
-}
+};
 
 // @desc    Get proposed timeline (from stored, AI, or template). No phases created.
 // @route   GET /api/projects/:id/phases/proposal
 // @access  Private (project access)
 export const getPhaseProposal = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  const existingCount = await ProjectPhase.countDocuments({
+    projectId: project._id,
+  });
   if (existingCount > 0) {
-    res.status(400)
-    throw new Error('Project already has phases')
+    res.status(400);
+    throw new Error("Project already has phases");
   }
 
-  const projectLean = project.toObject?.() ?? project
+  const projectLean = project.toObject?.() ?? project;
   const preview = await AIPreview.findOne({
     projectId: project._id,
-    status: 'completed',
+    status: "completed",
   })
     .sort({ createdAt: -1 })
-    .select('previewResult metadata')
-    .lean()
+    .select("previewResult metadata")
+    .lean();
 
-  let proposal
+  let proposal;
   const hasRichProposal = (arr) =>
-    Array.isArray(arr) && arr.length > 0 && arr.some((p) => (p.subSteps?.length ?? 0) > 0)
+    Array.isArray(arr) &&
+    arr.length > 0 &&
+    arr.some((p) => (p.subSteps?.length ?? 0) > 0);
 
-  if (Array.isArray(project.phaseProposal) && project.phaseProposal.length > 0 && hasRichProposal(project.phaseProposal)) {
-    return res.json(normalizePhaseProposal(project.phaseProposal))
+  if (
+    Array.isArray(project.phaseProposal) &&
+    project.phaseProposal.length > 0 &&
+    hasRichProposal(project.phaseProposal)
+  ) {
+    return res.json(normalizePhaseProposal(project.phaseProposal));
   }
 
   try {
-    proposal = await vertexAIService.generateWorkspaceProposal(projectLean, preview ?? null)
+    proposal = await vertexAIService.generateWorkspaceProposal(
+      projectLean,
+      preview ?? null,
+    );
   } catch (err) {
-    console.warn('[getPhaseProposal] AI generation failed, falling back to analysis:', err.message)
-    const definitions = await getPhasesFromAIAnalysis(project._id)
+    console.warn(
+      "[getPhaseProposal] AI generation failed, falling back to analysis:",
+      err.message,
+    );
+    const definitions = await getPhasesFromAIAnalysis(project._id);
     if (definitions?.length) {
       proposal = definitions.map((d) => ({
         title: d.title,
@@ -316,17 +410,23 @@ export const getPhaseProposal = asyncHandler(async (req, res) => {
         deliverables: Array.isArray(d.deliverables) ? d.deliverables : [],
         weeks: d.weeks ?? null,
         subSteps: Array.isArray(d.subSteps) ? d.subSteps : [],
-      }))
+      }));
     } else {
-      proposal = await vertexAIService.generateWorkspaceProposal(projectLean, null)
+      proposal = await vertexAIService.generateWorkspaceProposal(
+        projectLean,
+        null,
+      );
     }
   }
 
   if (!hasRichProposal(proposal)) {
     try {
-      proposal = await vertexAIService.generateWorkspaceProposal(projectLean, null)
+      proposal = await vertexAIService.generateWorkspaceProposal(
+        projectLean,
+        null,
+      );
     } catch {
-      const template = getPhasesForProjectType(project.projectType)
+      const template = getPhasesForProjectType(project.projectType);
       proposal = template.map((d) => ({
         title: d.title,
         description: d.description ?? null,
@@ -334,93 +434,112 @@ export const getPhaseProposal = asyncHandler(async (req, res) => {
         deliverables: d.deliverables ?? [],
         weeks: d.weeks ?? null,
         subSteps: [],
-      }))
+      }));
     }
   }
 
-  const normalized = normalizePhaseProposal(proposal)
-  project.phaseProposal = normalized
-  await project.save()
+  const normalized = normalizePhaseProposal(proposal);
+  project.phaseProposal = normalized;
+  await project.save();
 
-  res.json(normalized)
-})
+  res.json(normalized);
+});
 
 // @desc    Save phase proposal (draft). Programmer or admin only.
 // @route   PATCH /api/projects/:id/phases/proposal
 // @access  Private (assigned programmer or admin)
 export const savePhaseProposal = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  ensureProgrammerOrAdminForProposal(project, req.user)
+  ensureProgrammerOrAdminForProposal(project, req.user);
 
-  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  const existingCount = await ProjectPhase.countDocuments({
+    projectId: project._id,
+  });
   if (existingCount > 0) {
-    res.status(400)
-    throw new Error('Project already has phases')
+    res.status(400);
+    throw new Error("Project already has phases");
   }
 
-  const proposal = req.body?.proposal ?? req.body
+  const proposal = req.body?.proposal ?? req.body;
   if (!Array.isArray(proposal)) {
-    res.status(400)
-    throw new Error('Request body must include proposal array')
+    res.status(400);
+    throw new Error("Request body must include proposal array");
   }
 
-  const normalized = normalizePhaseProposal(proposal)
-  project.phaseProposal = normalized
-  await project.save()
+  const normalized = normalizePhaseProposal(proposal);
+  project.phaseProposal = normalized;
+  await project.save();
 
-  res.json(normalized)
-})
+  res.json(normalized);
+});
 
 // @desc    Regenerate phase proposal from AI. Programmer or admin only.
 // @route   POST /api/projects/:id/phases/proposal/regenerate
 // @access  Private (assigned programmer or admin)
 export const regeneratePhaseProposal = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  ensureProgrammerOrAdminForProposal(project, req.user)
+  ensureProgrammerOrAdminForProposal(project, req.user);
 
-  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  const existingCount = await ProjectPhase.countDocuments({
+    projectId: project._id,
+  });
   if (existingCount > 0) {
-    res.status(400)
-    throw new Error('Project already has phases')
+    res.status(400);
+    throw new Error("Project already has phases");
   }
 
-  const projectLean = project.toObject?.() ?? project
+  const projectLean = project.toObject?.() ?? project;
   const preview = await AIPreview.findOne({
     projectId: project._id,
-    status: 'completed',
+    status: "completed",
   })
     .sort({ createdAt: -1 })
-    .select('previewResult metadata')
-    .lean()
+    .select("previewResult metadata")
+    .lean();
 
-  const currentProposal = req.body?.currentProposal ?? req.body?.proposal
+  const currentProposal = req.body?.currentProposal ?? req.body?.proposal;
   const hasRichProposal = (arr) =>
-    Array.isArray(arr) && arr.length > 0 && arr.some((p) => (p.subSteps?.length ?? 0) > 0)
-  const needsExpand = Array.isArray(currentProposal) && currentProposal.length > 0 && !hasRichProposal(currentProposal)
+    Array.isArray(arr) &&
+    arr.length > 0 &&
+    arr.some((p) => (p.subSteps?.length ?? 0) > 0);
+  const needsExpand =
+    Array.isArray(currentProposal) &&
+    currentProposal.length > 0 &&
+    !hasRichProposal(currentProposal);
 
-  let proposal
+  let proposal;
   if (needsExpand) {
-    const { expandPhasesWithSubSteps } = await import('../utils/phaseProposalExpander.js')
-    proposal = expandPhasesWithSubSteps(currentProposal, projectLean)
+    const { expandPhasesWithSubSteps } =
+      await import("../utils/phaseProposalExpander.js");
+    proposal = expandPhasesWithSubSteps(currentProposal, projectLean);
   } else {
     try {
-      proposal = await vertexAIService.generateWorkspaceProposal(projectLean, preview ?? null)
+      proposal = await vertexAIService.generateWorkspaceProposal(
+        projectLean,
+        preview ?? null,
+      );
     } catch (err) {
-      console.warn('[regeneratePhaseProposal] AI generation failed:', err.message)
+      console.warn(
+        "[regeneratePhaseProposal] AI generation failed:",
+        err.message,
+      );
       try {
-        proposal = await vertexAIService.generateWorkspaceProposal(projectLean, null)
+        proposal = await vertexAIService.generateWorkspaceProposal(
+          projectLean,
+          null,
+        );
       } catch {
-        const template = getPhasesForProjectType(project.projectType)
+        const template = getPhasesForProjectType(project.projectType);
         proposal = template.map((d) => ({
           title: d.title,
           description: d.description ?? null,
@@ -428,179 +547,220 @@ export const regeneratePhaseProposal = asyncHandler(async (req, res) => {
           deliverables: d.deliverables ?? [],
           weeks: d.weeks ?? null,
           subSteps: [],
-        }))
+        }));
       }
     }
   }
 
-  const normalized = normalizePhaseProposal(proposal)
-  project.phaseProposal = normalized
-  await project.save()
+  const normalized = normalizePhaseProposal(proposal);
+  project.phaseProposal = normalized;
+  await project.save();
 
-  res.json(normalized)
-})
+  res.json(normalized);
+});
 
 // @desc    Confirm timeline: create phases from (possibly edited) proposal. Programmer or admin only.
 // @route   POST /api/projects/:id/phases/confirm
 // @access  Private (assigned programmer or admin)
 export const confirmPhases = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const assignedId = project.assignedProgrammerId?.toString?.()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => id?.toString())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
-  if (req.user.role !== 'admin' && !isProgrammer) {
-    res.status(403)
-    throw new Error('Only the assigned programmer or admin can confirm the timeline')
+  const assignedId = project.assignedProgrammerId?.toString?.();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    id?.toString(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
+  if (req.user.role !== "admin" && !isProgrammer) {
+    res.status(403);
+    throw new Error(
+      "Only the assigned programmer or admin can confirm the timeline",
+    );
   }
 
-  const existingCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  const existingCount = await ProjectPhase.countDocuments({
+    projectId: project._id,
+  });
   if (existingCount > 0) {
-    res.status(400)
-    throw new Error('Project already has phases. Timeline can only be confirmed once.')
+    res.status(400);
+    throw new Error(
+      "Project already has phases. Timeline can only be confirmed once.",
+    );
   }
 
-  const definitions = req.body
+  const definitions = req.body;
   if (!Array.isArray(definitions) || definitions.length === 0) {
-    res.status(400)
-    throw new Error('Request body must be an array of phase definitions (title, description, order, deliverables?, subSteps?)')
+    res.status(400);
+    throw new Error(
+      "Request body must be an array of phase definitions (title, description, order, deliverables?, subSteps?)",
+    );
   }
 
-  const sortedDefs = [...definitions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-  const timelineWeeks = Math.max(1, parseInt(project.timeline, 10) || 8)
+  const sortedDefs = [...definitions].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0),
+  );
+  const timelineWeeks = Math.max(1, parseInt(project.timeline, 10) || 8);
 
-  const dateDuration = getProjectDurationFromDates(project)
-  const totalDaysFromDates = dateDuration?.totalDays ?? null
-  const totalDays = totalDaysFromDates ?? timelineWeeks * 7
+  const dateDuration = getProjectDurationFromDates(project);
+  const totalDaysFromDates = dateDuration?.totalDays ?? null;
+  const totalDays = totalDaysFromDates ?? timelineWeeks * 7;
 
   // Resolve effective project start
-  let projectStart
+  let projectStart;
   if (project.startDate) {
-    projectStart = new Date(project.startDate)
+    projectStart = new Date(project.startDate);
   } else if (project.dueDate && project.timeline) {
-    projectStart = new Date(project.dueDate)
-    projectStart.setDate(projectStart.getDate() - totalDays)
-    project.startDate = projectStart
+    projectStart = new Date(project.dueDate);
+    projectStart.setDate(projectStart.getDate() - totalDays);
+    project.startDate = projectStart;
   } else {
-    projectStart = new Date()
+    projectStart = new Date();
   }
 
   // Resolve effective project end
   const projectEnd = project.dueDate
     ? new Date(project.dueDate)
     : (() => {
-        const end = new Date(projectStart)
-        end.setDate(end.getDate() + totalDays)
-        return end
-      })()
+        const end = new Date(projectStart);
+        end.setDate(end.getDate() + totalDays);
+        return end;
+      })();
 
   // Day-based allocation: always use days
-  const rawDaysFromWeeks = sortedDefs.map((d) => (typeof d.weeks === 'number' ? Math.round(d.weeks * 7) : null))
-  const hasDuration = rawDaysFromWeeks.every((d) => d != null && d > 0)
-  let phaseEstimatedDaysList
+  const rawDaysFromWeeks = sortedDefs.map((d) =>
+    typeof d.weeks === "number" ? Math.round(d.weeks * 7) : null,
+  );
+  const hasDuration = rawDaysFromWeeks.every((d) => d != null && d > 0);
+  let phaseEstimatedDaysList;
 
   if (hasDuration) {
-    let rawDays = rawDaysFromWeeks.map((d) => d ?? 1)
-    let sum = rawDays.reduce((s, d) => s + d, 0)
+    let rawDays = rawDaysFromWeeks.map((d) => d ?? 1);
+    let sum = rawDays.reduce((s, d) => s + d, 0);
     if (sum !== totalDays) {
       if (sum > 0) {
-        rawDays = rawDays.map((d) => Math.max(1, Math.round((d / sum) * totalDays)))
-        sum = rawDays.reduce((s, d) => s + d, 0)
-        const diff = totalDays - sum
+        rawDays = rawDays.map((d) =>
+          Math.max(1, Math.round((d / sum) * totalDays)),
+        );
+        sum = rawDays.reduce((s, d) => s + d, 0);
+        const diff = totalDays - sum;
         if (diff !== 0) {
           const adjustIdx = sortedDefs.findIndex((d) =>
-            (d.title || '').toLowerCase().includes('development')
-          )
-          const idx = adjustIdx >= 0 ? adjustIdx : 0
-          rawDays[idx] = Math.max(1, rawDays[idx] + diff)
+            (d.title || "").toLowerCase().includes("development"),
+          );
+          const idx = adjustIdx >= 0 ? adjustIdx : 0;
+          rawDays[idx] = Math.max(1, rawDays[idx] + diff);
         }
       } else {
-        rawDays = sortedDefs.map(() => 1)
-        rawDays[0] = totalDays - rawDays.length + 1
+        rawDays = sortedDefs.map(() => 1);
+        rawDays[0] = totalDays - rawDays.length + 1;
       }
     }
-    phaseEstimatedDaysList = rawDays
+    phaseEstimatedDaysList = rawDays;
   } else {
-    const n = sortedDefs.length
-    const perPhaseDays = Math.floor(totalDays / n)
-    const remainder = totalDays - perPhaseDays * n
+    const n = sortedDefs.length;
+    const perPhaseDays = Math.floor(totalDays / n);
+    const remainder = totalDays - perPhaseDays * n;
     phaseEstimatedDaysList = sortedDefs.map((_, i) => {
-      const days = i < remainder ? perPhaseDays + 1 : perPhaseDays
-      return days > 0 ? days : 1
-    })
+      const days = i < remainder ? perPhaseDays + 1 : perPhaseDays;
+      return days > 0 ? days : 1;
+    });
   }
 
-  let currentPhaseStart = new Date(projectStart)
+  let currentPhaseStart = new Date(projectStart);
 
-  const phasesToCreate = []
+  const phasesToCreate = [];
   for (let i = 0; i < sortedDefs.length; i++) {
-    const d = sortedDefs[i]
-    const title = typeof d.title === 'string' ? d.title.trim() : `Phase ${d.order ?? i + 1}`
-    const description = d.description != null ? String(d.description).trim() : null
-    const order = i + 1
+    const d = sortedDefs[i];
+    const title =
+      typeof d.title === "string"
+        ? d.title.trim()
+        : `Phase ${d.order ?? i + 1}`;
+    const description =
+      d.description != null ? String(d.description).trim() : null;
+    const order = i + 1;
     const deliverables = Array.isArray(d.deliverables)
-      ? d.deliverables.map((x) => (typeof x === 'string' ? x.trim() : String(x))).filter(Boolean)
-      : []
-    const estimatedDurationDays = phaseEstimatedDaysList[i] ?? 1
-    let phaseDueDate
+      ? d.deliverables
+          .map((x) => (typeof x === "string" ? x.trim() : String(x)))
+          .filter(Boolean)
+      : [];
+    const estimatedDurationDays = phaseEstimatedDaysList[i] ?? 1;
+    let phaseDueDate;
     if (d.dueDate) {
-      phaseDueDate = new Date(d.dueDate)
+      phaseDueDate = new Date(d.dueDate);
     } else {
-      phaseDueDate = new Date(currentPhaseStart)
-      phaseDueDate.setDate(phaseDueDate.getDate() + estimatedDurationDays)
+      phaseDueDate = new Date(currentPhaseStart);
+      phaseDueDate.setDate(phaseDueDate.getDate() + estimatedDurationDays);
     }
 
-    const requiresApproval = checkClientApprovalRequired({ title })
-    let clientQuestions = []
+    const requiresApproval = checkClientApprovalRequired({ title });
+    let clientQuestions = [];
     try {
-      clientQuestions = await extractClientQuestionsFromPreview(project._id, title)
+      clientQuestions = await extractClientQuestionsFromPreview(
+        project._id,
+        title,
+      );
     } catch {
-      clientQuestions = getDefaultQuestionsForPhase(title)
+      clientQuestions = getDefaultQuestionsForPhase(title);
     }
 
-    let subSteps
+    let subSteps;
     if (Array.isArray(d.subSteps) && d.subSteps.length > 0) {
       subSteps = d.subSteps
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((s, index) => {
-          const existingTodos = Array.isArray(s.todos) && s.todos.length > 0
-            ? s.todos.map((t, k) => ({ text: (t.text ?? '').trim(), completed: false, order: k + 1 })).filter((t) => t.text)
-            : []
+          const existingTodos =
+            Array.isArray(s.todos) && s.todos.length > 0
+              ? s.todos
+                  .map((t, k) => ({
+                    text: (t.text ?? "").trim(),
+                    completed: false,
+                    order: k + 1,
+                  }))
+                  .filter((t) => t.text)
+              : [];
           const requiredAttachments = Array.isArray(s.requiredAttachments)
             ? s.requiredAttachments
                 .map((ra, k) => ({
-                  label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
-                  description: typeof ra.description === 'string' ? ra.description.trim() : '',
-                  order: typeof ra.order === 'number' ? ra.order : k + 1,
+                  label:
+                    typeof ra.label === "string"
+                      ? ra.label.trim()
+                      : `Attachment ${k + 1}`,
+                  description:
+                    typeof ra.description === "string"
+                      ? ra.description.trim()
+                      : "",
+                  order: typeof ra.order === "number" ? ra.order : k + 1,
                   receivedAt: null,
                 }))
                 .filter((ra) => ra.label)
-            : []
+            : [];
           return {
-            title: typeof s.title === 'string' ? s.title.trim() : `Task ${index + 1}`,
+            title:
+              typeof s.title === "string"
+                ? s.title.trim()
+                : `Task ${index + 1}`,
             completed: false,
             order: index + 1,
-            notes: '',
-            status: 'pending',
+            notes: "",
+            status: "pending",
             todos: existingTodos,
             requiredAttachments,
-          }
-        })
+          };
+        });
     } else {
       subSteps = deliverables.map((deliverable, index) => ({
         title: deliverable,
         completed: false,
         order: index + 1,
-        notes: '',
-        status: 'pending',
+        notes: "",
+        status: "pending",
         todos: [],
         requiredAttachments: [],
-      }))
+      }));
     }
 
     if (subSteps.length === 0) {
@@ -609,55 +769,69 @@ export const confirmPhases = asyncHandler(async (req, res) => {
           title: title,
           completed: false,
           order: 1,
-          notes: '',
-          status: 'pending',
+          notes: "",
+          status: "pending",
           todos: [],
           requiredAttachments: [],
         },
-      ]
+      ];
     }
 
     // Compute sub-step due dates (equal segments within phase)
-    const phaseDurationMs = phaseDueDate.getTime() - currentPhaseStart.getTime()
-    const segmentMs = phaseDurationMs / subSteps.length
+    const phaseDurationMs =
+      phaseDueDate.getTime() - currentPhaseStart.getTime();
+    const segmentMs = phaseDurationMs / subSteps.length;
     subSteps = subSteps.map((s, idx) => {
-      const subDue = new Date(currentPhaseStart.getTime() + segmentMs * (idx + 1))
-      const estimatedDurationDays = Math.round(segmentMs / (24 * 60 * 60 * 1000))
-      const todos = (s.todos && s.todos.length > 0)
-        ? s.todos
-        : generateSubStepTodos({ title: s.title, estimatedDurationDays, deliverables }).map((t) => ({ ...t, completed: false }))
+      const subDue = new Date(
+        currentPhaseStart.getTime() + segmentMs * (idx + 1),
+      );
+      const estimatedDurationDays = Math.round(
+        segmentMs / (24 * 60 * 60 * 1000),
+      );
+      const todos =
+        s.todos && s.todos.length > 0
+          ? s.todos
+          : generateSubStepTodos({
+              title: s.title,
+              estimatedDurationDays,
+              deliverables,
+            }).map((t) => ({ ...t, completed: false }));
       return {
         ...s,
         dueDate: subDue,
         estimatedDurationDays,
         todos,
-      }
-    })
+      };
+    });
 
-    const numSubSteps = Math.max(1, subSteps.length)
+    const numSubSteps = Math.max(1, subSteps.length);
     const clientQuestionsWithSubStep = clientQuestions.map((q, j) => ({
       ...q,
       subStepOrder: (j % numSubSteps) + 1,
       createdBy: req.user._id,
-    }))
+    }));
 
     const phaseRequiredAttachments = Array.isArray(d.requiredAttachments)
       ? d.requiredAttachments
           .map((ra, k) => ({
-            label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
-            description: typeof ra.description === 'string' ? ra.description.trim() : '',
-            order: typeof ra.order === 'number' ? ra.order : k + 1,
+            label:
+              typeof ra.label === "string"
+                ? ra.label.trim()
+                : `Attachment ${k + 1}`,
+            description:
+              typeof ra.description === "string" ? ra.description.trim() : "",
+            order: typeof ra.order === "number" ? ra.order : k + 1,
             receivedAt: null,
           }))
           .filter((ra) => ra.label)
-      : []
+      : [];
 
     phasesToCreate.push({
       projectId: project._id,
       title,
       description,
       order,
-      status: 'not_started',
+      status: "not_started",
       deliverables,
       estimatedDurationDays,
       startedAt: new Date(currentPhaseStart),
@@ -666,660 +840,948 @@ export const confirmPhases = asyncHandler(async (req, res) => {
       clientApproved: false,
       clientQuestions: clientQuestionsWithSubStep,
       subSteps,
-      notes: '',
+      notes: "",
       attachments: [],
       requiredAttachments: phaseRequiredAttachments,
-    })
+    });
 
-    currentPhaseStart = new Date(phaseDueDate)
+    currentPhaseStart = new Date(phaseDueDate);
   }
 
-  await ProjectPhase.insertMany(phasesToCreate)
-  project.phaseProposal = null
-  await project.save()
-  await logProjectActivity(project._id, req.user._id, 'phases.confirmed', null, null, { phaseCount: phasesToCreate.length })
+  await ProjectPhase.insertMany(phasesToCreate);
+  project.phaseProposal = null;
+  await project.save();
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "phases.confirmed",
+    null,
+    null,
+    { phaseCount: phasesToCreate.length },
+  );
   if (project.clientId) {
     await createNotification(
       project.clientId,
-      'project_updated',
-      'Timeline Ready',
-      'The project timeline has been created. Please review the phases in the Workspace.',
-      project._id
-    )
+      "project_updated",
+      "Timeline Ready",
+      "The project timeline has been created. Please review the phases in the Workspace.",
+      project._id,
+    );
   }
-  const phases = await ProjectPhase.find({ projectId: project._id }).sort({ order: 1 }).lean()
-  res.status(201).json(phases)
-})
+  const phases = await ProjectPhase.find({ projectId: project._id })
+    .sort({ order: 1 })
+    .lean();
+  res.status(201).json(phases);
+});
 
 // @desc    Update a project phase (enhanced with all new fields). Programmer or admin only.
 // @route   PATCH /api/projects/:projectId/phases/:phaseId
 // @access  Private (assigned programmer or admin)
 export const updatePhase = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const project = await Project.findById(projectId).lean()
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+
   // Check permissions - programmer/admin can update most fields, client can only answer questions/approve
-  if (req.user.role !== 'admin' && !isProgrammer && !isClient) {
-    res.status(403)
-    throw new Error('Not authorized to update this phase')
+  if (req.user.role !== "admin" && !isProgrammer && !isClient) {
+    res.status(403);
+    throw new Error("Not authorized to update this phase");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
-  const previousStatus = phase.status
+  const previousStatus = phase.status;
 
   // Cycle unlock - revert completed to in_progress (programmer/admin only)
-  if (req.body.unlock === true && (isProgrammer || req.user.role === 'admin')) {
-    if (phase.status === 'completed') {
-      phase.status = 'in_progress'
-      await logProjectActivity(projectId, req.user._id, 'phase.unlocked', 'phase', phase._id, { phaseTitle: phase.title })
+  if (req.body.unlock === true && (isProgrammer || req.user.role === "admin")) {
+    if (phase.status === "completed") {
+      phase.status = "in_progress";
+      await logProjectActivity(
+        projectId,
+        req.user._id,
+        "phase.unlocked",
+        "phase",
+        phase._id,
+        { phaseTitle: phase.title },
+      );
     }
   }
 
   // Status updates - only programmer/admin
   if (req.body.status !== undefined) {
-    if (!isProgrammer && req.user.role !== 'admin') {
-      res.status(403)
-      throw new Error('Only programmer or admin can update phase status')
+    if (!isProgrammer && req.user.role !== "admin") {
+      res.status(403);
+      throw new Error("Only programmer or admin can update phase status");
     }
-    const valid = ['not_started', 'in_progress', 'completed'].includes(req.body.status)
+    const valid = ["not_started", "in_progress", "completed"].includes(
+      req.body.status,
+    );
     if (!valid) {
-      res.status(400)
-      throw new Error('Invalid phase status')
+      res.status(400);
+      throw new Error("Invalid phase status");
     }
-    
-    const oldStatus = phase.status
+
+    const oldStatus = phase.status;
 
     // Enforce client approval: programmer cannot mark complete until client has approved (when all sub-steps are done)
-    const allSubStepsDone = (phase.subSteps || []).every((s) => s.status === 'completed' || s.completed === true)
-    if (req.body.status === 'completed' && allSubStepsDone && !phase.clientApproved) {
-      res.status(400)
-      throw new Error('Client must approve this phase before it can be marked complete.')
+    const allSubStepsDone = (phase.subSteps || []).every(
+      (s) => s.status === "completed" || s.completed === true,
+    );
+    if (
+      req.body.status === "completed" &&
+      allSubStepsDone &&
+      !phase.clientApproved
+    ) {
+      res.status(400);
+      throw new Error(
+        "Client must approve this phase before it can be marked complete.",
+      );
     }
 
-    phase.status = req.body.status
+    phase.status = req.body.status;
 
     // Enforce sequential start: cannot start a phase before the previous one is completed
-    if (oldStatus === 'not_started' && req.body.status === 'in_progress') {
-      const allPhases = await ProjectPhase.find({ projectId }).sort({ order: 1 }).lean()
-      const idx = allPhases.findIndex((p) => p._id.toString() === phaseId)
+    if (oldStatus === "not_started" && req.body.status === "in_progress") {
+      const allPhases = await ProjectPhase.find({ projectId })
+        .sort({ order: 1 })
+        .lean();
+      const idx = allPhases.findIndex((p) => p._id.toString() === phaseId);
       if (idx > 0) {
-        const prevPhase = allPhases[idx - 1]
-        if (prevPhase.status !== 'completed') {
-          res.status(400)
-          throw new Error('Complete the previous phase before starting this one.')
+        const prevPhase = allPhases[idx - 1];
+        if (prevPhase.status !== "completed") {
+          res.status(400);
+          throw new Error(
+            "Complete the previous phase before starting this one.",
+          );
         }
       }
       if (!phase.startedAt) {
-        phase.startedAt = new Date()
+        phase.startedAt = new Date();
       }
     }
-    
+
     // Set completedAt when moving to completed
-    if (req.body.status === 'completed') {
-      phase.completedAt = new Date()
+    if (req.body.status === "completed") {
+      phase.completedAt = new Date();
       // Calculate actual duration
-      phase.actualDurationDays = calculatePhaseDuration(phase)
-    } else if (req.body.status !== 'completed') {
-      phase.completedAt = null
+      phase.actualDurationDays = calculatePhaseDuration(phase);
+    } else if (req.body.status !== "completed") {
+      phase.completedAt = null;
     }
   }
 
   // Programmer/admin can update requiresClientApproval
-  if ((isProgrammer || req.user.role === 'admin') && req.body.requiresClientApproval !== undefined) {
-    phase.requiresClientApproval = Boolean(req.body.requiresClientApproval)
+  if (
+    (isProgrammer || req.user.role === "admin") &&
+    req.body.requiresClientApproval !== undefined
+  ) {
+    phase.requiresClientApproval = Boolean(req.body.requiresClientApproval);
   }
 
   // Allow client to update questions and approval
-  if (isClient || isProgrammer || req.user.role === 'admin') {
+  if (isClient || isProgrammer || req.user.role === "admin") {
     if (req.body.clientQuestions !== undefined) {
-      const incoming = req.body.clientQuestions || []
+      const incoming = req.body.clientQuestions || [];
       phase.clientQuestions = incoming.map((q) => ({
         ...q,
         createdBy: q.createdBy ?? req.user._id,
-      }))
+      }));
     }
-    if (req.body.clientApproved !== undefined && (isClient || req.user.role === 'admin')) {
-      phase.clientApproved = req.body.clientApproved
-      phase.clientApprovedAt = req.body.clientApproved ? new Date() : null
+    if (
+      req.body.clientApproved !== undefined &&
+      (isClient || req.user.role === "admin")
+    ) {
+      phase.clientApproved = req.body.clientApproved;
+      phase.clientApprovedAt = req.body.clientApproved ? new Date() : null;
     }
   }
 
   // Client can only move sub-steps from client_approval to completed (approve tasks)
-  if (isClient && req.body.subSteps !== undefined && !(isProgrammer || req.user.role === 'admin')) {
-    if (phase.status === 'completed') {
-      res.status(400)
-      throw new Error('Cannot update sub-steps of a completed cycle.')
+  if (
+    isClient &&
+    req.body.subSteps !== undefined &&
+    !(isProgrammer || req.user.role === "admin")
+  ) {
+    if (phase.status === "completed") {
+      res.status(400);
+      throw new Error("Cannot update sub-steps of a completed cycle.");
     }
-    const existingSubSteps = phase.subSteps || []
-    const incomingSubSteps = req.body.subSteps
-    if (!Array.isArray(incomingSubSteps) || incomingSubSteps.length !== existingSubSteps.length) {
-      res.status(400)
-      throw new Error('Client can only update sub-step status from Client approval to Completed.')
+    const existingSubSteps = phase.subSteps || [];
+    const incomingSubSteps = req.body.subSteps;
+    if (
+      !Array.isArray(incomingSubSteps) ||
+      incomingSubSteps.length !== existingSubSteps.length
+    ) {
+      res.status(400);
+      throw new Error(
+        "Client can only update sub-step status from Client approval to Completed.",
+      );
     }
     const updatedSubSteps = existingSubSteps.map((existing) => {
       const incoming = incomingSubSteps.find(
-        (s) => (s._id || s.id)?.toString() === (existing._id || existing.id)?.toString()
-      )
-      if (!incoming) return existing
-      const existingStatus = existing.status ?? (existing.completed ? 'completed' : 'pending')
-      const newStatus = incoming.status ?? (incoming.completed ? 'completed' : 'pending')
-      const base = existing?.toObject ? existing.toObject() : { ...existing }
-      if (existingStatus === 'client_approval' && newStatus === 'completed') {
+        (s) =>
+          (s._id || s.id)?.toString() ===
+          (existing._id || existing.id)?.toString(),
+      );
+      if (!incoming) return existing;
+      const existingStatus =
+        existing.status ?? (existing.completed ? "completed" : "pending");
+      const newStatus =
+        incoming.status ?? (incoming.completed ? "completed" : "pending");
+      const base = existing?.toObject ? existing.toObject() : { ...existing };
+      if (existingStatus === "client_approval" && newStatus === "completed") {
         return {
           ...base,
-          status: 'completed',
+          status: "completed",
           completed: true,
           completedAt: new Date(),
-        }
+        };
       }
-      return base
-    })
-    phase.subSteps = updatedSubSteps
+      return base;
+    });
+    phase.subSteps = updatedSubSteps;
     if (phase.subSteps?.length > 0) {
-      const derived = derivePhaseDatesFromSubSteps(phase.subSteps)
-      if (derived.startedAt != null) phase.startedAt = derived.startedAt
-      if (derived.dueDate != null) phase.dueDate = derived.dueDate
+      const derived = derivePhaseDatesFromSubSteps(phase.subSteps);
+      if (derived.startedAt != null) phase.startedAt = derived.startedAt;
+      if (derived.dueDate != null) phase.dueDate = derived.dueDate;
     }
   }
 
   // Only programmer/admin can update these fields
-  let subStepStatusesBefore = null
-  if (isProgrammer || req.user.role === 'admin') {
+  let subStepStatusesBefore = null;
+  if (isProgrammer || req.user.role === "admin") {
     if (req.body.subSteps !== undefined) {
-      if (phase.status === 'completed') {
-        res.status(400)
-        throw new Error('Cannot update sub-steps of a completed cycle.')
+      if (phase.status === "completed") {
+        res.status(400);
+        throw new Error("Cannot update sub-steps of a completed cycle.");
       }
-      const existingSubSteps = phase.subSteps || []
+      const existingSubSteps = phase.subSteps || [];
       subStepStatusesBefore = existingSubSteps.map((s) => ({
         id: (s._id || s.id)?.toString(),
         order: s.order,
         status: s.status,
         title: s.title,
-      }))
+      }));
       phase.subSteps = req.body.subSteps.map((step) => {
-        const normalized = { ...step }
+        const normalized = { ...step };
         const existing = existingSubSteps.find(
-          (s) => (s._id || s.id)?.toString() === (step._id || step.id)?.toString()
-        )
-        const isNew = !existing
+          (s) =>
+            (s._id || s.id)?.toString() === (step._id || step.id)?.toString(),
+        );
+        const isNew = !existing;
         const changed =
           isNew ||
           existing.title !== step.title ||
           existing.notes !== step.notes ||
           existing.status !== step.status ||
           existing.order !== step.order ||
-          (existing.completed !== step.completed && step.completed !== undefined)
+          (existing.completed !== step.completed &&
+            step.completed !== undefined);
         if (normalized.assignedTo != null) {
           normalized.assignedTo =
-            typeof normalized.assignedTo === 'object' &&
+            typeof normalized.assignedTo === "object" &&
             normalized.assignedTo !== null &&
             normalized.assignedTo._id != null
               ? normalized.assignedTo._id
-              : normalized.assignedTo
+              : normalized.assignedTo;
         } else if (existing?.assignedTo != null) {
           normalized.assignedTo =
-            typeof existing.assignedTo === 'object' && existing.assignedTo._id != null
+            typeof existing.assignedTo === "object" &&
+            existing.assignedTo._id != null
               ? existing.assignedTo._id
-              : existing.assignedTo
+              : existing.assignedTo;
         }
         if (changed) {
-          normalized.assignedTo = req.user._id
+          normalized.assignedTo = req.user._id;
         }
-        const newStatus = normalized.status ?? (normalized.completed ? 'completed' : 'pending')
-        if (newStatus === 'completed') {
-          normalized.completedAt = normalized.completedAt ? new Date(normalized.completedAt) : new Date()
+        const newStatus =
+          normalized.status ?? (normalized.completed ? "completed" : "pending");
+        if (newStatus === "completed") {
+          normalized.completedAt = normalized.completedAt
+            ? new Date(normalized.completedAt)
+            : new Date();
         } else {
-          normalized.completedAt = null
+          normalized.completedAt = null;
         }
         if (normalized.startDate && normalized.dueDate) {
-          const start = new Date(normalized.startDate)
-          const due = new Date(normalized.dueDate)
-          if (!Number.isNaN(start.getTime()) && !Number.isNaN(due.getTime()) && due.getTime() < start.getTime()) {
-            normalized.dueDate = normalized.startDate
+          const start = new Date(normalized.startDate);
+          const due = new Date(normalized.dueDate);
+          if (
+            !Number.isNaN(start.getTime()) &&
+            !Number.isNaN(due.getTime()) &&
+            due.getTime() < start.getTime()
+          ) {
+            normalized.dueDate = normalized.startDate;
           }
         }
-        return normalized
-      })
+        return normalized;
+      });
+      for (const step of phase.subSteps) {
+        const prev = subStepStatusesBefore.find(
+          (p) =>
+            (p.id && (step._id || step.id)?.toString() === p.id) ||
+            p.order === (step.order ?? 0),
+        );
+        const prevStatus = prev?.status ?? "pending";
+        const newStatus =
+          step.status ?? (step.completed ? "completed" : "pending");
+        if (prevStatus !== "completed" && newStatus === "completed") {
+          await logProjectActivity(
+            projectId,
+            req.user._id,
+            "phase.substep_completed",
+            "phase",
+            phase._id,
+            { phaseTitle: phase.title, subStepTitle: step.title },
+          );
+        }
+      }
     }
     if (req.body.notes !== undefined) {
-      phase.notes = req.body.notes
+      phase.notes = req.body.notes;
+      await logProjectActivity(
+        projectId,
+        req.user._id,
+        "phase.notes_updated",
+        "phase",
+        phase._id,
+        { phaseTitle: phase.title },
+      );
     }
     if (req.body.estimatedDurationDays !== undefined) {
-      phase.estimatedDurationDays = req.body.estimatedDurationDays
+      phase.estimatedDurationDays = req.body.estimatedDurationDays;
     }
     if (req.body.description !== undefined) {
-      phase.description = req.body.description
+      phase.description = req.body.description;
+      await logProjectActivity(
+        projectId,
+        req.user._id,
+        "phase.description_updated",
+        "phase",
+        phase._id,
+        { phaseTitle: phase.title },
+      );
     }
     if (req.body.deliverables !== undefined) {
-      phase.deliverables = req.body.deliverables
+      phase.deliverables = req.body.deliverables;
+      await logProjectActivity(
+        projectId,
+        req.user._id,
+        "phase.deliverables_updated",
+        "phase",
+        phase._id,
+        { phaseTitle: phase.title },
+      );
     }
     if (req.body.requiredAttachments !== undefined) {
       phase.requiredAttachments = Array.isArray(req.body.requiredAttachments)
-        ? req.body.requiredAttachments.map((ra, k) => ({
-            label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
-            description: typeof ra.description === 'string' ? ra.description.trim() : '',
-            order: typeof ra.order === 'number' ? ra.order : k + 1,
-            receivedAt: ra.receivedAt ? new Date(ra.receivedAt) : null,
-            minWidth: typeof ra.minWidth === 'number' && ra.minWidth >= 0 ? ra.minWidth : null,
-            maxWidth: typeof ra.maxWidth === 'number' && ra.maxWidth >= 0 ? ra.maxWidth : null,
-            minHeight: typeof ra.minHeight === 'number' && ra.minHeight >= 0 ? ra.minHeight : null,
-            maxHeight: typeof ra.maxHeight === 'number' && ra.maxHeight >= 0 ? ra.maxHeight : null,
-            allowedTypes: Array.isArray(ra.allowedTypes) ? ra.allowedTypes.filter((t) => typeof t === 'string').map((t) => t.toLowerCase().trim()) : [],
-          })).filter((ra) => ra.label)
-        : []
+        ? req.body.requiredAttachments
+            .map((ra, k) => ({
+              label:
+                typeof ra.label === "string"
+                  ? ra.label.trim()
+                  : `Attachment ${k + 1}`,
+              description:
+                typeof ra.description === "string" ? ra.description.trim() : "",
+              order: typeof ra.order === "number" ? ra.order : k + 1,
+              receivedAt: ra.receivedAt ? new Date(ra.receivedAt) : null,
+              minWidth:
+                typeof ra.minWidth === "number" && ra.minWidth >= 0
+                  ? ra.minWidth
+                  : null,
+              maxWidth:
+                typeof ra.maxWidth === "number" && ra.maxWidth >= 0
+                  ? ra.maxWidth
+                  : null,
+              minHeight:
+                typeof ra.minHeight === "number" && ra.minHeight >= 0
+                  ? ra.minHeight
+                  : null,
+              maxHeight:
+                typeof ra.maxHeight === "number" && ra.maxHeight >= 0
+                  ? ra.maxHeight
+                  : null,
+              allowedTypes: Array.isArray(ra.allowedTypes)
+                ? ra.allowedTypes
+                    .filter((t) => typeof t === "string")
+                    .map((t) => t.toLowerCase().trim())
+                : [],
+            }))
+            .filter((ra) => ra.label)
+        : [];
     }
 
     // Phase reset: set status to not_started, clear dates, reset sub-step status, clear client approval
     if (req.body.reset === true) {
-      phase.status = 'not_started'
-      phase.startedAt = null
-      phase.completedAt = null
-      phase.actualDurationDays = null
-      phase.clientApproved = false
-      phase.clientApprovedAt = null
-      phase.clientApprovalFeedback = null
+      phase.status = "not_started";
+      phase.startedAt = null;
+      phase.completedAt = null;
+      phase.actualDurationDays = null;
+      phase.clientApproved = false;
+      phase.clientApprovedAt = null;
+      phase.clientApprovalFeedback = null;
       if (phase.subSteps?.length > 0) {
         phase.subSteps = phase.subSteps.map((s) => ({
           ...s,
-          status: 'pending',
+          status: "pending",
           completed: false,
           completedAt: null,
-        }))
+        }));
       }
     }
 
     // Derive phase dates from sub-steps when sub-steps have dates
     if (phase.subSteps?.length > 0) {
-      const derived = derivePhaseDatesFromSubSteps(phase.subSteps)
-      if (derived.startedAt != null) phase.startedAt = derived.startedAt
-      if (derived.dueDate != null) phase.dueDate = derived.dueDate
+      const derived = derivePhaseDatesFromSubSteps(phase.subSteps);
+      if (derived.startedAt != null) phase.startedAt = derived.startedAt;
+      if (derived.dueDate != null) phase.dueDate = derived.dueDate;
     }
   }
 
-  if (req.body.completedAt !== undefined && (isProgrammer || req.user.role === 'admin')) {
-    phase.completedAt = req.body.completedAt
+  if (
+    req.body.completedAt !== undefined &&
+    (isProgrammer || req.user.role === "admin")
+  ) {
+    phase.completedAt = req.body.completedAt;
   }
 
-  await phase.save()
+  await phase.save();
 
   // Set next phase startedAt when this phase completes (only handoff between cycles)
-  if (phase.status === 'completed' && previousStatus !== 'completed' && (isProgrammer || req.user.role === 'admin')) {
+  if (
+    phase.status === "completed" &&
+    previousStatus !== "completed" &&
+    (isProgrammer || req.user.role === "admin")
+  ) {
     const nextPhase = await ProjectPhase.findOne({
       projectId,
       order: phase.order + 1,
-    })
-    if (nextPhase && (nextPhase.status === 'not_started' || !nextPhase.startedAt)) {
-      nextPhase.startedAt = phase.completedAt ?? new Date()
-      await nextPhase.save()
+    });
+    if (
+      nextPhase &&
+      (nextPhase.status === "not_started" || !nextPhase.startedAt)
+    ) {
+      nextPhase.startedAt = phase.completedAt ?? new Date();
+      await nextPhase.save();
     }
   }
 
   // Recalculate duration if needed
   if (phase.startedAt && phase.completedAt) {
-    phase.actualDurationDays = calculatePhaseDuration(phase)
-    await phase.save()
+    phase.actualDurationDays = calculatePhaseDuration(phase);
+    await phase.save();
   }
 
   // Send notification to client if phase was just completed by programmer
-  if (phase.status === 'completed' && previousStatus !== 'completed' && isProgrammer && project.clientId) {
+  if (
+    phase.status === "completed" &&
+    previousStatus !== "completed" &&
+    isProgrammer &&
+    project.clientId
+  ) {
     await createNotification(
       project.clientId,
-      'project_updated',
-      'Phase Completed',
+      "project_updated",
+      "Phase Completed",
       `The programmer has marked phase "${phase.title}" as completed for project "${project.title}". Please review and approve if required.`,
-      projectId
-    )
+      projectId,
+    );
   }
 
   // Send notification to client when any sub-step changes to client_approval
-  if (subStepStatusesBefore && isProgrammer && project.clientId && phase.subSteps?.length > 0) {
+  if (
+    subStepStatusesBefore &&
+    isProgrammer &&
+    project.clientId &&
+    phase.subSteps?.length > 0
+  ) {
     const changedToWaiting = phase.subSteps.find((s, idx) => {
       const prev = subStepStatusesBefore.find(
-        (p) => (p.id && (s._id || s.id)?.toString() === p.id) || p.order === (s.order ?? idx + 1)
-      )
-      const prevStatus = prev?.status ?? 'pending'
-      const newStatus = s.status ?? 'pending'
-      return prevStatus !== 'client_approval' && newStatus === 'client_approval'
-    })
+        (p) =>
+          (p.id && (s._id || s.id)?.toString() === p.id) ||
+          p.order === (s.order ?? idx + 1),
+      );
+      const prevStatus = prev?.status ?? "pending";
+      const newStatus = s.status ?? "pending";
+      return (
+        prevStatus !== "client_approval" && newStatus === "client_approval"
+      );
+    });
     if (changedToWaiting) {
-      const taskTitle = changedToWaiting.title || 'A task'
+      const taskTitle = changedToWaiting.title || "A task";
       await createNotification(
         project.clientId,
-        'project_updated',
-        'Action Needed',
+        "project_updated",
+        "Action Needed",
         `"${taskTitle}" is waiting on your input in phase "${phase.title}" for project "${project.title}".`,
-        projectId
-      )
+        projectId,
+      );
     }
   }
 
   // Activity log for phase status changes
   if (phase.status !== previousStatus) {
-    const action = phase.status === 'in_progress' ? 'phase.started' : phase.status === 'completed' ? 'phase.completed' : 'phase.updated'
-    await logProjectActivity(projectId, req.user._id, action, 'phase', phase._id, { phaseTitle: phase.title, fromStatus: previousStatus, toStatus: phase.status })
+    const action =
+      phase.status === "in_progress"
+        ? "phase.started"
+        : phase.status === "completed"
+          ? "phase.completed"
+          : "phase.updated";
+    await logProjectActivity(
+      projectId,
+      req.user._id,
+      action,
+      "phase",
+      phase._id,
+      {
+        phaseTitle: phase.title,
+        fromStatus: previousStatus,
+        toStatus: phase.status,
+      },
+    );
   }
 
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Add or update sub-step in a phase
 // @route   POST /api/projects/:id/phases/:phaseId/sub-steps
 // @access  Private (assigned programmer or admin)
 export const updateSubStep = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const project = await Project.findById(projectId).lean()
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
-  if (req.user.role !== 'admin' && !isProgrammer) {
-    res.status(403)
-    throw new Error('Only the assigned programmer or admin can update sub-steps')
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
+  if (req.user.role !== "admin" && !isProgrammer) {
+    res.status(403);
+    throw new Error(
+      "Only the assigned programmer or admin can update sub-steps",
+    );
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
-  const { subStepId, title, completed, notes, order, status, requiredAttachments } = req.body
+  const {
+    subStepId,
+    title,
+    completed,
+    notes,
+    order,
+    status,
+    requiredAttachments,
+  } = req.body;
 
-  const validSubStepStatuses = ['pending', 'client_approval', 'in_progress', 'completed']
+  const validSubStepStatuses = [
+    "pending",
+    "client_approval",
+    "in_progress",
+    "completed",
+  ];
 
   if (!phase.subSteps) {
-    phase.subSteps = []
+    phase.subSteps = [];
   }
 
   if (subStepId) {
     // Update existing sub-step
-    const subStepIndex = phase.subSteps.findIndex((s) => s._id?.toString() === subStepId)
+    const subStepIndex = phase.subSteps.findIndex(
+      (s) => s._id?.toString() === subStepId,
+    );
     if (subStepIndex === -1) {
-      res.status(404)
-      throw new Error('Sub-step not found')
+      res.status(404);
+      throw new Error("Sub-step not found");
     }
-    if (title !== undefined) phase.subSteps[subStepIndex].title = title
+    if (title !== undefined) phase.subSteps[subStepIndex].title = title;
     if (completed !== undefined) {
-      phase.subSteps[subStepIndex].completed = completed
-      phase.subSteps[subStepIndex].completedAt = completed ? new Date() : null
+      phase.subSteps[subStepIndex].completed = completed;
+      phase.subSteps[subStepIndex].completedAt = completed ? new Date() : null;
     }
-    if (notes !== undefined) phase.subSteps[subStepIndex].notes = notes
-    if (order !== undefined) phase.subSteps[subStepIndex].order = order
+    if (notes !== undefined) phase.subSteps[subStepIndex].notes = notes;
+    if (order !== undefined) phase.subSteps[subStepIndex].order = order;
     if (status !== undefined) {
       if (!validSubStepStatuses.includes(status)) {
-        res.status(400)
-        throw new Error(`Invalid sub-step status. Must be one of: ${validSubStepStatuses.join(', ')}`)
+        res.status(400);
+        throw new Error(
+          `Invalid sub-step status. Must be one of: ${validSubStepStatuses.join(", ")}`,
+        );
       }
-      phase.subSteps[subStepIndex].status = status
-      phase.subSteps[subStepIndex].completed = status === 'completed'
-      phase.subSteps[subStepIndex].completedAt = status === 'completed' ? new Date() : null
+      phase.subSteps[subStepIndex].status = status;
+      phase.subSteps[subStepIndex].completed = status === "completed";
+      phase.subSteps[subStepIndex].completedAt =
+        status === "completed" ? new Date() : null;
     }
     if (requiredAttachments !== undefined) {
-      phase.subSteps[subStepIndex].requiredAttachments = Array.isArray(requiredAttachments)
-        ? requiredAttachments.map((ra, k) => ({
-            label: typeof ra.label === 'string' ? ra.label.trim() : `Attachment ${k + 1}`,
-            description: typeof ra.description === 'string' ? ra.description.trim() : '',
-            order: typeof ra.order === 'number' ? ra.order : k + 1,
-            receivedAt: ra.receivedAt ? new Date(ra.receivedAt) : null,
-            minWidth: typeof ra.minWidth === 'number' && ra.minWidth >= 0 ? ra.minWidth : null,
-            maxWidth: typeof ra.maxWidth === 'number' && ra.maxWidth >= 0 ? ra.maxWidth : null,
-            minHeight: typeof ra.minHeight === 'number' && ra.minHeight >= 0 ? ra.minHeight : null,
-            maxHeight: typeof ra.maxHeight === 'number' && ra.maxHeight >= 0 ? ra.maxHeight : null,
-            allowedTypes: Array.isArray(ra.allowedTypes) ? ra.allowedTypes.filter((t) => typeof t === 'string').map((t) => t.toLowerCase().trim()) : [],
-          })).filter((ra) => ra.label)
-        : []
+      phase.subSteps[subStepIndex].requiredAttachments = Array.isArray(
+        requiredAttachments,
+      )
+        ? requiredAttachments
+            .map((ra, k) => ({
+              label:
+                typeof ra.label === "string"
+                  ? ra.label.trim()
+                  : `Attachment ${k + 1}`,
+              description:
+                typeof ra.description === "string" ? ra.description.trim() : "",
+              order: typeof ra.order === "number" ? ra.order : k + 1,
+              receivedAt: ra.receivedAt ? new Date(ra.receivedAt) : null,
+              minWidth:
+                typeof ra.minWidth === "number" && ra.minWidth >= 0
+                  ? ra.minWidth
+                  : null,
+              maxWidth:
+                typeof ra.maxWidth === "number" && ra.maxWidth >= 0
+                  ? ra.maxWidth
+                  : null,
+              minHeight:
+                typeof ra.minHeight === "number" && ra.minHeight >= 0
+                  ? ra.minHeight
+                  : null,
+              maxHeight:
+                typeof ra.maxHeight === "number" && ra.maxHeight >= 0
+                  ? ra.maxHeight
+                  : null,
+              allowedTypes: Array.isArray(ra.allowedTypes)
+                ? ra.allowedTypes
+                    .filter((t) => typeof t === "string")
+                    .map((t) => t.toLowerCase().trim())
+                : [],
+            }))
+            .filter((ra) => ra.label)
+        : [];
     }
-    phase.subSteps[subStepIndex].assignedTo = req.user._id
+    phase.subSteps[subStepIndex].assignedTo = req.user._id;
+    await logProjectActivity(
+      projectId,
+      req.user._id,
+      "phase.substep_updated",
+      "phase",
+      phase._id,
+      {
+        phaseTitle: phase.title,
+        subStepTitle: phase.subSteps[subStepIndex].title,
+      },
+    );
   } else {
     // Add new sub-step
-    const maxOrder = phase.subSteps.length > 0
-      ? Math.max(...phase.subSteps.map((s) => s.order || 0))
-      : 0
-    const newStatus = status && validSubStepStatuses.includes(status) ? status : 'pending'
+    const maxOrder =
+      phase.subSteps.length > 0
+        ? Math.max(...phase.subSteps.map((s) => s.order || 0))
+        : 0;
+    const newStatus =
+      status && validSubStepStatuses.includes(status) ? status : "pending";
+    const newTitle = title || "New sub-step";
     phase.subSteps.push({
-      title: title || 'New sub-step',
-      completed: completed ?? (newStatus === 'completed'),
-      notes: notes || '',
+      title: newTitle,
+      completed: completed ?? newStatus === "completed",
+      notes: notes || "",
       order: order !== undefined ? order : maxOrder + 1,
       status: newStatus,
       assignedTo: req.user._id,
-      completedAt: newStatus === 'completed' ? new Date() : null,
-    })
+      completedAt: newStatus === "completed" ? new Date() : null,
+    });
+    await logProjectActivity(
+      projectId,
+      req.user._id,
+      "phase.substep_added",
+      "phase",
+      phase._id,
+      { phaseTitle: phase.title, subStepTitle: newTitle },
+    );
   }
 
-  const derived = derivePhaseDatesFromSubSteps(phase.subSteps)
-  if (derived.startedAt != null) phase.startedAt = derived.startedAt
-  if (derived.dueDate != null) phase.dueDate = derived.dueDate
+  const derived = derivePhaseDatesFromSubSteps(phase.subSteps);
+  if (derived.startedAt != null) phase.startedAt = derived.startedAt;
+  if (derived.dueDate != null) phase.dueDate = derived.dueDate;
 
-  await phase.save()
+  await phase.save();
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Answer a client question (optionally scoped to a sub-step so each task has its own answers)
 // @route   POST /api/projects/:id/phases/:phaseId/questions/:questionId/answer
 // @access  Private (client, assigned programmer, or admin)
 export const answerQuestion = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const questionId = req.params.questionId
-  const { answer, subStepOrder } = req.body
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const questionId = req.params.questionId;
+  const { answer, subStepOrder } = req.body;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to answer questions')
+  if (!isClient && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to answer questions");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
   if (!phase.clientQuestions || phase.clientQuestions.length === 0) {
-    res.status(404)
-    throw new Error('No questions found for this phase')
+    res.status(404);
+    throw new Error("No questions found for this phase");
   }
 
   const questionIndex = phase.clientQuestions.findIndex(
-    (q) => q._id?.toString() === questionId || q.order?.toString() === questionId
-  )
+    (q) =>
+      q._id?.toString() === questionId || q.order?.toString() === questionId,
+  );
 
   if (questionIndex === -1) {
-    res.status(404)
-    throw new Error('Question not found')
+    res.status(404);
+    throw new Error("Question not found");
   }
 
-  const questionOrder = phase.clientQuestions[questionIndex].order
+  const questionOrder = phase.clientQuestions[questionIndex].order;
 
   if (subStepOrder != null && Number.isInteger(Number(subStepOrder))) {
     const subStepIndex = phase.subSteps.findIndex(
-      (s) => s.order === Number(subStepOrder)
-    )
+      (s) => s.order === Number(subStepOrder),
+    );
     if (subStepIndex === -1) {
-      res.status(404)
-      throw new Error('Sub-step not found')
+      res.status(404);
+      throw new Error("Sub-step not found");
     }
     if (!phase.subSteps[subStepIndex].questionAnswers) {
-      phase.subSteps[subStepIndex].questionAnswers = []
+      phase.subSteps[subStepIndex].questionAnswers = [];
     }
     const qa = phase.subSteps[subStepIndex].questionAnswers.find(
-      (a) => a.order === questionOrder
-    )
+      (a) => a.order === questionOrder,
+    );
     if (qa) {
-      qa.answer = answer || ''
+      qa.answer = answer || "";
     } else {
       phase.subSteps[subStepIndex].questionAnswers.push({
         order: questionOrder,
-        answer: answer || '',
-      })
+        answer: answer || "",
+      });
     }
-    if (isProgrammer || req.user.role === 'admin') {
-      phase.subSteps[subStepIndex].assignedTo = req.user._id
+    if (isProgrammer || req.user.role === "admin") {
+      phase.subSteps[subStepIndex].assignedTo = req.user._id;
     }
   } else {
-    phase.clientQuestions[questionIndex].answer = answer || ''
+    phase.clientQuestions[questionIndex].answer = answer || "";
   }
 
-  await phase.save()
+  await phase.save();
+  await logProjectActivity(
+    projectId,
+    req.user._id,
+    "phase.question_answered",
+    "phase",
+    phase._id,
+    { phaseTitle: phase.title },
+  );
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Client approves a phase
 // @route   POST /api/projects/:id/phases/:phaseId/approve
 // @access  Private (client or admin)
 export const approvePhase = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const { approved, feedback } = req.body
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const { approved, feedback } = req.body;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  if (!isClient && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Only the client or admin can approve phases')
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  if (!isClient && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Only the client or admin can approve phases");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
-  phase.clientApproved = approved !== false
-  phase.clientApprovedAt = phase.clientApproved ? new Date() : null
-  phase.clientApprovalFeedback = approved === false ? (feedback || null) : null
+  phase.clientApproved = approved !== false;
+  phase.clientApprovedAt = phase.clientApproved ? new Date() : null;
+  phase.clientApprovalFeedback = approved === false ? feedback || null : null;
 
   // Client approval UNLOCKS the programmer's "Mark Complete" button - it does NOT complete the phase itself
-  await phase.save()
+  await phase.save();
 
   // Notify programmer that client approved - they can now mark the cycle complete
-  if (phase.clientApproved && phase.status === 'in_progress' && project.assignedProgrammerId) {
+  if (
+    phase.clientApproved &&
+    phase.status === "in_progress" &&
+    project.assignedProgrammerId
+  ) {
     await createNotification(
       project.assignedProgrammerId,
-      'project_updated',
-      'Phase Approved',
+      "project_updated",
+      "Phase Approved",
       `The client approved phase "${phase.title}" for project "${project.title}". You can now mark it complete.`,
-      projectId
-    )
+      projectId,
+    );
   }
 
   // Send notification to programmer(s) when client requests changes
   if (phase.clientApproved === false && project.clientId) {
-    const feedbackText = phase.clientApprovalFeedback?.trim() || 'No feedback provided'
-    const message = `The client requested changes on phase "${phase.title}" for project "${project.title}". Feedback: ${feedbackText}`
+    const feedbackText =
+      phase.clientApprovalFeedback?.trim() || "No feedback provided";
+    const message = `The client requested changes on phase "${phase.title}" for project "${project.title}". Feedback: ${feedbackText}`;
     const programmerIds = [
       ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
       ...(project.assignedProgrammerIds || []),
-    ]
-    const uniqueIds = [...new Set(programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean))]
+    ];
+    const uniqueIds = [
+      ...new Set(
+        programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean),
+      ),
+    ];
     for (const id of uniqueIds) {
-      await createNotification(id, 'project_updated', 'Changes Requested', message, projectId)
+      await createNotification(
+        id,
+        "project_updated",
+        "Changes Requested",
+        message,
+        projectId,
+      );
     }
   }
 
   if (phase.clientApproved) {
-    await logProjectActivity(projectId, req.user._id, 'phase.approved', 'phase', phase._id, { phaseTitle: phase.title })
+    await logProjectActivity(
+      projectId,
+      req.user._id,
+      "phase.approved",
+      "phase",
+      phase._id,
+      { phaseTitle: phase.title },
+    );
   }
 
-  const updated = await ProjectPhase.findById(phase._id).lean()
-  res.json(updated)
-})
+  const updated = await ProjectPhase.findById(phase._id).lean();
+  res.json(updated);
+});
 
 // @desc    Upload attachment to a phase
 // @route   POST /api/projects/:id/phases/:phaseId/attachments
 // @access  Private (assigned programmer, client, or admin)
 export const uploadAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to upload attachments')
+  if (!isClient && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to upload attachments");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
   if (!req.file) {
-    res.status(400)
-    throw new Error('No file uploaded')
+    res.status(400);
+    throw new Error("No file uploaded");
   }
 
-  const forRequiredIndex = req.body?.forRequiredIndex != null ? parseInt(req.body.forRequiredIndex, 10) : null
+  const forRequiredIndex =
+    req.body?.forRequiredIndex != null
+      ? parseInt(req.body.forRequiredIndex, 10)
+      : null;
   if (Number.isInteger(forRequiredIndex) && forRequiredIndex >= 0) {
-    const required = phase.requiredAttachments?.[forRequiredIndex]
-    if (required && (required.minWidth != null || required.maxWidth != null || required.minHeight != null || required.maxHeight != null || (required.allowedTypes?.length ?? 0) > 0)) {
+    const required = phase.requiredAttachments?.[forRequiredIndex];
+    if (
+      required &&
+      (required.minWidth != null ||
+        required.maxWidth != null ||
+        required.minHeight != null ||
+        required.maxHeight != null ||
+        (required.allowedTypes?.length ?? 0) > 0)
+    ) {
       const result = validateAttachmentForRequired(
         req.file.buffer,
         req.file.mimetype,
@@ -1329,11 +1791,11 @@ export const uploadAttachment = asyncHandler(async (req, res) => {
           minHeight: required.minHeight,
           maxHeight: required.maxHeight,
           allowedTypes: required.allowedTypes,
-        }
-      )
+        },
+      );
       if (!result.valid) {
-        res.status(400)
-        throw new Error(result.error)
+        res.status(400);
+        throw new Error(result.error);
       }
     }
   }
@@ -1343,64 +1805,76 @@ export const uploadAttachment = asyncHandler(async (req, res) => {
     phaseId,
     req.file.buffer,
     req.file.originalname,
-    req.file.mimetype || 'application/octet-stream'
-  )
+    req.file.mimetype || "application/octet-stream",
+  );
 
   const attachment = {
     filename: req.file.originalname,
     url: gcsUrl,
     uploadedBy: req.user._id,
     uploadedAt: new Date(),
-    type: req.file.mimetype || 'file',
-    status: 'ok',
+    type: req.file.mimetype || "file",
+    status: "ok",
     changesNeededFeedback: null,
-  }
+  };
 
   if (!phase.attachments) {
-    phase.attachments = []
+    phase.attachments = [];
   }
 
-  phase.attachments.push(attachment)
-  await phase.save()
+  phase.attachments.push(attachment);
+  await phase.save();
 
-  const updated = await ProjectPhase.findById(phase._id).lean()
-  res.json(updated)
-})
+  await logProjectActivity(
+    projectId,
+    req.user._id,
+    "phase.attachment_uploaded",
+    "phase",
+    phase._id,
+    { phaseTitle: phase.title, filename: req.file.originalname },
+  );
+  const updated = await ProjectPhase.findById(phase._id).lean();
+  res.json(updated);
+});
 
 // @desc    Upload attachment to project (general assets, not tied to a phase)
 // @route   POST /api/projects/:id/attachments
 // @access  Private (assigned programmer, client, or admin)
 export const uploadProjectLevelAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
+  const projectId = req.params.id;
 
-  const project = await Project.findById(projectId)
+  const project = await Project.findById(projectId);
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to upload attachments')
+  if (!isClient && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to upload attachments");
   }
 
   if (!req.file) {
-    res.status(400)
-    throw new Error('No file uploaded')
+    res.status(400);
+    throw new Error("No file uploaded");
   }
 
   const gcsUrl = await uploadProjectLevelAttachmentToGcs(
     projectId,
     req.file.buffer,
     req.file.originalname,
-    req.file.mimetype || 'application/octet-stream'
-  )
+    req.file.mimetype || "application/octet-stream",
+  );
 
   const attachment = {
     _id: new mongoose.Types.ObjectId(),
@@ -1408,278 +1882,348 @@ export const uploadProjectLevelAttachment = asyncHandler(async (req, res) => {
     url: gcsUrl,
     uploadedBy: req.user._id,
     uploadedAt: new Date(),
-    type: req.file.mimetype || 'file',
-    status: 'ok',
+    type: req.file.mimetype || "file",
+    status: "ok",
     changesNeededFeedback: null,
-  }
+  };
 
   if (!project.attachments) {
-    project.attachments = []
+    project.attachments = [];
   }
-  project.attachments.push(attachment)
-  await project.save()
+  project.attachments.push(attachment);
+  await project.save();
 
+  await logProjectActivity(
+    projectId,
+    req.user._id,
+    "project.attachment_uploaded",
+    "project",
+    projectId,
+    { filename: req.file.originalname },
+  );
   const updated = await Project.findById(projectId)
-    .populate('clientId', 'name email company status')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate status')
-    .populate('assignedProgrammerIds', 'name email skills bio hourlyRate status')
-    .populate('attachments.uploadedBy', 'name')
-    .lean()
+    .populate("clientId", "name email company status")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate status")
+    .populate(
+      "assignedProgrammerIds",
+      "name email skills bio hourlyRate status",
+    )
+    .populate("attachments.uploadedBy", "name")
+    .lean();
 
   const phases = await ProjectPhase.find({ projectId })
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
     .sort({ order: 1 })
-    .lean()
+    .lean();
 
-  res.json({ ...updated, phases })
-})
+  res.json({ ...updated, phases });
+});
 
 // @desc    Delete attachment from a phase
 // @route   DELETE /api/projects/:id/phases/:phaseId/attachments/:attachmentId
 // @access  Private (assigned programmer, client who uploaded, or admin)
 export const deleteAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const attachmentId = req.params.attachmentId
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const attachmentId = req.params.attachmentId;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
   if (!phase.attachments || phase.attachments.length === 0) {
-    res.status(404)
-    throw new Error('No attachments found')
+    res.status(404);
+    throw new Error("No attachments found");
   }
 
   const attachmentIndex = phase.attachments.findIndex(
-    (a) => a._id?.toString() === attachmentId
-  )
+    (a) => a._id?.toString() === attachmentId,
+  );
 
   if (attachmentIndex === -1) {
-    res.status(404)
-    throw new Error('Attachment not found')
+    res.status(404);
+    throw new Error("Attachment not found");
   }
 
-  const attachment = phase.attachments[attachmentIndex]
-  const isUploader = attachment.uploadedBy?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const attachment = phase.attachments[attachmentIndex];
+  const isUploader =
+    attachment.uploadedBy?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isUploader && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to delete this attachment')
+  if (!isUploader && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to delete this attachment");
   }
 
   // Delete file: GCS or legacy filesystem
   if (attachment.url) {
-    if (attachment.url.startsWith('https://storage.googleapis.com/')) {
-      await deleteProjectAttachment(attachment.url)
-    } else if (attachment.url.startsWith('/uploads/')) {
-      const filePath = path.join(__dirname, '..', attachment.url)
+    if (attachment.url.startsWith("https://storage.googleapis.com/")) {
+      await deleteProjectAttachment(attachment.url);
+    } else if (attachment.url.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "..", attachment.url);
       if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath)
+        fs.unlinkSync(filePath);
       }
     }
   }
 
-  phase.attachments.splice(attachmentIndex, 1)
-  await phase.save()
+  phase.attachments.splice(attachmentIndex, 1);
+  await phase.save();
 
+  await logProjectActivity(
+    projectId,
+    req.user._id,
+    "phase.attachment_deleted",
+    "phase",
+    phase._id,
+    { phaseTitle: phase.title, filename: attachment.filename },
+  );
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Update attachment status (changes needed / OK). Programmer or admin only.
 // @route   PATCH /api/projects/:id/phases/:phaseId/attachments/:attachmentId
 // @access  Private (assigned programmer or admin)
 export const updateAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const attachmentId = req.params.attachmentId
-  const { status, changesNeededFeedback } = req.body
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const attachmentId = req.params.attachmentId;
+  const { status, changesNeededFeedback } = req.body;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Only the assigned programmer or admin can update attachment status')
+  if (!isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error(
+      "Only the assigned programmer or admin can update attachment status",
+    );
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
-  const attachmentIndex = phase.attachments?.findIndex((a) => a._id?.toString() === attachmentId)
+  const attachmentIndex = phase.attachments?.findIndex(
+    (a) => a._id?.toString() === attachmentId,
+  );
   if (attachmentIndex === -1 || !phase.attachments?.[attachmentIndex]) {
-    res.status(404)
-    throw new Error('Attachment not found')
+    res.status(404);
+    throw new Error("Attachment not found");
   }
 
   if (status !== undefined) {
-    if (!['ok', 'changes_needed'].includes(status)) {
-      res.status(400)
-      throw new Error('Invalid status. Must be "ok" or "changes_needed"')
+    if (!["ok", "changes_needed"].includes(status)) {
+      res.status(400);
+      throw new Error('Invalid status. Must be "ok" or "changes_needed"');
     }
-    phase.attachments[attachmentIndex].status = status
+    phase.attachments[attachmentIndex].status = status;
   }
   if (changesNeededFeedback !== undefined) {
     phase.attachments[attachmentIndex].changesNeededFeedback =
-      typeof changesNeededFeedback === 'string' ? changesNeededFeedback.trim() || null : null
+      typeof changesNeededFeedback === "string"
+        ? changesNeededFeedback.trim() || null
+        : null;
   }
 
-  await phase.save()
+  await phase.save();
 
+  if (status !== undefined) {
+    await logProjectActivity(
+      projectId,
+      req.user._id,
+      "phase.attachment_status_updated",
+      "phase",
+      phase._id,
+      {
+        phaseTitle: phase.title,
+        filename: phase.attachments[attachmentIndex].filename,
+        status,
+      },
+    );
+  }
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Get signed URLs for GCS attachment URLs (for private bucket)
 // @route   POST /api/projects/:id/phases/:phaseId/attachments/signed-urls
 // @access  Private (project access)
 export const getAttachmentSignedUrls = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized')
+  if (!isClient && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId }).lean()
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId }).lean();
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
-  const urls = Array.isArray(req.body?.urls) ? req.body.urls : []
-  const signedUrls = await getSignedUrlsForAttachments(urls, 3600000) // 1 hour
-  res.json({ urls: signedUrls })
-})
+  const urls = Array.isArray(req.body?.urls) ? req.body.urls : [];
+  const signedUrls = await getSignedUrlsForAttachments(urls, 3600000); // 1 hour
+  res.json({ urls: signedUrls });
+});
 
 // @desc    Get signed URLs for GCS attachment URLs (project-level, for Assets tab)
 // @route   POST /api/projects/:id/attachments/signed-urls
 // @access  Private (project access)
 export const getProjectAttachmentSignedUrls = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
+  const projectId = req.params.id;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized')
+  if (!isClient && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized");
   }
 
-  const urls = Array.isArray(req.body?.urls) ? req.body.urls : []
-  const signedUrls = await getSignedUrlsForAttachments(urls, 3600000)
-  res.json({ urls: signedUrls })
-})
+  const urls = Array.isArray(req.body?.urls) ? req.body.urls : [];
+  const signedUrls = await getSignedUrlsForAttachments(urls, 3600000);
+  res.json({ urls: signedUrls });
+});
 
 // @desc    Upload attachment to a sub-step
 // @route   POST /api/projects/:id/phases/:phaseId/sub-steps/:subStepId/attachments
 // @access  Private (assigned programmer, client, or admin)
 export const uploadSubStepAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const subStepId = req.params.subStepId
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const subStepId = req.params.subStepId;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClient = project.clientId?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const isClient = project.clientId?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isClient && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to upload attachments')
+  if (!isClient && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to upload attachments");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
   const subStepIndex = phase.subSteps?.findIndex(
-    (s) => (s._id?.toString() === subStepId) || (s.order?.toString() === subStepId)
-  )
+    (s) => s._id?.toString() === subStepId || s.order?.toString() === subStepId,
+  );
   if (subStepIndex === -1 || !phase.subSteps?.[subStepIndex]) {
-    res.status(404)
-    throw new Error('Sub-step not found')
+    res.status(404);
+    throw new Error("Sub-step not found");
   }
 
   if (!req.file) {
-    res.status(400)
-    throw new Error('No file uploaded')
+    res.status(400);
+    throw new Error("No file uploaded");
   }
 
-  const subStep = phase.subSteps[subStepIndex]
-  const subStepOrder = subStep.order ?? subStepIndex + 1
+  const subStep = phase.subSteps[subStepIndex];
+  const subStepOrder = subStep.order ?? subStepIndex + 1;
 
-  const forRequiredIndex = req.body?.forRequiredIndex != null ? parseInt(req.body.forRequiredIndex, 10) : null
+  const forRequiredIndex =
+    req.body?.forRequiredIndex != null
+      ? parseInt(req.body.forRequiredIndex, 10)
+      : null;
   if (Number.isInteger(forRequiredIndex) && forRequiredIndex >= 0) {
-    const required = subStep.requiredAttachments?.[forRequiredIndex]
-    if (required && (required.minWidth != null || required.maxWidth != null || required.minHeight != null || required.maxHeight != null || (required.allowedTypes?.length ?? 0) > 0)) {
+    const required = subStep.requiredAttachments?.[forRequiredIndex];
+    if (
+      required &&
+      (required.minWidth != null ||
+        required.maxWidth != null ||
+        required.minHeight != null ||
+        required.maxHeight != null ||
+        (required.allowedTypes?.length ?? 0) > 0)
+    ) {
       const result = validateAttachmentForRequired(
         req.file.buffer,
         req.file.mimetype,
@@ -1689,11 +2233,11 @@ export const uploadSubStepAttachment = asyncHandler(async (req, res) => {
           minHeight: required.minHeight,
           maxHeight: required.maxHeight,
           allowedTypes: required.allowedTypes,
-        }
-      )
+        },
+      );
       if (!result.valid) {
-        res.status(400)
-        throw new Error(result.error)
+        res.status(400);
+        throw new Error(result.error);
       }
     }
   }
@@ -1703,875 +2247,1203 @@ export const uploadSubStepAttachment = asyncHandler(async (req, res) => {
     phaseId,
     req.file.buffer,
     req.file.originalname,
-    req.file.mimetype || 'application/octet-stream',
-    subStepOrder
-  )
+    req.file.mimetype || "application/octet-stream",
+    subStepOrder,
+  );
 
   const attachment = {
     filename: req.file.originalname,
     url: gcsUrl,
     uploadedBy: req.user._id,
     uploadedAt: new Date(),
-    type: req.file.mimetype || 'file',
-    status: 'ok',
+    type: req.file.mimetype || "file",
+    status: "ok",
     changesNeededFeedback: null,
-  }
+  };
 
   if (!phase.subSteps[subStepIndex].attachments) {
-    phase.subSteps[subStepIndex].attachments = []
+    phase.subSteps[subStepIndex].attachments = [];
   }
-  phase.subSteps[subStepIndex].attachments.push(attachment)
-  await phase.save()
+  phase.subSteps[subStepIndex].attachments.push(attachment);
+  await phase.save();
 
+  await logProjectActivity(
+    projectId,
+    req.user._id,
+    "phase.attachment_uploaded",
+    "phase",
+    phase._id,
+    {
+      phaseTitle: phase.title,
+      subStepTitle: subStep.title,
+      filename: req.file.originalname,
+    },
+  );
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Delete attachment from a sub-step
 // @route   DELETE /api/projects/:id/phases/:phaseId/sub-steps/:subStepId/attachments/:attachmentId
 // @access  Private (assigned programmer, client who uploaded, or admin)
 export const deleteSubStepAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const subStepId = req.params.subStepId
-  const attachmentId = req.params.attachmentId
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const subStepId = req.params.subStepId;
+  const attachmentId = req.params.attachmentId;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
   const subStepIndex = phase.subSteps?.findIndex(
-    (s) => (s._id?.toString() === subStepId) || (s.order?.toString() === subStepId)
-  )
+    (s) => s._id?.toString() === subStepId || s.order?.toString() === subStepId,
+  );
   if (subStepIndex === -1 || !phase.subSteps?.[subStepIndex]) {
-    res.status(404)
-    throw new Error('Sub-step not found')
+    res.status(404);
+    throw new Error("Sub-step not found");
   }
 
-  const attachments = phase.subSteps[subStepIndex].attachments || []
-  const attachmentIndex = attachments.findIndex((a) => a._id?.toString() === attachmentId)
+  const attachments = phase.subSteps[subStepIndex].attachments || [];
+  const attachmentIndex = attachments.findIndex(
+    (a) => a._id?.toString() === attachmentId,
+  );
   if (attachmentIndex === -1) {
-    res.status(404)
-    throw new Error('Attachment not found')
+    res.status(404);
+    throw new Error("Attachment not found");
   }
 
-  const attachment = attachments[attachmentIndex]
-  const isUploader = attachment.uploadedBy?.toString() === req.user._id.toString()
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const attachment = attachments[attachmentIndex];
+  const isUploader =
+    attachment.uploadedBy?.toString() === req.user._id.toString();
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isUploader && !isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Not authorized to delete this attachment')
+  if (!isUploader && !isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Not authorized to delete this attachment");
   }
 
-  if (attachment.url?.startsWith('https://storage.googleapis.com/')) {
-    await deleteProjectAttachment(attachment.url)
+  if (attachment.url?.startsWith("https://storage.googleapis.com/")) {
+    await deleteProjectAttachment(attachment.url);
   }
 
-  phase.subSteps[subStepIndex].attachments.splice(attachmentIndex, 1)
-  await phase.save()
+  phase.subSteps[subStepIndex].attachments.splice(attachmentIndex, 1);
+  await phase.save();
 
+  const subStep = phase.subSteps[subStepIndex];
+  await logProjectActivity(
+    projectId,
+    req.user._id,
+    "phase.attachment_deleted",
+    "phase",
+    phase._id,
+    {
+      phaseTitle: phase.title,
+      subStepTitle: subStep?.title,
+      filename: attachment.filename,
+    },
+  );
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // @desc    Update sub-step attachment status (changes needed / OK). Programmer or admin only.
 // @route   PATCH /api/projects/:id/phases/:phaseId/sub-steps/:subStepId/attachments/:attachmentId
 // @access  Private (assigned programmer or admin)
 export const updateSubStepAttachment = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const phaseId = req.params.phaseId
-  const subStepId = req.params.subStepId
-  const attachmentId = req.params.attachmentId
-  const { status, changesNeededFeedback } = req.body
+  const projectId = req.params.id;
+  const phaseId = req.params.phaseId;
+  const subStepId = req.params.subStepId;
+  const attachmentId = req.params.attachmentId;
+  const { status, changesNeededFeedback } = req.body;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const assignedId = project.assignedProgrammerId?.toString?.() || project.assignedProgrammerId?.toString()
-  const assignedIds = (project.assignedProgrammerIds || []).map((id) => (id?._id || id)?.toString?.())
-  const userId = req.user._id.toString()
-  const isProgrammer = assignedId === userId || assignedIds.includes(userId)
+  const assignedId =
+    project.assignedProgrammerId?.toString?.() ||
+    project.assignedProgrammerId?.toString();
+  const assignedIds = (project.assignedProgrammerIds || []).map((id) =>
+    (id?._id || id)?.toString?.(),
+  );
+  const userId = req.user._id.toString();
+  const isProgrammer = assignedId === userId || assignedIds.includes(userId);
 
-  if (!isProgrammer && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Only the assigned programmer or admin can update attachment status')
+  if (!isProgrammer && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error(
+      "Only the assigned programmer or admin can update attachment status",
+    );
   }
 
-  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId })
+  const phase = await ProjectPhase.findOne({ _id: phaseId, projectId });
   if (!phase) {
-    res.status(404)
-    throw new Error('Phase not found')
+    res.status(404);
+    throw new Error("Phase not found");
   }
 
   const subStepIndex = phase.subSteps?.findIndex(
-    (s) => (s._id?.toString() === subStepId) || (s.order?.toString() === subStepId)
-  )
+    (s) => s._id?.toString() === subStepId || s.order?.toString() === subStepId,
+  );
   if (subStepIndex === -1 || !phase.subSteps?.[subStepIndex]) {
-    res.status(404)
-    throw new Error('Sub-step not found')
+    res.status(404);
+    throw new Error("Sub-step not found");
   }
 
-  const attachments = phase.subSteps[subStepIndex].attachments || []
-  const attachmentIndex = attachments.findIndex((a) => a._id?.toString() === attachmentId)
+  const attachments = phase.subSteps[subStepIndex].attachments || [];
+  const attachmentIndex = attachments.findIndex(
+    (a) => a._id?.toString() === attachmentId,
+  );
   if (attachmentIndex === -1) {
-    res.status(404)
-    throw new Error('Attachment not found')
+    res.status(404);
+    throw new Error("Attachment not found");
   }
 
   if (status !== undefined) {
-    if (!['ok', 'changes_needed'].includes(status)) {
-      res.status(400)
-      throw new Error('Invalid status. Must be "ok" or "changes_needed"')
+    if (!["ok", "changes_needed"].includes(status)) {
+      res.status(400);
+      throw new Error('Invalid status. Must be "ok" or "changes_needed"');
     }
-    phase.subSteps[subStepIndex].attachments[attachmentIndex].status = status
+    phase.subSteps[subStepIndex].attachments[attachmentIndex].status = status;
   }
   if (changesNeededFeedback !== undefined) {
-    phase.subSteps[subStepIndex].attachments[attachmentIndex].changesNeededFeedback =
-      typeof changesNeededFeedback === 'string' ? changesNeededFeedback.trim() || null : null
+    phase.subSteps[subStepIndex].attachments[
+      attachmentIndex
+    ].changesNeededFeedback =
+      typeof changesNeededFeedback === "string"
+        ? changesNeededFeedback.trim() || null
+        : null;
   }
 
-  await phase.save()
+  await phase.save();
 
+  if (status !== undefined) {
+    const subStep = phase.subSteps[subStepIndex];
+    const att = phase.subSteps[subStepIndex].attachments[attachmentIndex];
+    await logProjectActivity(
+      projectId,
+      req.user._id,
+      "phase.attachment_status_updated",
+      "phase",
+      phase._id,
+      {
+        phaseTitle: phase.title,
+        subStepTitle: subStep?.title,
+        filename: att?.filename,
+        status,
+      },
+    );
+  }
   const updated = await ProjectPhase.findById(phase._id)
-    .populate('subSteps.assignedTo', 'name email avatar')
-    .populate('subSteps.attachments.uploadedBy', 'name')
-    .populate('attachments.uploadedBy', 'name')
-    .populate('clientQuestions.createdBy', 'name')
-    .lean()
-  res.json(updated)
-})
+    .populate("subSteps.assignedTo", "name email avatar")
+    .populate("subSteps.attachments.uploadedBy", "name")
+    .populate("attachments.uploadedBy", "name")
+    .populate("clientQuestions.createdBy", "name")
+    .lean();
+  res.json(updated);
+});
 
 // Export multer middleware for use in routes
-export { upload }
+export { upload };
 
 // @desc    Get AI previews for a project (client or assigned programmer)
 // @route   GET /api/projects/:id/previews
 // @access  Private (project owner, assigned programmer, or admin)
 export const getProjectPreviews = asyncHandler(async (req, res) => {
   const previews = await AIPreview.find({ projectId: req.params.id })
-    .select('_id prompt previewResult metadata status createdAt tokenUsage')
+    .select("_id prompt previewResult metadata status createdAt tokenUsage")
     .sort({ createdAt: -1 })
-    .lean()
+    .lean();
 
   for (const p of previews) {
-    normalizePreviewMetadata(p.metadata)
-    let urlsForInject = []
+    normalizePreviewMetadata(p.metadata);
+    let urlsForInject = [];
     if (p.metadata?.generatedImageGcsPaths?.length) {
-      urlsForInject = await getSignedUrlsForPaths(p.metadata.generatedImageGcsPaths, 3600000)
+      urlsForInject = await getSignedUrlsForPaths(
+        p.metadata.generatedImageGcsPaths,
+        3600000,
+      );
       if (urlsForInject.length > 0) {
-        p.metadata.previewThumbnailUrl = urlsForInject[2] || urlsForInject[1] || urlsForInject[0]
+        p.metadata.previewThumbnailUrl =
+          urlsForInject[2] || urlsForInject[1] || urlsForInject[0];
       }
     } else if (p.metadata?.generatedImageUrls?.length) {
-      urlsForInject = p.metadata.generatedImageUrls
+      urlsForInject = p.metadata.generatedImageUrls;
     }
     if (urlsForInject.length > 0) {
       const inj = injectGeneratedImages(
         p.metadata.websitePreviewCode,
         p.metadata.websitePreviewFiles,
-        urlsForInject
-      )
-      p.metadata.websitePreviewCode = inj.code
-      if (inj.files) p.metadata.websitePreviewFiles = inj.files
+        urlsForInject,
+      );
+      p.metadata.websitePreviewCode = inj.code;
+      if (inj.files) p.metadata.websitePreviewFiles = inj.files;
     }
   }
-  res.json(previews)
-})
+  res.json(previews);
+});
 
 // @desc    Update project
 // @route   PUT /api/projects/:id
 // @access  Private
 export const updateProject = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  if (req.user.role === 'user') {
+  if (req.user.role === "user") {
     if (project.clientId.toString() !== req.user._id.toString()) {
-      res.status(403)
-      throw new Error('Not authorized to update this project')
+      res.status(403);
+      throw new Error("Not authorized to update this project");
     }
     // Allow updating teamClosed when Holding or Open
-    const isUpdatingTeamClosed = req.body.teamClosed !== undefined
-    if (!isUpdatingTeamClosed && !['Holding', 'Open', 'Ready'].includes(project.status)) {
-      res.status(403)
-      throw new Error('Cannot update project in current status')
+    const isUpdatingTeamClosed = req.body.teamClosed !== undefined;
+    if (
+      !isUpdatingTeamClosed &&
+      !["Holding", "Open", "Ready"].includes(project.status)
+    ) {
+      res.status(403);
+      throw new Error("Cannot update project in current status");
     }
   }
 
-  const previousStatus = project.status
-  const wasTeamClosed = project.teamClosed
-  const isClosingTeam = req.body.teamClosed === true && !wasTeamClosed
-  const isOpeningTeam = req.body.teamClosed === false && wasTeamClosed
+  const previousStatus = project.status;
+  const wasTeamClosed = project.teamClosed;
+  const isClosingTeam = req.body.teamClosed === true && !wasTeamClosed;
+  const isOpeningTeam = req.body.teamClosed === false && wasTeamClosed;
 
   Object.keys(req.body).forEach((key) => {
-    if (req.body[key] !== undefined && key !== '_id' && key !== 'clientId') {
-      project[key] = req.body[key]
+    if (req.body[key] !== undefined && key !== "_id" && key !== "clientId") {
+      project[key] = req.body[key];
     }
-  })
+  });
 
   // If team is being closed from Open: go to Holding (On Hold) — reset all ready states
-  if (isClosingTeam && project.status === 'Open') {
-    project.status = 'Holding'
-    project.readyConfirmedBy = []
-    project.clientMarkedReady = false
+  if (isClosingTeam && project.status === "Open") {
+    project.status = "Holding";
+    project.readyConfirmedBy = [];
+    project.clientMarkedReady = false;
   }
 
   // If team is being opened from Holding: go to Open (programmers can join)
-  if (isOpeningTeam && project.status === 'Holding') {
-    project.status = 'Open'
-    project.teamClosed = false
-    project.readyConfirmedBy = []
+  if (isOpeningTeam && project.status === "Holding") {
+    project.status = "Open";
+    project.teamClosed = false;
+    project.readyConfirmedBy = [];
   }
 
   // If opening from Development: change back to Ready
-  if (isOpeningTeam && project.status === 'Development') {
-    project.status = 'Ready'
+  if (isOpeningTeam && project.status === "Development") {
+    project.status = "Ready";
   }
 
-  await project.save()
+  await project.save();
 
   if (project.status !== previousStatus) {
-    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: previousStatus, toStatus: project.status })
-    if (isOpeningTeam && project.status === 'Open') {
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "project.status_changed",
+      "project",
+      project._id,
+      { fromStatus: previousStatus, toStatus: project.status },
+    );
+    if (isOpeningTeam && project.status === "Open") {
       const programmerIds = [
         ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
         ...(project.assignedProgrammerIds || []),
-      ]
-      const seen = new Set()
+      ];
+      const seen = new Set();
       for (const p of programmerIds) {
-        const id = (p?._id || p)?.toString()
+        const id = (p?._id || p)?.toString();
         if (id && !seen.has(id)) {
-          seen.add(id)
-          await createNotification(p._id || p, 'project_updated', 'Team Opened', `"${project.title}" is now open for recruitment.`, project._id)
+          seen.add(id);
+          await createNotification(
+            p._id || p,
+            "project_updated",
+            "Team Opened",
+            `"${project.title}" is now open for recruitment.`,
+            project._id,
+          );
         }
       }
     }
-    if (isClosingTeam && project.status === 'Holding') {
+    if (isClosingTeam && project.status === "Holding") {
       const programmerIds = [
         ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
         ...(project.assignedProgrammerIds || []),
-      ]
-      const seen = new Set()
+      ];
+      const seen = new Set();
       for (const p of programmerIds) {
-        const id = (p?._id || p)?.toString()
+        const id = (p?._id || p)?.toString();
         if (id && !seen.has(id)) {
-          seen.add(id)
-          await createNotification(p._id || p, 'project_updated', 'Team Closed', `"${project.title}" has been set to On Hold.`, project._id)
+          seen.add(id);
+          await createNotification(
+            p._id || p,
+            "project_updated",
+            "Team Closed",
+            `"${project.title}" has been set to On Hold.`,
+            project._id,
+          );
         }
       }
     }
+  }
+
+  if (project.status === previousStatus) {
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "project.updated",
+      "project",
+      project._id,
+      {},
+    );
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Confirm ready (programmer marks themselves ready) - only after client has marked ready
 // @route   PUT /api/projects/:id/confirm-ready
 // @access  Private (programmer in team)
 export const confirmReady = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const userIdStr = req.user._id.toString()
-  const isProgrammer = req.user.role === 'programmer' || req.user.role === 'admin'
-  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+  const userIdStr = req.user._id.toString();
+  const isProgrammer =
+    req.user.role === "programmer" || req.user.role === "admin";
+  const isInTeam =
+    project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds &&
+      project.assignedProgrammerIds.some(
+        (p) => (p._id || p).toString() === userIdStr,
+      ));
 
   if (!isProgrammer || !isInTeam) {
-    res.status(403)
-    throw new Error('Only programmers assigned to this project can confirm ready')
+    res.status(403);
+    throw new Error(
+      "Only programmers assigned to this project can confirm ready",
+    );
   }
 
-  if (project.status !== 'Open') {
-    res.status(400)
-    throw new Error('Project must be open for recruitment to confirm ready')
+  if (project.status !== "Open") {
+    res.status(400);
+    throw new Error("Project must be open for recruitment to confirm ready");
   }
 
   if (!project.clientMarkedReady) {
-    res.status(400)
-    throw new Error('Client must mark the project ready first before programmers can confirm ready')
+    res.status(400);
+    throw new Error(
+      "Client must mark the project ready first before programmers can confirm ready",
+    );
   }
 
-  const phaseCount = await ProjectPhase.countDocuments({ projectId: project._id })
+  const phaseCount = await ProjectPhase.countDocuments({
+    projectId: project._id,
+  });
   if (phaseCount === 0) {
-    res.status(400)
-    throw new Error('Create the project timeline in the Workspace first, then you can mark ready')
+    res.status(400);
+    throw new Error(
+      "Create the project timeline in the Workspace first, then you can mark ready",
+    );
   }
 
   if (project.teamClosed) {
-    res.status(400)
-    throw new Error('Project team is already closed')
+    res.status(400);
+    throw new Error("Project team is already closed");
   }
 
   if (!project.readyConfirmedBy) {
-    project.readyConfirmedBy = []
+    project.readyConfirmedBy = [];
   }
-  if (!project.readyConfirmedBy.some(id => id.toString() === userIdStr)) {
-    project.readyConfirmedBy.push(req.user._id)
-    const teamIds = new Set()
-    if (project.assignedProgrammerId) teamIds.add(project.assignedProgrammerId.toString())
-    ;(project.assignedProgrammerIds || []).forEach((p) => teamIds.add((p._id || p).toString()))
-    const confirmedIds = new Set(project.readyConfirmedBy.map((id) => id.toString()))
-    const allConfirmed = [...teamIds].every((id) => confirmedIds.has(id))
+  if (!project.readyConfirmedBy.some((id) => id.toString() === userIdStr)) {
+    project.readyConfirmedBy.push(req.user._id);
+    const teamIds = new Set();
+    if (project.assignedProgrammerId)
+      teamIds.add(project.assignedProgrammerId.toString());
+    (project.assignedProgrammerIds || []).forEach((p) =>
+      teamIds.add((p._id || p).toString()),
+    );
+    const confirmedIds = new Set(
+      project.readyConfirmedBy.map((id) => id.toString()),
+    );
+    const allConfirmed = [...teamIds].every((id) => confirmedIds.has(id));
     if (allConfirmed) {
-      project.teamClosed = true
-      project.status = 'Ready'
-      await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
+      project.teamClosed = true;
+      project.status = "Ready";
+      await logProjectActivity(
+        project._id,
+        req.user._id,
+        "project.status_changed",
+        "project",
+        project._id,
+        { fromStatus: "Open", toStatus: "Ready" },
+      );
       if (project.clientId) {
-        await createNotification(project.clientId, 'project_updated', 'Team Ready', `All programmers have confirmed ready for "${project.title}". The project is ready for development.`, project._id)
+        await createNotification(
+          project.clientId,
+          "project_updated",
+          "Team Ready",
+          `All programmers have confirmed ready for "${project.title}". The project is ready for development.`,
+          project._id,
+        );
       }
     }
-    await project.save()
-    await logProjectActivity(project._id, req.user._id, 'programmer.confirmed_ready', 'project', project._id, {})
+    await project.save();
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "programmer.confirmed_ready",
+      "project",
+      project._id,
+      {},
+    );
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
-    .populate('readyConfirmedBy', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email")
+    .populate("readyConfirmedBy", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Client marks ready for timeline (first step). Programmers can then create steps and confirm ready; when all confirm, status becomes Ready.
 // @route   PUT /api/projects/:id/mark-ready
 // @access  Private (client only)
 export const markProjectReady = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isAdmin = req.user.role === 'admin'
-  const isClientOwner = project.clientId.toString() === req.user._id.toString()
+  const isAdmin = req.user.role === "admin";
+  const isClientOwner = project.clientId.toString() === req.user._id.toString();
 
   if (!isClientOwner && !isAdmin) {
-    res.status(403)
-    throw new Error('Only the project client can mark as ready')
+    res.status(403);
+    throw new Error("Only the project client can mark as ready");
   }
 
-  if (project.status !== 'Open') {
-    res.status(400)
-    throw new Error('Project must be open for recruitment to mark as ready')
+  if (project.status !== "Open") {
+    res.status(400);
+    throw new Error("Project must be open for recruitment to mark as ready");
   }
 
   // Client marks "I've reviewed - ready for programmers to create steps". Do not require programmers to have joined yet.
   // Client can mark ready with no programmers so when one joins they can create phases straight away.
   if (!project.clientMarkedReady) {
-    project.clientMarkedReady = true
-    await project.save()
-    await logProjectActivity(project._id, req.user._id, 'project.client_marked_ready', 'project', project._id, {})
+    project.clientMarkedReady = true;
+    await project.save();
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "project.client_marked_ready",
+      "project",
+      project._id,
+      {},
+    );
     const programmerIds = [
       ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
       ...(project.assignedProgrammerIds || []),
-    ]
-    const uniqueIds = [...new Set(programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean))]
+    ];
+    const uniqueIds = [
+      ...new Set(
+        programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean),
+      ),
+    ];
     for (const id of uniqueIds) {
-      await createNotification(id, 'project_updated', 'Client Reviewed Project', `The client has reviewed "${project.title}". You can now create the timeline in the Workspace tab and confirm ready.`, project._id)
+      await createNotification(
+        id,
+        "project_updated",
+        "Client Reviewed Project",
+        `The client has reviewed "${project.title}". You can now create the timeline in the Workspace tab and confirm ready.`,
+        project._id,
+      );
     }
   }
   // If client already marked ready and all programmers have confirmed, transition to Ready (e.g. client clicks again or late join)
-  const teamIds = new Set()
-  if (project.assignedProgrammerId) teamIds.add(project.assignedProgrammerId.toString())
-  ;(project.assignedProgrammerIds || []).forEach((p) => teamIds.add((p._id || p).toString()))
-  const confirmedIds = new Set((project.readyConfirmedBy || []).map((id) => id.toString()))
-  const allConfirmed = teamIds.size > 0 && [...teamIds].every((id) => confirmedIds.has(id))
+  const teamIds = new Set();
+  if (project.assignedProgrammerId)
+    teamIds.add(project.assignedProgrammerId.toString());
+  (project.assignedProgrammerIds || []).forEach((p) =>
+    teamIds.add((p._id || p).toString()),
+  );
+  const confirmedIds = new Set(
+    (project.readyConfirmedBy || []).map((id) => id.toString()),
+  );
+  const allConfirmed =
+    teamIds.size > 0 && [...teamIds].every((id) => confirmedIds.has(id));
   if (project.clientMarkedReady && allConfirmed && !project.teamClosed) {
-    project.teamClosed = true
-    project.status = 'Ready'
-    await project.save()
-    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Open', toStatus: 'Ready' })
+    project.teamClosed = true;
+    project.status = "Ready";
+    await project.save();
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "project.status_changed",
+      "project",
+      project._id,
+      { fromStatus: "Open", toStatus: "Ready" },
+    );
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
-    .populate('readyConfirmedBy', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email")
+    .populate("readyConfirmedBy", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Unconfirm ready (programmer reverts to not ready)
 // @route   PUT /api/projects/:id/unconfirm-ready
 // @access  Private (programmer in team)
 export const unconfirmReady = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const userIdStr = req.user._id.toString()
-  const isProgrammer = req.user.role === 'programmer' || req.user.role === 'admin'
-  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+  const userIdStr = req.user._id.toString();
+  const isProgrammer =
+    req.user.role === "programmer" || req.user.role === "admin";
+  const isInTeam =
+    project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds &&
+      project.assignedProgrammerIds.some(
+        (p) => (p._id || p).toString() === userIdStr,
+      ));
 
   if (!isProgrammer || !isInTeam) {
-    res.status(403)
-    throw new Error('Only programmers assigned to this project can unconfirm ready')
+    res.status(403);
+    throw new Error(
+      "Only programmers assigned to this project can unconfirm ready",
+    );
   }
 
-  if (project.status !== 'Open' && project.status !== 'Ready') {
-    res.status(400)
-    throw new Error('Project must be Open or Ready to unconfirm')
+  if (project.status !== "Open" && project.status !== "Ready") {
+    res.status(400);
+    throw new Error("Project must be Open or Ready to unconfirm");
   }
 
-  if (!project.readyConfirmedBy || !project.readyConfirmedBy.some(id => id.toString() === userIdStr)) {
+  if (
+    !project.readyConfirmedBy ||
+    !project.readyConfirmedBy.some((id) => id.toString() === userIdStr)
+  ) {
     const populated = await Project.findById(project._id)
-      .populate('clientId', 'name email')
-      .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-      .populate('assignedProgrammerIds', 'name email')
-      .populate('readyConfirmedBy', 'name email')
-    return res.json(populated)
+      .populate("clientId", "name email")
+      .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+      .populate("assignedProgrammerIds", "name email")
+      .populate("readyConfirmedBy", "name email");
+    return res.json(populated);
   }
 
-  project.readyConfirmedBy = project.readyConfirmedBy.filter(id => id.toString() !== userIdStr)
+  project.readyConfirmedBy = project.readyConfirmedBy.filter(
+    (id) => id.toString() !== userIdStr,
+  );
 
   // If status was Ready (team closed), revert to Open so recruitment can continue
-  if (project.status === 'Ready') {
-    project.status = 'Open'
-    project.teamClosed = false
-    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Open' })
+  if (project.status === "Ready") {
+    project.status = "Open";
+    project.teamClosed = false;
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "project.status_changed",
+      "project",
+      project._id,
+      { fromStatus: "Ready", toStatus: "Open" },
+    );
     if (project.clientId) {
-      await createNotification(project.clientId, 'project_updated', 'Programmer Unconfirmed', `A programmer has unconfirmed ready for "${project.title}". The project is back to Open.`, project._id)
+      await createNotification(
+        project.clientId,
+        "project_updated",
+        "Programmer Unconfirmed",
+        `A programmer has unconfirmed ready for "${project.title}". The project is back to Open.`,
+        project._id,
+      );
     }
   }
 
-  await project.save()
-  await logProjectActivity(project._id, req.user._id, 'programmer.unconfirmed_ready', 'project', project._id, {})
+  await project.save();
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "programmer.unconfirmed_ready",
+    "project",
+    project._id,
+    {},
+  );
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
-    .populate('readyConfirmedBy', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email")
+    .populate("readyConfirmedBy", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Unmark ready (client reverts to not ready)
 // @route   PUT /api/projects/:id/unmark-ready
 // @access  Private (client only)
 export const unmarkProjectReady = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isAdmin = req.user.role === 'admin'
-  const isClientOwner = project.clientId.toString() === req.user._id.toString()
+  const isAdmin = req.user.role === "admin";
+  const isClientOwner = project.clientId.toString() === req.user._id.toString();
 
   if (!isClientOwner && !isAdmin) {
-    res.status(403)
-    throw new Error('Only the project client can unmark as ready')
+    res.status(403);
+    throw new Error("Only the project client can unmark as ready");
   }
 
-  if (project.status !== 'Open' && project.status !== 'Ready') {
-    res.status(400)
-    throw new Error('Project must be Open or Ready to unmark')
+  if (project.status !== "Open" && project.status !== "Ready") {
+    res.status(400);
+    throw new Error("Project must be Open or Ready to unmark");
   }
 
   if (!project.clientMarkedReady) {
     const populated = await Project.findById(project._id)
-      .populate('clientId', 'name email')
-      .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-      .populate('assignedProgrammerIds', 'name email')
-      .populate('readyConfirmedBy', 'name email')
-    return res.json(populated)
+      .populate("clientId", "name email")
+      .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+      .populate("assignedProgrammerIds", "name email")
+      .populate("readyConfirmedBy", "name email");
+    return res.json(populated);
   }
 
-  project.clientMarkedReady = false
-  project.readyConfirmedBy = []
-  project.teamClosed = false
+  project.clientMarkedReady = false;
+  project.readyConfirmedBy = [];
+  project.teamClosed = false;
 
   // If status was Ready, revert to Open
-  if (project.status === 'Ready') {
-    project.status = 'Open'
-    await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Open' })
+  if (project.status === "Ready") {
+    project.status = "Open";
+    await logProjectActivity(
+      project._id,
+      req.user._id,
+      "project.status_changed",
+      "project",
+      project._id,
+      { fromStatus: "Ready", toStatus: "Open" },
+    );
   }
 
-  await project.save()
-  await logProjectActivity(project._id, req.user._id, 'project.client_unmarked_ready', 'project', project._id, {})
+  await project.save();
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.client_unmarked_ready",
+    "project",
+    project._id,
+    {},
+  );
 
   const programmerIds = [
     ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
     ...(project.assignedProgrammerIds || []),
-  ]
-  const uniqueIds = [...new Set(programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean))]
+  ];
+  const uniqueIds = [
+    ...new Set(
+      programmerIds.map((id) => (id?._id || id)?.toString()).filter(Boolean),
+    ),
+  ];
   for (const id of uniqueIds) {
-    await createNotification(id, 'project_updated', 'Client Unmarked Ready', `The client has unmarked ready for "${project.title}". Please wait for review.`, project._id)
+    await createNotification(
+      id,
+      "project_updated",
+      "Client Unmarked Ready",
+      `The client has unmarked ready for "${project.title}". Please wait for review.`,
+      project._id,
+    );
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
-    .populate('readyConfirmedBy', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email")
+    .populate("readyConfirmedBy", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Start development - programmer only
 // @route   PUT /api/projects/:id/start-development
 // @access  Private
 export const startDevelopment = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const userIdStr = req.user._id.toString()
-  const isProgrammer = req.user.role === 'programmer' || req.user.role === 'admin'
-  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
+  const userIdStr = req.user._id.toString();
+  const isProgrammer =
+    req.user.role === "programmer" || req.user.role === "admin";
+  const isInTeam =
+    project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds &&
+      project.assignedProgrammerIds.some(
+        (p) => (p._id || p).toString() === userIdStr,
+      ));
 
   if (!isProgrammer || !isInTeam) {
-    res.status(403)
-    throw new Error('Only programmers assigned to this project can start development')
+    res.status(403);
+    throw new Error(
+      "Only programmers assigned to this project can start development",
+    );
   }
 
-  if (project.status !== 'Ready') {
-    res.status(400)
-    throw new Error('Project must be in Ready status (team closed) to start development')
+  if (project.status !== "Ready") {
+    res.status(400);
+    throw new Error(
+      "Project must be in Ready status (team closed) to start development",
+    );
   }
 
-  project.status = 'Development'
+  project.status = "Development";
   if (!project.startDate) {
-    project.startDate = new Date()
+    project.startDate = new Date();
   }
-  await project.save()
+  await project.save();
 
-  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Ready', toStatus: 'Development' })
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.status_changed",
+    "project",
+    project._id,
+    { fromStatus: "Ready", toStatus: "Development" },
+  );
   if (project.clientId) {
-    await createNotification(project.clientId, 'project_updated', 'Development Started', `Development has started for "${project.title}".`, project._id)
+    await createNotification(
+      project.clientId,
+      "project_updated",
+      "Development Started",
+      `Development has started for "${project.title}".`,
+      project._id,
+    );
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Stop development - client only
 // @route   PUT /api/projects/:id/stop-development
 // @access  Private
 export const stopDevelopment = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const userIdStr = req.user._id.toString()
-  const isClientOwner = project.clientId.toString() === userIdStr
-  const isAdmin = req.user.role === 'admin'
-  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
-  const isProgrammerInProject = (req.user.role === 'programmer' || req.user.role === 'admin') && isInTeam
+  const userIdStr = req.user._id.toString();
+  const isClientOwner = project.clientId.toString() === userIdStr;
+  const isAdmin = req.user.role === "admin";
+  const isInTeam =
+    project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds &&
+      project.assignedProgrammerIds.some(
+        (p) => (p._id || p).toString() === userIdStr,
+      ));
+  const isProgrammerInProject =
+    (req.user.role === "programmer" || req.user.role === "admin") && isInTeam;
 
   if (!isClientOwner && !isProgrammerInProject && !isAdmin) {
-    res.status(403)
-    throw new Error('Only the project client or assigned programmers can stop development')
+    res.status(403);
+    throw new Error(
+      "Only the project client or assigned programmers can stop development",
+    );
   }
 
-  if (project.status !== 'Development') {
-    res.status(400)
-    throw new Error('Project must be in Development status to stop')
+  if (project.status !== "Development") {
+    res.status(400);
+    throw new Error("Project must be in Development status to stop");
   }
 
-  project.status = 'Open'
-  project.readyConfirmedBy = []
-  project.clientMarkedReady = false
-  project.teamClosed = false
-  await project.save()
+  project.status = "Open";
+  project.readyConfirmedBy = [];
+  project.clientMarkedReady = false;
+  project.teamClosed = false;
+  await project.save();
 
-  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Open' })
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.status_changed",
+    "project",
+    project._id,
+    { fromStatus: "Development", toStatus: "Open" },
+  );
 
-  const stopMessage = `Development has been stopped for "${project.title}". The project is back to Open. Everyone needs to confirm ready again.`
+  const stopMessage = `Development has been stopped for "${project.title}". The project is back to Open. Everyone needs to confirm ready again.`;
   if (project.clientId && project.clientId.toString() !== userIdStr) {
-    await createNotification(project.clientId, 'project_updated', 'Development Stopped', stopMessage, project._id)
+    await createNotification(
+      project.clientId,
+      "project_updated",
+      "Development Stopped",
+      stopMessage,
+      project._id,
+    );
   }
   const programmerIds = [
     ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
     ...(project.assignedProgrammerIds || []),
-  ]
-  const seen = new Set()
+  ];
+  const seen = new Set();
   for (const p of programmerIds) {
-    const id = (p?._id || p)?.toString()
+    const id = (p?._id || p)?.toString();
     if (id && id !== userIdStr && !seen.has(id)) {
-      seen.add(id)
-      await createNotification(p._id || p, 'project_updated', 'Development Stopped', stopMessage, project._id)
+      seen.add(id);
+      await createNotification(
+        p._id || p,
+        "project_updated",
+        "Development Stopped",
+        stopMessage,
+        project._id,
+      );
     }
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
-    .populate('readyConfirmedBy', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email")
+    .populate("readyConfirmedBy", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Delete project
 // @route   DELETE /api/projects/:id
 // @access  Private
 export const deleteProject = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  if (req.user.role === 'user' || req.user.role === 'client') {
+  if (req.user.role === "user" || req.user.role === "client") {
     if (project.clientId.toString() !== req.user._id.toString()) {
-      res.status(403)
-      throw new Error('Not authorized to delete this project')
+      res.status(403);
+      throw new Error("Not authorized to delete this project");
     }
   }
 
-  await deleteProjectFully(project._id.toString())
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.deleted",
+    "project",
+    project._id,
+    { title: project.title },
+  );
+  await deleteProjectFully(project._id.toString());
 
-  res.json({ message: 'Project removed' })
-})
+  res.json({ message: "Project removed" });
+});
 
 // @desc    Update project status (Ready or Holding)
 // @route   PUT /api/projects/:id/ready or PUT /api/projects/:id/holding
 // @access  Private
 export const updateProjectStatus = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  if (req.user.role === 'user' && project.clientId.toString() !== req.user._id.toString()) {
-    res.status(403)
-    throw new Error('Not authorized to update this project')
+  if (
+    req.user.role === "user" &&
+    project.clientId.toString() !== req.user._id.toString()
+  ) {
+    res.status(403);
+    throw new Error("Not authorized to update this project");
   }
 
   // Determine target status from route path
-  const targetStatus = req.path.endsWith('/ready') ? 'Ready' : 'Holding'
+  const targetStatus = req.path.endsWith("/ready") ? "Ready" : "Holding";
 
   // Validate status transition
-  if (targetStatus === 'Ready') {
-    if (project.status !== 'Holding') {
-      res.status(400)
-      throw new Error('Project must be in Holding status to mark as Ready')
+  if (targetStatus === "Ready") {
+    if (project.status !== "Holding") {
+      res.status(400);
+      throw new Error("Project must be in Holding status to mark as Ready");
     }
-    project.status = 'Ready'
-  } else if (targetStatus === 'Holding') {
-    if (project.status !== 'Ready') {
-      res.status(400)
-      throw new Error('Project must be in Ready status to mark as Holding')
+    project.status = "Ready";
+  } else if (targetStatus === "Holding") {
+    if (project.status !== "Ready") {
+      res.status(400);
+      throw new Error("Project must be in Ready status to mark as Holding");
     }
-    project.status = 'Holding'
-    project.teamClosed = true
-    project.readyConfirmedBy = []
-    project.clientMarkedReady = false
+    project.status = "Holding";
+    project.teamClosed = true;
+    project.readyConfirmedBy = [];
+    project.clientMarkedReady = false;
   }
 
-  await project.save()
+  await project.save();
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Mark project as completed (Development -> Completed)
 // @route   PUT /api/projects/:id/complete
 // @access  Private (client, assigned programmer, or admin)
 export const markProjectCompleted = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const userIdStr = req.user._id.toString()
-  const isClientOwner = project.clientId.toString() === userIdStr
-  const isInTeam = project.assignedProgrammerId?.toString() === userIdStr ||
-    (project.assignedProgrammerIds && project.assignedProgrammerIds.some(p => (p._id || p).toString() === userIdStr))
-  const isProgrammerInProject = (req.user.role === 'programmer' || req.user.role === 'admin') && isInTeam
+  const userIdStr = req.user._id.toString();
+  const isClientOwner = project.clientId.toString() === userIdStr;
+  const isInTeam =
+    project.assignedProgrammerId?.toString() === userIdStr ||
+    (project.assignedProgrammerIds &&
+      project.assignedProgrammerIds.some(
+        (p) => (p._id || p).toString() === userIdStr,
+      ));
+  const isProgrammerInProject =
+    (req.user.role === "programmer" || req.user.role === "admin") && isInTeam;
 
-  if (!isClientOwner && !isProgrammerInProject && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Only the project client or assigned programmers can mark the project as completed')
+  if (!isClientOwner && !isProgrammerInProject && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error(
+      "Only the project client or assigned programmers can mark the project as completed",
+    );
   }
 
-  if (project.status !== 'Development') {
-    res.status(400)
-    throw new Error('Project must be in Development status to mark as completed')
+  if (project.status !== "Development") {
+    res.status(400);
+    throw new Error(
+      "Project must be in Development status to mark as completed",
+    );
   }
 
-  project.status = 'Completed'
-  project.completedDate = new Date()
-  await project.save()
+  project.status = "Completed";
+  project.completedDate = new Date();
+  await project.save();
 
-  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { fromStatus: 'Development', toStatus: 'Completed' })
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.status_changed",
+    "project",
+    project._id,
+    { fromStatus: "Development", toStatus: "Completed" },
+  );
 
-  const completedMessage = `"${project.title}" has been marked as completed.`
+  const completedMessage = `"${project.title}" has been marked as completed.`;
   if (project.clientId) {
-    await createNotification(project.clientId, 'project_completed', 'Project Completed', completedMessage, project._id)
+    await createNotification(
+      project.clientId,
+      "project_completed",
+      "Project Completed",
+      completedMessage,
+      project._id,
+    );
   }
   const completedProgrammerIds = [
     ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
     ...(project.assignedProgrammerIds || []),
-  ]
-  const completedSeen = new Set()
+  ];
+  const completedSeen = new Set();
   for (const p of completedProgrammerIds) {
-    const id = (p?._id || p)?.toString()
+    const id = (p?._id || p)?.toString();
     if (id && !completedSeen.has(id)) {
-      completedSeen.add(id)
-      await createNotification(p._id || p, 'project_completed', 'Project Completed', completedMessage, project._id)
+      completedSeen.add(id);
+      await createNotification(
+        p._id || p,
+        "project_completed",
+        "Project Completed",
+        completedMessage,
+        project._id,
+      );
     }
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Mark project as cancelled
 // @route   PUT /api/projects/:id/cancel
 // @access  Private (client or admin)
 export const markProjectCancelled = asyncHandler(async (req, res) => {
-  const project = await Project.findById(req.params.id)
+  const project = await Project.findById(req.params.id);
 
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const isClientOwner = project.clientId.toString() === req.user._id.toString()
-  if (!isClientOwner && req.user.role !== 'admin') {
-    res.status(403)
-    throw new Error('Only the project client or admin can cancel the project')
+  const isClientOwner = project.clientId.toString() === req.user._id.toString();
+  if (!isClientOwner && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Only the project client or admin can cancel the project");
   }
 
-  if (project.status === 'Completed') {
-    res.status(400)
-    throw new Error('Cannot cancel a completed project')
+  if (project.status === "Completed") {
+    res.status(400);
+    throw new Error("Cannot cancel a completed project");
   }
 
-  if (project.status === 'Cancelled') {
-    res.status(400)
-    throw new Error('Project is already cancelled')
+  if (project.status === "Cancelled") {
+    res.status(400);
+    throw new Error("Project is already cancelled");
   }
 
-  project.status = 'Cancelled'
-  await project.save()
+  project.status = "Cancelled";
+  await project.save();
 
-  await logProjectActivity(project._id, req.user._id, 'project.status_changed', 'project', project._id, { toStatus: 'Cancelled' })
+  await logProjectActivity(
+    project._id,
+    req.user._id,
+    "project.status_changed",
+    "project",
+    project._id,
+    { toStatus: "Cancelled" },
+  );
 
-  const cancelledMessage = `"${project.title}" has been cancelled.`
+  const cancelledMessage = `"${project.title}" has been cancelled.`;
   if (project.clientId) {
-    await createNotification(project.clientId, 'project_updated', 'Project Cancelled', cancelledMessage, project._id)
+    await createNotification(
+      project.clientId,
+      "project_updated",
+      "Project Cancelled",
+      cancelledMessage,
+      project._id,
+    );
   }
   const cancelledProgrammerIds = [
     ...(project.assignedProgrammerId ? [project.assignedProgrammerId] : []),
     ...(project.assignedProgrammerIds || []),
-  ]
-  const cancelledSeen = new Set()
+  ];
+  const cancelledSeen = new Set();
   for (const p of cancelledProgrammerIds) {
-    const id = (p?._id || p)?.toString()
+    const id = (p?._id || p)?.toString();
     if (id && !cancelledSeen.has(id)) {
-      cancelledSeen.add(id)
-      await createNotification(p._id || p, 'project_updated', 'Project Cancelled', cancelledMessage, project._id)
+      cancelledSeen.add(id);
+      await createNotification(
+        p._id || p,
+        "project_updated",
+        "Project Cancelled",
+        cancelledMessage,
+        project._id,
+      );
     }
   }
 
   const populated = await Project.findById(project._id)
-    .populate('clientId', 'name email')
-    .populate('assignedProgrammerId', 'name email skills bio hourlyRate')
-    .populate('assignedProgrammerIds', 'name email')
+    .populate("clientId", "name email")
+    .populate("assignedProgrammerId", "name email skills bio hourlyRate")
+    .populate("assignedProgrammerIds", "name email");
 
-  res.json(populated)
-})
+  res.json(populated);
+});
 
 // @desc    Get project activity (audit log)
 // @route   GET /api/projects/:id/activity
 // @access  Private (project access)
 export const getProjectActivity = asyncHandler(async (req, res) => {
-  const projectId = req.params.id
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1)
-  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20))
-  const action = req.query.action
+  const projectId = req.params.id;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const action = req.query.action;
 
-  const project = await Project.findById(projectId).lean()
+  const project = await Project.findById(projectId).lean();
   if (!project) {
-    res.status(404)
-    throw new Error('Project not found')
+    res.status(404);
+    throw new Error("Project not found");
   }
 
-  const filter = { projectId }
-  if (action) filter.action = action
+  const filter = { projectId };
+  if (action) filter.action = action;
 
   const [activities, total] = await Promise.all([
     ProjectActivity.find(filter)
-      .populate('actorId', 'name email')
+      .populate("actorId", "name email")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
     ProjectActivity.countDocuments(filter),
-  ])
+  ]);
 
   res.json({
     activities,
@@ -2581,29 +3453,35 @@ export const getProjectActivity = asyncHandler(async (req, res) => {
       total,
       pages: Math.ceil(total / limit) || 1,
     },
-  })
-})
+  });
+});
 
 // @desc    Cleanup orphaned projects (client deleted but project still in DB) - Admin only
 // @route   POST /api/projects/cleanup-orphaned
 // @access  Private/Admin
 export const cleanupOrphanedProjects = asyncHandler(async (req, res) => {
-  const User = (await import('../models/User.js')).default
-  const projects = await Project.find({}).select('_id clientId title').lean()
-  const userIds = [...new Set(projects.map((p) => p.clientId?.toString()).filter(Boolean))]
-  const existingUsers = await User.find({ _id: { $in: userIds } }).select('_id').lean()
-  const existingIds = new Set(existingUsers.map((u) => u._id.toString()))
+  const User = (await import("../models/User.js")).default;
+  const projects = await Project.find({}).select("_id clientId title").lean();
+  const userIds = [
+    ...new Set(projects.map((p) => p.clientId?.toString()).filter(Boolean)),
+  ];
+  const existingUsers = await User.find({ _id: { $in: userIds } })
+    .select("_id")
+    .lean();
+  const existingIds = new Set(existingUsers.map((u) => u._id.toString()));
 
-  const orphaned = projects.filter((p) => p.clientId && !existingIds.has(p.clientId.toString()))
-  let deleted = 0
+  const orphaned = projects.filter(
+    (p) => p.clientId && !existingIds.has(p.clientId.toString()),
+  );
+  let deleted = 0;
   for (const p of orphaned) {
-    await deleteProjectFully(p._id.toString())
-    deleted++
+    await deleteProjectFully(p._id.toString());
+    deleted++;
   }
 
   res.json({
     message: `Cleaned up ${deleted} orphaned project(s)`,
     deleted,
     orphanedIds: orphaned.map((p) => p._id),
-  })
-})
+  });
+});

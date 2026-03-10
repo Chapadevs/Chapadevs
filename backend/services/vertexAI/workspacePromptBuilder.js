@@ -4,7 +4,7 @@
  * to produce rich phases and sub-steps for the Workspace.
  */
 
-import { getProjectDurationFromDates } from '../../utils/projectDuration.js'
+import { getProjectDurationFromDates } from "../../utils/projectDuration.js";
 
 /**
  * Build prompt for AI-powered Workspace proposal generation.
@@ -13,12 +13,12 @@ import { getProjectDurationFromDates } from '../../utils/projectDuration.js'
  * @returns {string} Prompt for the model
  */
 export function buildWorkspaceProposalPrompt(project, context = {}) {
-  const { analysis = {}, codeStructure = {} } = context
+  const { analysis = {}, codeStructure = {} } = context;
 
-  const projectSection = buildProjectSection(project)
-  const analysisSection = buildAnalysisSection(analysis)
-  const codeStructureSection = buildCodeStructureSection(codeStructure)
-  const outputSchemaSection = buildOutputSchemaSection(project)
+  const projectSection = buildProjectSection(project);
+  const analysisSection = buildAnalysisSection(analysis);
+  const codeStructureSection = buildCodeStructureSection(codeStructure);
+  const outputSchemaSection = buildOutputSchemaSection(project);
 
   return `You are an expert project manager and web development lead. Generate a lean development timeline (phases and sub-steps) for a web project. Prefer shorter phase durations and fewer tasks per phase. The programmer will use this as the Workspace to guide development.
 
@@ -30,70 +30,86 @@ ${codeStructureSection}
 
 ${outputSchemaSection}
 
-Respond ONLY with valid JSON. No markdown code fences, no extra text. Generate the timeline now:`
+Respond ONLY with valid JSON. No markdown code fences, no extra text. Generate the timeline now:`;
 }
 
 function buildProjectSection(project) {
-  if (!project) return 'PROJECT: No project data available.'
-  const parts = []
-  if (project.title) parts.push(`Title: ${project.title}`)
-  if (project.description) parts.push(`Description: ${project.description}`)
-  if (project.projectType) parts.push(`Type: ${project.projectType}`)
-  const dateDuration = getProjectDurationFromDates(project)
-  const totalDaysFromDates = dateDuration?.totalDays ?? null
+  if (!project) return "PROJECT: No project data available.";
+  const parts = [];
+  if (project.title) parts.push(`Title: ${project.title}`);
+  if (project.description) parts.push(`Description: ${project.description}`);
+  if (project.projectType) parts.push(`Type: ${project.projectType}`);
+  const dateDuration = getProjectDurationFromDates(project);
+  const totalDaysFromDates = dateDuration?.totalDays ?? null;
   if (totalDaysFromDates != null) {
-    parts.push(`Total timeline: ${totalDaysFromDates} days (from start date to due date)`)
+    parts.push(
+      `Total timeline: ${totalDaysFromDates} days (from start date to due date)`,
+    );
   } else if (project.timeline) {
-    const w = parseInt(project.timeline, 10) || 5
-    parts.push(`Total timeline: ${w * 7} days`)
+    const w = parseInt(project.timeline, 10) || 5;
+    parts.push(`Total timeline: ${w * 7} days`);
   }
-  if (project.startDate) parts.push(`Start date: ${project.startDate}`)
-  if (project.dueDate) parts.push(`Due date: ${project.dueDate}`)
-  if (project.goals?.length) parts.push(`Goals: ${project.goals.join('; ')}`)
-  if (project.features?.length) parts.push(`Features: ${project.features.join('; ')}`)
-  if (project.designStyles?.length) parts.push(`Design styles: ${project.designStyles.join(', ')}`)
-  if (project.technologies?.length) parts.push(`Technologies: ${project.technologies.join(', ')}`)
-  if (project.specialRequirements) parts.push(`Special requirements: ${project.specialRequirements}`)
-  if (project.additionalComments) parts.push(`Additional comments: ${project.additionalComments}`)
-  return `PROJECT:\n${parts.length ? parts.join('\n') : 'No project data.'}`
+  if (project.startDate) parts.push(`Start date: ${project.startDate}`);
+  if (project.dueDate) parts.push(`Due date: ${project.dueDate}`);
+  if (project.goals?.length) parts.push(`Goals: ${project.goals.join("; ")}`);
+  if (project.features?.length)
+    parts.push(`Features: ${project.features.join("; ")}`);
+  if (project.designStyles?.length)
+    parts.push(`Design styles: ${project.designStyles.join(", ")}`);
+  if (project.technologies?.length)
+    parts.push(`Technologies: ${project.technologies.join(", ")}`);
+  if (project.specialRequirements)
+    parts.push(`Special requirements: ${project.specialRequirements}`);
+  if (project.additionalComments)
+    parts.push(`Additional comments: ${project.additionalComments}`);
+  return `PROJECT:\n${parts.length ? parts.join("\n") : "No project data."}`;
 }
 
 function buildAnalysisSection(analysis) {
-  if (!analysis || typeof analysis !== 'object') return ''
-  const parts = []
-  if (analysis.overview) parts.push(`Overview: ${analysis.overview}`)
-  if (analysis.features?.length) parts.push(`Features from AI: ${analysis.features.join('; ')}`)
+  if (!analysis || typeof analysis !== "object") return "";
+  const parts = [];
+  if (analysis.overview) parts.push(`Overview: ${analysis.overview}`);
+  if (analysis.features?.length)
+    parts.push(`Features from AI: ${analysis.features.join("; ")}`);
   if (analysis.timeline?.phases?.length) {
-    parts.push('Suggested phases from AI analysis:')
+    parts.push("Suggested phases from AI analysis:");
     analysis.timeline.phases.forEach((p, i) => {
-      const days = p.weeks != null ? Math.round(p.weeks * 7) : null
-      parts.push(`  ${i + 1}. ${p.phase} (${days != null ? `${days} days` : '?'}): ${(p.deliverables || []).join(', ')}`)
-    })
+      const days = p.weeks != null ? Math.round(p.weeks * 7) : null;
+      parts.push(
+        `  ${i + 1}. ${p.phase} (${days != null ? `${days} days` : "?"}): ${(p.deliverables || []).join(", ")}`,
+      );
+    });
   }
-  if (analysis.risks?.length) parts.push(`Risks: ${analysis.risks.join('; ')}`)
-  if (analysis.recommendations?.length) parts.push(`Recommendations: ${analysis.recommendations.join('; ')}`)
+  if (analysis.risks?.length) parts.push(`Risks: ${analysis.risks.join("; ")}`);
+  if (analysis.recommendations?.length)
+    parts.push(`Recommendations: ${analysis.recommendations.join("; ")}`);
   if (analysis.budgetBreakdown?.breakdown?.length) {
-    parts.push('Budget breakdown: ' + analysis.budgetBreakdown.breakdown.map(b => `${b.category}: ${b.percentage}%`).join(', '))
+    parts.push(
+      "Budget breakdown: " +
+        analysis.budgetBreakdown.breakdown
+          .map((b) => `${b.category}: ${b.percentage}%`)
+          .join(", "),
+    );
   }
-  if (parts.length === 0) return ''
-  return `AI PREVIEW ANALYSIS:\n${parts.join('\n')}`
+  if (parts.length === 0) return "";
+  return `AI PREVIEW ANALYSIS:\n${parts.join("\n")}`;
 }
 
 function buildCodeStructureSection(codeStructure) {
-  const { pages = [], components = [] } = codeStructure
-  if (pages.length === 0 && components.length === 0) return ''
-  const parts = []
-  if (pages.length) parts.push(`Generated pages: ${pages.join(', ')}`)
-  if (components.length) parts.push(`Key components: ${components.join(', ')}`)
-  return `GENERATED CODE STRUCTURE (use these to create Development sub-steps):\n${parts.join('\n')}\nFor Development phase, create 2–4 focused sub-steps (e.g. "Implement HomePage", "Build ProductsPage", "Wire up authentication"). Group related work; avoid over-granular tasks.`
+  const { pages = [], components = [] } = codeStructure;
+  if (pages.length === 0 && components.length === 0) return "";
+  const parts = [];
+  if (pages.length) parts.push(`Generated pages: ${pages.join(", ")}`);
+  if (components.length) parts.push(`Key components: ${components.join(", ")}`);
+  return `GENERATED CODE STRUCTURE (use these to create Development sub-steps):\n${parts.join("\n")}\nFor Development phase, create 2–4 focused sub-steps (e.g. "Implement HomePage", "Build ProductsPage", "Wire up authentication"). Group related work; avoid over-granular tasks.`;
 }
 
 function buildOutputSchemaSection(project) {
-  const dateDuration = getProjectDurationFromDates(project)
-  const totalDaysFromDates = dateDuration?.totalDays ?? null
-  const timelineWeeks = parseInt(project?.timeline, 10) || 5
-  const totalDays = totalDaysFromDates ?? timelineWeeks * 7
-  const targetWeeks = totalDays / 7
+  const dateDuration = getProjectDurationFromDates(project);
+  const totalDaysFromDates = dateDuration?.totalDays ?? null;
+  const timelineWeeks = parseInt(project?.timeline, 10) || 5;
+  const totalDays = totalDaysFromDates ?? timelineWeeks * 7;
+  const targetWeeks = totalDays / 7;
 
   return `OUTPUT FORMAT (JSON only):
 
@@ -137,5 +153,5 @@ RULES (project has ${totalDays} days total):
 - If no subSteps, omit the field or use empty array.
 - For each sub-step, output a "todos" array with 2–6 granular, actionable tasks. Base them on: (a) sub-step title, (b) phase duration (days = weeks×7), (c) phase deliverables. Tasks should be specific (e.g. "Create wireframe for main flow", "Implement API integration", "Run unit tests").
 - For each sub-step, output a "requiredAttachments" array. Predict what files/images the client will need to provide (e.g. logo, brand assets, content images, copy). Use label (required) and optional description. Order by relevance. Use empty array if none needed.
-- BIAS: Prefer shorter phase durations and fewer tasks per phase. Keep projects lean and achievable.`
+- BIAS: Prefer shorter phase durations and fewer tasks per phase. Keep projects lean and achievable.`;
 }

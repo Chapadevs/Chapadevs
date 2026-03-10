@@ -1,15 +1,15 @@
-import mongoose from 'mongoose'
+import mongoose from "mongoose";
 
 const projectActivitySchema = new mongoose.Schema(
   {
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Project',
+      ref: "Project",
       required: true,
     },
     actorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     action: {
@@ -31,12 +31,15 @@ const projectActivitySchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
-)
+  },
+);
 
-projectActivitySchema.index({ projectId: 1, createdAt: -1 })
-projectActivitySchema.index({ actorId: 1, createdAt: -1 })
+projectActivitySchema.index({ projectId: 1, createdAt: -1 });
+projectActivitySchema.index({ actorId: 1, createdAt: -1 });
 
-const ProjectActivity = mongoose.model('ProjectActivity', projectActivitySchema)
+const ProjectActivity = mongoose.model(
+  "ProjectActivity",
+  projectActivitySchema,
+);
 
-export default ProjectActivity
+export default ProjectActivity;

@@ -3,14 +3,17 @@
  * Universal AI response parser for Sandpack rendering
  */
 
-import { unescapeCode } from '../../utils/codeUtils.js';
-import { KNOWN_COMPONENT_NAMES, KNOWN_FILE_PATHS } from './templateStructure.js';
+import { unescapeCode } from "../../utils/codeUtils.js";
+import {
+  KNOWN_COMPONENT_NAMES,
+  KNOWN_FILE_PATHS,
+} from "./templateStructure.js";
 
 export function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return hash.toString(36);
@@ -20,7 +23,13 @@ export function hashString(str) {
  * Replace unsafe images. Allows data:image/ (Gemini-generated) and picsum/placehold.
  */
 export function fixBrokenImageSrc(html) {
-  const allowlist = ["picsum.photos", "placehold.co", "placeholder.com", "data:image/", "storage.googleapis.com"];
+  const allowlist = [
+    "picsum.photos",
+    "placehold.co",
+    "placeholder.com",
+    "data:image/",
+    "storage.googleapis.com",
+  ];
 
   const isAllowed = (src) =>
     (src || "").startsWith("data:image/") ||
@@ -37,7 +46,7 @@ export function fixBrokenImageSrc(html) {
         : "Preview";
 
       return `<img${before} src="https://placehold.co/400x300?text=${alt}"${after}>`;
-    }
+    },
   );
 }
 
@@ -85,7 +94,10 @@ export function injectGeneratedImages(code, files, dataUrls) {
     const replaceLogo = (s) => s.replace(image1SrcRegex(), 'src="__LOGO__"');
     const hasImage1InLogoContext = (s) => image1SrcRegex().test(s);
     // 1. Inside <header> or <nav>: all __IMAGE_1__ there = logo
-    out = out.replace(/<(?:header|nav)[^>]*>[\s\S]*?<\/(?:header|nav)>/gi, replaceLogo);
+    out = out.replace(
+      /<(?:header|nav)[^>]*>[\s\S]*?<\/(?:header|nav)>/gi,
+      replaceLogo,
+    );
     // 2. In Header.js(x): the only img is the logo
     if (filePath && /\bHeader\.(js|jsx)$/i.test(String(filePath))) {
       out = out.replace(image1SrcRegex(), 'src="__LOGO__"');
@@ -94,7 +106,7 @@ export function injectGeneratedImages(code, files, dataUrls) {
     out = out.replace(/<button[^>]*>[\s\S]*?<\/button>/gi, (block) => {
       if (
         /<img[\s\S]*?>/.test(block) &&
-        (/object-contain|w-16|h-16|alt=["'][^"']*logo[^"']*["']/i.test(block)) &&
+        /object-contain|w-16|h-16|alt=["'][^"']*logo[^"']*["']/i.test(block) &&
         hasImage1InLogoContext(block)
       ) {
         return replaceLogo(block);
@@ -104,8 +116,10 @@ export function injectGeneratedImages(code, files, dataUrls) {
     // 4. Any img with object-contain (logo style) and src=__IMAGE_1__ -> logo. Hero uses object-cover.
     out = out.replace(/<img[\s\S]*?>/gi, (tag) => {
       if (!hasImage1InLogoContext(tag)) return tag;
-      if (/object-contain/.test(tag) && !/object-cover/.test(tag)) return replaceLogo(tag);
-      if (/\b(?:w-16|h-16)\b/.test(tag) && !/object-cover|w-full/.test(tag)) return replaceLogo(tag);
+      if (/object-contain/.test(tag) && !/object-cover/.test(tag))
+        return replaceLogo(tag);
+      if (/\b(?:w-16|h-16)\b/.test(tag) && !/object-cover|w-full/.test(tag))
+        return replaceLogo(tag);
       if (/alt=["'][^"']*logo[^"']*["']/i.test(tag)) return replaceLogo(tag);
       return tag;
     });
@@ -464,18 +478,33 @@ export default function Sidebar({ onNav, onNavigate }) {
 
 /** Map: component name -> { path, fallback } for ensureRequiredFiles. */
 const REQUIRED_IMPORTS = {
-  ContactPage: { path: '/pages/ContactPage.js', fallback: FALLBACK_CONTACT_PAGE },
-  HomePage: { path: '/pages/HomePage.js', fallback: FALLBACK_HOME_PAGE },
-  AboutPage: { path: '/pages/AboutPage.js', fallback: FALLBACK_ABOUT_PAGE },
-  ServicesPage: { path: '/pages/ServicesPage.js', fallback: FALLBACK_SERVICES_PAGE },
-  ProductsPage: { path: '/pages/ProductsPage.js', fallback: FALLBACK_PRODUCTS_PAGE },
-  LoginPage: { path: '/pages/LoginPage.js', fallback: FALLBACK_LOGIN_PAGE },
-  RegisterPage: { path: '/pages/RegisterPage.js', fallback: FALLBACK_REGISTER_PAGE },
-  DashboardPage: { path: '/pages/DashboardPage.js', fallback: FALLBACK_DASHBOARD_PAGE },
-  UsersPage: { path: '/pages/UsersPage.js', fallback: FALLBACK_USERS_PAGE },
-  Header: { path: '/components/Header.js', fallback: FALLBACK_HEADER },
-  Footer: { path: '/components/Footer.js', fallback: FALLBACK_FOOTER },
-  Sidebar: { path: '/components/Sidebar.js', fallback: FALLBACK_SIDEBAR },
+  ContactPage: {
+    path: "/pages/ContactPage.js",
+    fallback: FALLBACK_CONTACT_PAGE,
+  },
+  HomePage: { path: "/pages/HomePage.js", fallback: FALLBACK_HOME_PAGE },
+  AboutPage: { path: "/pages/AboutPage.js", fallback: FALLBACK_ABOUT_PAGE },
+  ServicesPage: {
+    path: "/pages/ServicesPage.js",
+    fallback: FALLBACK_SERVICES_PAGE,
+  },
+  ProductsPage: {
+    path: "/pages/ProductsPage.js",
+    fallback: FALLBACK_PRODUCTS_PAGE,
+  },
+  LoginPage: { path: "/pages/LoginPage.js", fallback: FALLBACK_LOGIN_PAGE },
+  RegisterPage: {
+    path: "/pages/RegisterPage.js",
+    fallback: FALLBACK_REGISTER_PAGE,
+  },
+  DashboardPage: {
+    path: "/pages/DashboardPage.js",
+    fallback: FALLBACK_DASHBOARD_PAGE,
+  },
+  UsersPage: { path: "/pages/UsersPage.js", fallback: FALLBACK_USERS_PAGE },
+  Header: { path: "/components/Header.js", fallback: FALLBACK_HEADER },
+  Footer: { path: "/components/Footer.js", fallback: FALLBACK_FOOTER },
+  Sidebar: { path: "/components/Sidebar.js", fallback: FALLBACK_SIDEBAR },
 };
 
 /**
@@ -485,8 +514,9 @@ const REQUIRED_IMPORTS = {
  */
 function extractImportsFromApp(appCode) {
   const imports = new Set();
-  if (!appCode || typeof appCode !== 'string') return imports;
-  const regex = /import\s+(\w+)\s+from\s+['"]\.\/(?:pages|components)\/[\w/]+['"]/g;
+  if (!appCode || typeof appCode !== "string") return imports;
+  const regex =
+    /import\s+(\w+)\s+from\s+['"]\.\/(?:pages|components)\/[\w/]+['"]/g;
   let m;
   while ((m = regex.exec(appCode)) !== null) {
     imports.add(m[1]);
@@ -500,8 +530,8 @@ function extractImportsFromApp(appCode) {
  * @param {object} files - websitePreviewFiles object (mutated in place)
  */
 export function ensureRequiredFiles(files) {
-  if (!files || typeof files !== 'object') return;
-  const appCode = files['/App.js'] || files['App.js'] || '';
+  if (!files || typeof files !== "object") return;
+  const appCode = files["/App.js"] || files["App.js"] || "";
   const imports = extractImportsFromApp(appCode);
   for (const [name, { path, fallback }] of Object.entries(REQUIRED_IMPORTS)) {
     const pathNoLeading = path.slice(1);
@@ -528,8 +558,13 @@ export function normalizePreviewMetadata(metadata) {
       }
     }
   }
-  if (metadata.websitePreviewCode && typeof metadata.websitePreviewCode === "string") {
-    metadata.websitePreviewCode = normalizeComponentCode(metadata.websitePreviewCode);
+  if (
+    metadata.websitePreviewCode &&
+    typeof metadata.websitePreviewCode === "string"
+  ) {
+    metadata.websitePreviewCode = normalizeComponentCode(
+      metadata.websitePreviewCode,
+    );
   }
 }
 
@@ -538,7 +573,7 @@ export function normalizePreviewMetadata(metadata) {
 /** Strip markdown code fences from code blocks. */
 function removeMarkdown(code) {
   return code.replace(/```[\s\S]*?```/g, (m) =>
-    m.replace(/```[a-z]*/gi, "").replace(/```/g, "")
+    m.replace(/```[a-z]*/gi, "").replace(/```/g, ""),
   );
 }
 
@@ -548,8 +583,10 @@ function fixInvalidEscapes(code) {
     .replace(/\\u(?!([0-9a-fA-F]{4}))/g, "\\\\u")
     .replace(/\\'(?=\s*[,\]\}])/g, "'")
     .replace(/([a-zA-Z])'([a-zA-Z])/g, "$1\\'$2")
-    .replace(/(?<![:\,\[\(\{\=]\s*)(\s)'([A-Z][a-zA-Z0-9_]*)'(\s)/g, (m, before, word, after) =>
-      `${before}\\'${word}\\'${after}`)
+    .replace(
+      /(?<![:\,\[\(\{\=]\s*)(\s)'([A-Z][a-zA-Z0-9_]*)'(\s)/g,
+      (m, before, word, after) => `${before}\\'${word}\\'${after}`,
+    )
     .replace(/'\s*;/g, "'");
 }
 
@@ -577,64 +614,123 @@ function fixComponentDeclarations(code, filePath, componentNamesRegex) {
   let c = code;
 
   if (!c.includes("function App") && !c.includes("const App")) {
-    c = c.replace(/(^|\n)(\s*)App\s*\(\s*\)\s*(=>\s*)?\{/gm, "$1$2function App() {");
+    c = c.replace(
+      /(^|\n)(\s*)App\s*\(\s*\)\s*(=>\s*)?\{/gm,
+      "$1$2function App() {",
+    );
   }
   c = c.replace(/function App\s*\(\s*\)\s*=>\s*\{/g, "function App() {");
 
-  c = c.replace(new RegExp(`(^|\\n)(\\s*)(${componentNamesRegex})(\\s*)(\\()`, "g"), (m, start, sp, name, sp2, paren, offset, fullString) => {
-    const lineStart = offset > 0 ? fullString.lastIndexOf("\n", offset - 1) + 1 : 0;
-    const line = fullString.slice(lineStart, offset);
-    if (new RegExp(`(?:function|export\\s+default\\s+function|const)\\s+${name}\\b`).test(line)) return m;
-    return `${start}${sp}export default function ${name}${sp2}${paren}`;
-  });
-  c = c.replace(/export default function export default function /g, "export default function ");
+  c = c.replace(
+    new RegExp(`(^|\\n)(\\s*)(${componentNamesRegex})(\\s*)(\\()`, "g"),
+    (m, start, sp, name, sp2, paren, offset, fullString) => {
+      const lineStart =
+        offset > 0 ? fullString.lastIndexOf("\n", offset - 1) + 1 : 0;
+      const line = fullString.slice(lineStart, offset);
+      if (
+        new RegExp(
+          `(?:function|export\\s+default\\s+function|const)\\s+${name}\\b`,
+        ).test(line)
+      )
+        return m;
+      return `${start}${sp}export default function ${name}${sp2}${paren}`;
+    },
+  );
+  c = c.replace(
+    /export default function export default function /g,
+    "export default function ",
+  );
 
-  const mainExportMatch = c.match(new RegExp(`export default function (${componentNamesRegex})\\s*\\(`));
+  const mainExportMatch = c.match(
+    new RegExp(`export default function (${componentNamesRegex})\\s*\\(`),
+  );
   if (mainExportMatch) {
     const correctName = mainExportMatch[1];
-    c = c.replace(/\bexport default App\s*;?/g, `export default ${correctName};`);
+    c = c.replace(
+      /\bexport default App\s*;?/g,
+      `export default ${correctName};`,
+    );
   }
 
-  if (filePath && !/(^|\/)App\.(js|jsx)$/.test(filePath) && c.includes("export default App")) {
+  if (
+    filePath &&
+    !/(^|\/)App\.(js|jsx)$/.test(filePath) &&
+    c.includes("export default App")
+  ) {
     const base = filePath.replace(/.*\//, "").replace(/\.(js|jsx)$/, "");
     const expectedName = base && /^[A-Z][a-zA-Z0-9]*$/.test(base) ? base : null;
     if (expectedName) {
-      c = c.replace(/\bexport default function App\s*\(/g, `export default function ${expectedName}(`);
+      c = c.replace(
+        /\bexport default function App\s*\(/g,
+        `export default function ${expectedName}(`,
+      );
       c = c.replace(/\bfunction App\s*\(/g, `function ${expectedName}(`);
-      c = c.replace(/\bexport default App\s*;?/g, `export default ${expectedName};`);
+      c = c.replace(
+        /\bexport default App\s*;?/g,
+        `export default ${expectedName};`,
+      );
     }
   }
 
   // Fix inner component wrongly named App: when page file uses <StatCard> etc. but defines const App =, rename it
   if (filePath && /\/pages\/\w+Page\.(js|jsx)$/.test(filePath)) {
-    if (c.includes('<StatCard') && !c.match(/(?:const|function)\s+StatCard\b/)) {
-      c = c.replace(/\bconst App\s*=\s*\(/g, 'const StatCard = (');
+    if (
+      c.includes("<StatCard") &&
+      !c.match(/(?:const|function)\s+StatCard\b/)
+    ) {
+      c = c.replace(/\bconst App\s*=\s*\(/g, "const StatCard = (");
     }
-    if (c.includes('<QuickActionButton') && !c.match(/(?:const|function)\s+QuickActionButton\b/)) {
-      c = c.replace(/\bconst App\s*=\s*\(/g, 'const QuickActionButton = (');
+    if (
+      c.includes("<QuickActionButton") &&
+      !c.match(/(?:const|function)\s+QuickActionButton\b/)
+    ) {
+      c = c.replace(/\bconst App\s*=\s*\(/g, "const QuickActionButton = (");
     }
   }
 
   // Fix LoginPage/RegisterPage: onNavigate('page') must be onNavigate(e, 'page') so parent receives page correctly
   if (filePath && /\/pages\/(Login|Register)Page\.(js|jsx)$/.test(filePath)) {
-    c = c.replace(/onNavigate\s*\(\s*['"]dashboard['"]\s*\)/g, 'onNavigate(e, \'dashboard\')');
-    c = c.replace(/onNavigate\s*\(\s*['"]login['"]\s*\)/g, 'onNavigate(e, \'login\')');
-    c = c.replace(/onNavigate\s*\(\s*['"]register['"]\s*\)/g, 'onNavigate(e, \'register\')');
+    c = c.replace(
+      /onNavigate\s*\(\s*['"]dashboard['"]\s*\)/g,
+      "onNavigate(e, 'dashboard')",
+    );
+    c = c.replace(
+      /onNavigate\s*\(\s*['"]login['"]\s*\)/g,
+      "onNavigate(e, 'login')",
+    );
+    c = c.replace(
+      /onNavigate\s*\(\s*['"]register['"]\s*\)/g,
+      "onNavigate(e, 'register')",
+    );
   }
 
   const nonAppComponentPattern = componentNamesRegex.replace(/\|App$/, "");
-  const hasOtherExportDefaultFunction = new RegExp(`export default function (?:${nonAppComponentPattern})\\s*\\(`).test(c);
+  const hasOtherExportDefaultFunction = new RegExp(
+    `export default function (?:${nonAppComponentPattern})\\s*\\(`,
+  ).test(c);
   // Page files (DashboardPage, etc.) export the page component and may have inner helpers (StatCard, QuickActionButton).
   // Never replace those inner components with App.
   const isPageFile = filePath && /\/pages\/\w+Page\.(js|jsx)$/.test(filePath);
-  const pageBase = isPageFile ? filePath.replace(/.*\//, "").replace(/\.(js|jsx)$/, "") : null;
-  const hasCorrectPageExport = pageBase && new RegExp(`export default\\s+${pageBase}\\s*;?`).test(c);
+  const pageBase = isPageFile
+    ? filePath.replace(/.*\//, "").replace(/\.(js|jsx)$/, "")
+    : null;
+  const hasCorrectPageExport =
+    pageBase && new RegExp(`export default\\s+${pageBase}\\s*;?`).test(c);
   const skipCreateApp = isPageFile && hasCorrectPageExport;
-  if (!skipCreateApp && !hasOtherExportDefaultFunction && !c.includes("function App") && !c.includes("const App")) {
+  if (
+    !skipCreateApp &&
+    !hasOtherExportDefaultFunction &&
+    !c.includes("function App") &&
+    !c.includes("const App")
+  ) {
     c = c.replace(/(function|const|class)\s+([A-Z][a-zA-Z0-9_]*)/, "$1 App");
   }
 
-  if (!skipCreateApp && !hasOtherExportDefaultFunction && !c.includes("export default App")) {
+  if (
+    !skipCreateApp &&
+    !hasOtherExportDefaultFunction &&
+    !c.includes("export default App")
+  ) {
     c = c.replace(/export default\s+\w+;?/g, "");
     if (!c.endsWith(";")) c += ";";
     c += "\n\nexport default App;";
@@ -668,7 +764,7 @@ function safeSyntaxFix(code) {
 }
 
 /** Regex pattern for component names (from templateStructure registry). */
-const COMPONENT_NAMES_REGEX = KNOWN_COMPONENT_NAMES.join('|');
+const COMPONENT_NAMES_REGEX = KNOWN_COMPONENT_NAMES.join("|");
 
 /**
  * Normalizes AI component code into valid React component.
@@ -690,7 +786,6 @@ export function normalizeComponentCode(code, filePath) {
 
   return c.trim();
 }
-
 
 /**
  * Find the index of the closing quote for the "code" JSON string value.
@@ -741,7 +836,9 @@ function extractReactCodeFromRaw(text) {
   const idxImport = text.indexOf("import ");
   const idxFunctionApp = text.indexOf("function App");
   const idxConstApp = text.indexOf("const App ");
-  const candidates = [idxImport, idxFunctionApp, idxConstApp].filter((i) => i !== -1);
+  const candidates = [idxImport, idxFunctionApp, idxConstApp].filter(
+    (i) => i !== -1,
+  );
   if (candidates.length === 0) return "";
   const start = Math.min(...candidates);
   const exportIdx = text.indexOf("export default App");
@@ -758,7 +855,8 @@ function extractFilesFromRawText(text) {
   if (!text || text.indexOf('"files"') === -1) return null;
   const out = {};
   for (const path of KNOWN_FILE_PATHS) {
-    const content = extractStringValue(text, path) || extractStringValue(text, path.slice(1));
+    const content =
+      extractStringValue(text, path) || extractStringValue(text, path.slice(1));
     if (content && content.length > 10) out[path] = content;
   }
   return Object.keys(out).length > 0 ? out : null;
@@ -780,16 +878,20 @@ function repairAndParseManual(text) {
       const start = firstQuote + 1;
       const end = findCodeStringEnd(text, start);
       const lastBrace = text.lastIndexOf("}");
-      code = end !== -1
-        ? text.substring(start, end)
-        : text.substring(start, Math.max(start, lastBrace));
+      code =
+        end !== -1
+          ? text.substring(start, end)
+          : text.substring(start, Math.max(start, lastBrace));
     }
   }
 
   if (text.indexOf('"files"') !== -1) {
     files = extractFilesFromRawText(text);
     if (!code && files) code = files["/App.js"] || files["App.js"] || null;
-    if (!code) code = extractStringValue(text, "/App.js") || extractStringValue(text, "App.js");
+    if (!code)
+      code =
+        extractStringValue(text, "/App.js") ||
+        extractStringValue(text, "App.js");
   }
 
   if (!code || code.length < 20) {
@@ -798,7 +900,9 @@ function repairAndParseManual(text) {
   }
 
   if (!code) {
-    const looksLikeJson = text.trim().startsWith("{") && (text.includes('"analysis"') || text.includes('"files"'));
+    const looksLikeJson =
+      text.trim().startsWith("{") &&
+      (text.includes('"analysis"') || text.includes('"files"'));
     return {
       analysis: "No JSON detected. Using raw response.",
       code: looksLikeJson ? "" : text,
@@ -819,9 +923,7 @@ export function parseCombinedResponse(text) {
   let clean = text.trim();
 
   // Remove markdown wrappers
-  clean = clean
-    .replace(/^```[a-z]*\n?/i, "")
-    .replace(/```$/i, "");
+  clean = clean.replace(/^```[a-z]*\n?/i, "").replace(/```$/i, "");
 
   // Try extract JSON
   const match = clean.match(/\{[\s\S]*\}/);
@@ -846,7 +948,10 @@ export function parseCombinedResponse(text) {
       const normPath = path.startsWith("/") ? path : `/${path}`;
       let c = unescapeCode(content);
       c = fixBrokenImageSrc(c);
-      c = c.replace(/^```[a-z]*\n?/gi, "").replace(/\n?```$/i, "").trim();
+      c = c
+        .replace(/^```[a-z]*\n?/gi, "")
+        .replace(/\n?```$/i, "")
+        .trim();
       c = normalizeComponentCode(c, normPath);
       normalized[normPath] = c;
     }

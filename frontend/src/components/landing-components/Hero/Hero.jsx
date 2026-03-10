@@ -55,7 +55,7 @@ const Hero = () => {
                 <Button 
                   type="submit" 
                   size="sm"
-                  className="rounded-lg shadow-sm"
+                  className="rounded-none shadow-sm"
                   to="/login"
                 >
                   Generate

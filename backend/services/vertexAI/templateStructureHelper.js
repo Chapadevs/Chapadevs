@@ -20,12 +20,12 @@ import {
   MANAGEMENT_UI_RULES,
   CODE_RULES,
   TEMPLATES,
-} from './templateStructure.js';
+} from "./templateStructure.js";
 
 // Project.projectType enum values that map directly to templates
 const PROJECT_TYPE_TO_TEMPLATE = {
-  'E-commerce Store': 'ecommerce',
-  'Management Panel / ERP / CRM': 'management',
+  "E-commerce Store": "ecommerce",
+  "Management Panel / ERP / CRM": "management",
 };
 
 // ---------------------------------------------------------------------------
@@ -34,17 +34,19 @@ const PROJECT_TYPE_TO_TEMPLATE = {
 // (user intent: selling). E.g. "management and sales" → ecommerce.
 // ---------------------------------------------------------------------------
 export function getTemplateType(niche) {
-  const lower = (niche || '').toLowerCase();
+  const lower = (niche || "").toLowerCase();
   const hasManagement = MANAGEMENT_KEYWORDS.some((kw) => lower.includes(kw));
   const hasEcommerce = ECOMMERCE_KEYWORDS.some((kw) => lower.includes(kw));
 
   if (hasManagement && hasEcommerce) {
-    const sellingIntent = ['sales', 'shop', 'store', 'selling'].some((kw) => lower.includes(kw));
-    if (sellingIntent) return 'ecommerce';
+    const sellingIntent = ["sales", "shop", "store", "selling"].some((kw) =>
+      lower.includes(kw),
+    );
+    if (sellingIntent) return "ecommerce";
   }
-  if (hasManagement) return 'management';
-  if (hasEcommerce) return 'ecommerce';
-  return 'business';
+  if (hasManagement) return "management";
+  if (hasEcommerce) return "ecommerce";
+  return "business";
 }
 
 // ---------------------------------------------------------------------------
@@ -57,22 +59,25 @@ export function getTemplateType(niche) {
 // @returns {{ type: string, source: 'previewTemplate' | 'projectType' | 'prompt' }}
 // ---------------------------------------------------------------------------
 export function resolveTemplateType(projectType, prompt, previewTemplate) {
-  if (previewTemplate && previewTemplate !== 'auto') {
-    const valid = ['ecommerce', 'management', 'business'];
+  if (previewTemplate && previewTemplate !== "auto") {
+    const valid = ["ecommerce", "management", "business"];
     if (valid.includes(previewTemplate)) {
-      return { type: previewTemplate, source: 'previewTemplate' };
+      return { type: previewTemplate, source: "previewTemplate" };
     }
   }
   // When auto: prompt takes priority if it has explicit template intent (user's current request)
-  const promptType = getTemplateType(prompt || '');
-  if (promptType !== 'business') {
-    return { type: promptType, source: 'prompt' };
+  const promptType = getTemplateType(prompt || "");
+  if (promptType !== "business") {
+    return { type: promptType, source: "prompt" };
   }
   if (projectType && PROJECT_TYPE_TO_TEMPLATE[projectType]) {
-    return { type: PROJECT_TYPE_TO_TEMPLATE[projectType], source: 'projectType' };
+    return {
+      type: PROJECT_TYPE_TO_TEMPLATE[projectType],
+      source: "projectType",
+    };
   }
   const niche = projectType || prompt;
-  return { type: getTemplateType(niche), source: 'prompt' };
+  return { type: getTemplateType(niche), source: "prompt" };
 }
 
 // ---------------------------------------------------------------------------
@@ -91,25 +96,27 @@ export function getTemplate(projectType, prompt, previewTemplate) {
 // E.g. "website for grapes" → purple; "I want a blue store" → blue
 // ---------------------------------------------------------------------------
 export function extractColorScheme(prompt) {
-  const lower = (prompt || '').toLowerCase();
+  const lower = (prompt || "").toLowerCase();
 
   // 1. Literal color keywords — user explicitly asked for a color
   for (const color of Object.keys(COLOR_MAP)) {
     if (lower.includes(color)) {
       const primary = COLOR_MAP[color];
-      const secondary = primary.replace('-600', '-500').replace('-500', '-400');
+      const secondary = primary.replace("-600", "-500").replace("-500", "-400");
       return `${primary}, ${secondary}`;
     }
   }
 
   // 2. Contextual — infer from subject/theme (e.g. grapes→purple, lemon→yellow)
   // Check longer keys first so "blueberry" wins over "berry"
-  const contextKeys = Object.keys(CONTEXT_TO_COLOR).sort((a, b) => b.length - a.length);
+  const contextKeys = Object.keys(CONTEXT_TO_COLOR).sort(
+    (a, b) => b.length - a.length,
+  );
   for (const keyword of contextKeys) {
     if (lower.includes(keyword)) {
       const colorKey = CONTEXT_TO_COLOR[keyword];
       const primary = COLOR_MAP[colorKey] || COLOR_MAP.purple;
-      const secondary = primary.replace('-600', '-500').replace('-500', '-400');
+      const secondary = primary.replace("-600", "-500").replace("-500", "-400");
       return `${primary}, ${secondary}`;
     }
   }
@@ -121,7 +128,7 @@ export function extractColorScheme(prompt) {
 // extractStyle — finds style keyword in prompt
 // ---------------------------------------------------------------------------
 export function extractStyle(prompt) {
-  const lower = (prompt || '').toLowerCase();
+  const lower = (prompt || "").toLowerCase();
   for (const keyword of STYLE_KEYWORDS) {
     if (lower.includes(keyword)) return keyword;
   }
@@ -153,53 +160,54 @@ export function buildFontRulesPrompt(style) {
 // ---------------------------------------------------------------------------
 export function buildPageStructurePrompt(template, businessName, colorScheme) {
   const lines = [
-    'PAGE STRUCTURE (each page is an inner component, switched via currentPage useState):',
+    "PAGE STRUCTURE (each page is an inner component, switched via currentPage useState):",
   ];
 
   for (const [pageName, pageDef] of Object.entries(template.pages)) {
     const displayName = pageName.charAt(0).toUpperCase() + pageName.slice(1);
-    lines.push('');
-    lines.push(
-      `${displayName}Page (currentPage === '${pageDef.stateValue}'):`
-    );
+    lines.push("");
+    lines.push(`${displayName}Page (currentPage === '${pageDef.stateValue}'):`);
 
     pageDef.sections.forEach((section, index) => {
       const instruction = section.instruction
         .replace(/\{businessName\}/g, businessName)
         .replace(/\{colorScheme\}/g, colorScheme);
-      lines.push(`  ${index + 1}. ${section.id.charAt(0).toUpperCase() + section.id.slice(1)}: ${instruction}`);
+      lines.push(
+        `  ${index + 1}. ${section.id.charAt(0).toUpperCase() + section.id.slice(1)}: ${instruction}`,
+      );
     });
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------
 // buildSharedComponentsPrompt — header + footer (or sidebar for management)
 // ---------------------------------------------------------------------------
 export function buildSharedComponentsPrompt(template, businessName) {
-  const navList = template.navPages.join(', ');
-  if (template.type === 'management') {
+  const navList = template.navPages.join(", ");
+  if (template.type === "management") {
     return `Shared Components (management panel layout):
 - ${SHARED_COMPONENTS_MANAGEMENT.sidebar} Main nav: Dashboard, Products, Users. Login/Register via header when not on auth pages.
 - ${SHARED_COMPONENTS_MANAGEMENT.header}`;
   }
   return `Shared Components (present on ALL pages):
 - ${SHARED_COMPONENTS.header.replace(/for each page/, `for each page (${navList})`)}
-- ${SHARED_COMPONENTS.footer.replace('Business name', `Business name "${businessName}"`)}`;
+- ${SHARED_COMPONENTS.footer.replace("Business name", `Business name "${businessName}"`)}`;
 }
 
 // ---------------------------------------------------------------------------
 // buildUIRulesPrompt — UI richness requirements (management uses minimal rules)
 // ---------------------------------------------------------------------------
 export function buildUIRulesPrompt(template) {
-  const rules = template?.type === 'management' ? MANAGEMENT_UI_RULES : UI_RULES;
-  return `UI REQUIREMENTS:\n${rules.map((r) => `- ${r}`).join('\n')}`;
+  const rules =
+    template?.type === "management" ? MANAGEMENT_UI_RULES : UI_RULES;
+  return `UI REQUIREMENTS:\n${rules.map((r) => `- ${r}`).join("\n")}`;
 }
 
 // ---------------------------------------------------------------------------
 // buildCodeRulesPrompt — compact code pattern instructions
 // ---------------------------------------------------------------------------
 export function buildCodeRulesPrompt() {
-  return `COMPACT CODE PATTERN (CRITICAL — keeps output within token limit):\n${CODE_RULES.map((r) => `- ${r}`).join('\n')}`;
+  return `COMPACT CODE PATTERN (CRITICAL — keeps output within token limit):\n${CODE_RULES.map((r) => `- ${r}`).join("\n")}`;
 }

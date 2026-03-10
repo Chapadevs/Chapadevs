@@ -6,7 +6,8 @@ import {
   SidebarProvider, 
   SidebarInset, 
   Button,
-  Badge
+  Badge,
+  HoverGuidance
 } from '../../../components/ui-components'
 import { isProgrammer } from '../../../utils/roles'
 import { projectAPI, assignmentAPI } from '../../../services/api'
@@ -312,13 +313,26 @@ function ProjectDetail() {
           />
 
           {/* Constrained width, centered content per design system */}
-          <SidebarInset className="flex flex-col items-center p-4 md:p-6">
+          <SidebarInset className="flex flex-col items-center pt-2 pb-4 px-4 md:pt-3 md:pb-6 md:px-6">
             <div className="w-full max-w-3xl mx-auto min-w-0">
-              <div className="mb-6 flex flex-col items-center gap-2">
-                <Badge variant={project.status?.toLowerCase() || 'default'} className="text-[10px] px-1.5 py-0 h-fit leading-none">
-                  {project.status}
-                </Badge>
-                <h1 className="text-lg font-bold text-center">{project.title}</h1>
+              <div className="mb-4 flex flex-col items-center gap-1">
+                <h1 className="text-xl md:text-2xl font-bold text-center">{project.title}</h1>
+                <HoverGuidance
+                  content={
+                    {
+                      holding: 'Project is on hold. Resume when ready.',
+                      open: 'Project is open. Client reviews and marks ready; programmers create timeline.',
+                      ready: 'Team confirmed ready. Programmer can start development.',
+                      development: 'Development in progress.',
+                      completed: 'Project completed.',
+                      cancelled: 'Project cancelled.',
+                    }[project.status?.toLowerCase()] ?? 'Project status.'
+                  }
+                >
+                  <Badge variant={project.status?.toLowerCase() || 'default'} className="text-xs px-2 py-0.5 h-fit leading-none">
+                    {project.status}
+                  </Badge>
+                </HoverGuidance>
               </div>
 
               {error && <Alert variant="error" className="mb-6">{error}</Alert>}

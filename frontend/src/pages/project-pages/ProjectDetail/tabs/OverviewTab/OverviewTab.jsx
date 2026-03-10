@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Alert } from '../../../../../components/ui-components'
+import { Button, Alert, HoverGuidance } from '../../../../../components/ui-components'
 import EditProjectModal from './components/EditProjectModal/EditProjectModal'
 
 import { formatDateOnly, getDueDateFromStartAndWeeks } from '../../../../../utils/dateUtils'
@@ -95,9 +95,11 @@ const OverviewTab = ({
             </p>
           )}
           {project.clientMarkedReady && project.status === 'Open' && permissions.isClientOwner && !permissions.allTeamConfirmedReady && (
-            <Alert variant="warning" className="text-sm">
-              Waiting for programmers to create project steps and mark themselves as ready. Then the project will move to Ready.
-            </Alert>
+            <HoverGuidance content="Waiting for programmers to create project steps and mark themselves as ready. Then the project will move to Ready.">
+              <p className="font-body text-sm text-amber-700 border-l-4 border-l-amber-500 pl-3 py-2 bg-amber-50/50">
+                Waiting for team to confirm ready.
+              </p>
+            </HoverGuidance>
           )}
           {project.status === 'Open' && !project.clientMarkedReady && permissions.isClientOwner && (
             <p className="text-ink-muted text-sm">Mark ready once you&apos;ve reviewed the project; then programmers can create the timeline and confirm ready.</p>
@@ -109,9 +111,11 @@ const OverviewTab = ({
               </Button>
             )}
             {(permissions.showMarkReady || permissions.canMarkReady) && !project.clientMarkedReady && (
-              <Button variant="primary" size="sm" onClick={onMarkReady} disabled={markingReady || !permissions.canMarkReady}>
-                {project.status === 'Open' ? "I've Reviewed" : 'Mark Ready'}
-              </Button>
+              <HoverGuidance content={project.status === 'Open' ? "Confirm you've reviewed the project. Programmers can then create the timeline." : 'Mark the project as ready for the next step.'}>
+                <Button variant="primary" size="sm" onClick={onMarkReady} disabled={markingReady || !permissions.canMarkReady}>
+                  {project.status === 'Open' ? "I've Reviewed" : 'Mark Ready'}
+                </Button>
+              </HoverGuidance>
             )}
             {permissions.canUnmarkReady && onUnmarkReady && (
               <Button variant="secondary" size="sm" onClick={onUnmarkReady} disabled={unmarkingReady}>
@@ -124,14 +128,18 @@ const OverviewTab = ({
               </Button>
             )}
             {(permissions.showConfirmReady || permissions.canConfirmReady) && (
-              <Button variant="primary" size="sm" onClick={onConfirmReady} disabled={confirmingReady || !permissions.canConfirmReady}>
-                {confirmingReady ? 'Confirming...' : "I'm Ready"}
-              </Button>
+              <HoverGuidance content="Confirm you're ready to start development. The project will move to Ready status.">
+                <Button variant="primary" size="sm" onClick={onConfirmReady} disabled={confirmingReady || !permissions.canConfirmReady}>
+                  {confirmingReady ? 'Confirming...' : "I'm Ready"}
+                </Button>
+              </HoverGuidance>
             )}
             {(permissions.showStartDevelopment || permissions.canStartDevelopment) && (
-              <Button variant="primary" size="sm" onClick={onStartDevelopment} disabled={startingDevelopment || !permissions.canStartDevelopment}>
-                {startingDevelopment ? 'Starting...' : 'Start Development'}
-              </Button>
+              <HoverGuidance content="Start active development. The project status will change to Development.">
+                <Button variant="primary" size="sm" onClick={onStartDevelopment} disabled={startingDevelopment || !permissions.canStartDevelopment}>
+                  {startingDevelopment ? 'Starting...' : 'Start Development'}
+                </Button>
+              </HoverGuidance>
             )}
             {permissions.canStopDevelopment && (
               <Button variant="primary" size="sm" onClick={onStopDevelopment} disabled={stoppingDevelopment}>
@@ -144,14 +152,19 @@ const OverviewTab = ({
               </Button>
             )}
             {(permissions.canMarkCompleted || permissions.showMarkCompleted) && (
-              <div className="flex flex-col gap-1">
-                {permissions.markCompletedBlockedReason && (
-                  <p className="font-body text-sm text-ink-muted">{permissions.markCompletedBlockedReason}</p>
-                )}
-                <Button variant="primary" size="sm" onClick={onMarkCompleted} disabled={markingCompleted || !permissions.canMarkCompleted} title={permissions.markCompletedBlockedReason || undefined}>
-                  {markingCompleted ? 'Updating...' : 'Mark as Completed'}
-                </Button>
-              </div>
+              <HoverGuidance
+                content={
+                  permissions.markCompletedBlockedReason
+                    ? permissions.markCompletedBlockedReason
+                    : 'Mark the project as completed. All phases must be done first.'
+                }
+              >
+                <div className="flex flex-col gap-1">
+                  <Button variant="primary" size="sm" onClick={onMarkCompleted} disabled={markingCompleted || !permissions.canMarkCompleted}>
+                    {markingCompleted ? 'Updating...' : 'Mark as Completed'}
+                  </Button>
+                </div>
+              </HoverGuidance>
             )}
           </div>
         </div>

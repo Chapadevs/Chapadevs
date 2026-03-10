@@ -28,8 +28,9 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
+  HoverGuidance,
+  NotificationBadge,
 } from "@/components/ui-components";
-import NotificationBadge from "../../../../../components/ui-components/NotificationBadge/NotificationBadge";
 import StatusDropdown from "../../../../../components/ui-components/StatusDropdown/StatusDropdown";
 import { Avatar, AvatarImage, AvatarFallback } from "../../../../../components/shadcn-components/shadcn-avatar/avatar";
 import { useAuth } from "../../../../../context/AuthContext";
@@ -104,33 +105,37 @@ const ProjectSidebar = ({
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="sm"
-                  onClick={() => onTabChange("overview")}
-                  isActive={activeTab === "overview"}
-                  tooltip="Overview"
-                  className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-                >
-                  <LayoutDashboard className="size-3 shrink-0" />
-                  <span className="group-data-[collapsible=icon]:hidden">Overview</span>
-                  {hasOverviewNotifications && <NotificationBadge />}
-                </SidebarMenuButton>
+                <HoverGuidance content="Project summary, dates, and status actions.">
+                  <SidebarMenuButton
+                    size="sm"
+                    onClick={() => onTabChange("overview")}
+                    isActive={activeTab === "overview"}
+                    tooltip="Overview"
+                    className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                  >
+                    <LayoutDashboard className="size-3 shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">Overview</span>
+                    {hasOverviewNotifications && <NotificationBadge />}
+                  </SidebarMenuButton>
+                </HoverGuidance>
               </SidebarMenuItem>
 
               <Collapsible asChild defaultOpen={workspaceDefaultOpen} className="group/collapsible">
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      size="sm"
-                      tooltip="Workspace"
-                      className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary [&>svg:last-child]:ml-auto [&>svg:last-child]:transition-transform group-data-[state=open]/collapsible:[&>svg:last-child]:rotate-90"
-                      data-active={isWorkspaceActive}
-                    >
-                      <FolderKanban className="size-3 shrink-0" />
-                      <span className="group-data-[collapsible=icon]:hidden">Workspace</span>
-                      {hasWorkspaceNotifications && <NotificationBadge />}
-                      <ChevronRight className="size-3 shrink-0 group-data-[collapsible=icon]:hidden" />
-                    </SidebarMenuButton>
+                    <HoverGuidance content="Timeline, AI Previews, Team, Assets, Calendar.">
+                      <SidebarMenuButton
+                        size="sm"
+                        tooltip="Workspace"
+                        className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[state=open]:bg-primary/10 data-[state=open]:text-primary [&>svg:last-child]:ml-auto [&>svg:last-child]:transition-transform group-data-[state=open]/collapsible:[&>svg:last-child]:rotate-90"
+                        data-active={isWorkspaceActive}
+                      >
+                        <FolderKanban className="size-3 shrink-0" />
+                        <span className="group-data-[collapsible=icon]:hidden">Workspace</span>
+                        {hasWorkspaceNotifications && <NotificationBadge />}
+                        <ChevronRight className="size-3 shrink-0 group-data-[collapsible=icon]:hidden" />
+                      </SidebarMenuButton>
+                    </HoverGuidance>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
@@ -138,16 +143,32 @@ const ProjectSidebar = ({
                         if (item.show === false) return null
                         return (
                           <SidebarMenuSubItem key={item.id}>
-                            <SidebarMenuSubButton
-                              size="sm"
-                              onClick={() => onTabChange(item.id)}
-                              isActive={activeTab === item.id}
-                              className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                            <HoverGuidance
+                              content={
+                                item.id === 'ai-preview'
+                                  ? 'Generate AI website previews. Up to 3 per project.'
+                                  : item.id === 'timeline'
+                                    ? 'Project phases and timeline. Create and manage cycles.'
+                                    : item.id === 'programmers'
+                                      ? 'Team members and assignments.'
+                                      : item.id === 'assets'
+                                        ? 'Project attachments and files.'
+                                        : item.id === 'calendar'
+                                          ? 'Project calendar view.'
+                                          : item.label
+                              }
                             >
-                              <item.icon className="size-3 shrink-0" />
-                              <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                              {item.hasNotification && <NotificationBadge />}
-                            </SidebarMenuSubButton>
+                              <SidebarMenuSubButton
+                                size="sm"
+                                onClick={() => onTabChange(item.id)}
+                                isActive={activeTab === item.id}
+                                className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                              >
+                                <item.icon className="size-3 shrink-0" />
+                                <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                                {item.hasNotification && <NotificationBadge />}
+                              </SidebarMenuSubButton>
+                            </HoverGuidance>
                           </SidebarMenuSubItem>
                         )
                       })}
@@ -157,31 +178,35 @@ const ProjectSidebar = ({
               </Collapsible>
 
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="sm"
-                  onClick={() => onTabChange("activity")}
-                  isActive={activeTab === "activity"}
-                  tooltip="Activity"
-                  className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-                >
-                  <History className="size-3 shrink-0" />
-                  <span className="group-data-[collapsible=icon]:hidden">Activity</span>
-                  {hasActivityNotifications && <NotificationBadge />}
-                </SidebarMenuButton>
+                <HoverGuidance content="Activity feed with recent project actions.">
+                  <SidebarMenuButton
+                    size="sm"
+                    onClick={() => onTabChange("activity")}
+                    isActive={activeTab === "activity"}
+                    tooltip="Activity"
+                    className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                  >
+                    <History className="size-3 shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">Activity</span>
+                    {hasActivityNotifications && <NotificationBadge />}
+                  </SidebarMenuButton>
+                </HoverGuidance>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="sm"
-                  onClick={() => onTabChange("comments")}
-                  isActive={activeTab === "comments"}
-                  tooltip="Chat"
-                  className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-                >
-                  <MessageSquare className="size-3 shrink-0" />
-                  <span className="group-data-[collapsible=icon]:hidden">Chat</span>
-                  {hasCommentsNotifications && <NotificationBadge />}
-                </SidebarMenuButton>
+                <HoverGuidance content="Project chat. Discuss with the team.">
+                  <SidebarMenuButton
+                    size="sm"
+                    onClick={() => onTabChange("comments")}
+                    isActive={activeTab === "comments"}
+                    tooltip="Chat"
+                    className="pl-0 pr-1.5 rounded-none [&>svg]:size-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                  >
+                    <MessageSquare className="size-3 shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">Chat</span>
+                    {hasCommentsNotifications && <NotificationBadge />}
+                  </SidebarMenuButton>
+                </HoverGuidance>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

@@ -1,40 +1,25 @@
-import express from 'express'
+import express from "express";
 import {
   getNotifications,
   getUnreadCount,
   markAsRead,
   markAllAsRead,
-  deleteNotification
-} from '../controllers/notificationController.js'
-import { protect } from '../middleware/authMiddleware.js'
+  deleteNotification,
+} from "../controllers/notificationController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // All routes are protected
-router.use(protect)
+router.use(protect);
 
-router.get('/unread-count', getUnreadCount)
-router.put('/read-all', markAllAsRead)
+router.get("/unread-count", getUnreadCount);
+router.put("/read-all", markAllAsRead);
 
-router.route('/')
-  .get(getNotifications)
+router.route("/").get(getNotifications);
 
-router.route('/:id/read')
-  .put(markAsRead)
+router.route("/:id/read").put(markAsRead);
 
-router.route('/:id')
-  .delete(deleteNotification)
+router.route("/:id").delete(deleteNotification);
 
-export default router
-
-
-
-
-
-
-
-
-
-
-
-
+export default router;

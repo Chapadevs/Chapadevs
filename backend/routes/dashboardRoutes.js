@@ -1,24 +1,12 @@
-import express from 'express'
-import { getDashboard } from '../controllers/dashboardController.js'
-import { protect } from '../middleware/authMiddleware.js'
+import express from "express";
+import { getDashboard } from "../controllers/dashboardController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // All routes are protected
-router.use(protect)
+router.use(protect);
 
-router.get('/', getDashboard)
+router.get("/", getDashboard);
 
-export default router
-
-
-
-
-
-
-
-
-
-
-
-
+export default router;
