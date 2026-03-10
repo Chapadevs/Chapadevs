@@ -56,7 +56,7 @@ const Login = () => {
       <div className="login-brand">
         <Link to="/" className="login-brand-link">
           <img
-            src="assets/logos/chapadevs-logo.png"
+            src="/assets/logos/chapadevs-logo.png"
             alt="Chapadevs"
             className="login-brand-logo"
           />
