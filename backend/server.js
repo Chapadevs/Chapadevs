@@ -37,10 +37,17 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
-// Middleware
+// CORS: allow FRONTEND_URL and www variant (e.g. chapadevs.com + www.chapadevs.com)
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+const corsOrigins = [frontendUrl];
+if (frontendUrl.startsWith("https://") && !frontendUrl.includes("www.")) {
+  const wwwUrl = frontendUrl.replace("https://", "https://www.");
+  corsOrigins.push(wwwUrl);
+}
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: corsOrigins,
     credentials: true,
   }),
 );

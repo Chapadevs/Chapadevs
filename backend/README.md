@@ -47,6 +47,9 @@ User profile avatars are stored in `chapadevs-website/assets/avatars/` when GCS 
 - `GCS_BUCKET_NAME` – Bucket name (default: `chapadevs-website`). Uses the same service account as above.
 - Ensure `assets/avatars/*` is publicly readable if the bucket is private, or configure uniform bucket-level access for public read.
 
+**GCS signed URLs (Cloud Run):**  
+If AI preview thumbnails or attachments fail with `Permission 'iam.serviceAccounts.signBlob' denied`, see [docs/GCS-SIGNED-URLS-SETUP.md](./docs/GCS-SIGNED-URLS-SETUP.md) for IAM setup.
+
 **Next steps to enable email (after adding the client in Workspace Admin):**
 
 1. **Local development**
