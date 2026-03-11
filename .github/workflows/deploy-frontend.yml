@@ -1,0 +1,63 @@
+name: Deploy Frontend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**', '.github/workflows/deploy-frontend.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: us-east4
+      SERVICE_NAME: chapadevs-frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify GCP Project
+        run: |
+          gcloud config set project ${{ env.PROJECT_ID }}
+          CURRENT_PROJECT=$(gcloud config get-value project)
+          echo "Current GCP Project: $CURRENT_PROJECT"
+          if [ "$CURRENT_PROJECT" != "${{ env.PROJECT_ID }}" ]; then
+            echo "❌ Error: Project mismatch! Expected ${{ env.PROJECT_ID }}, got $CURRENT_PROJECT"
+            exit 1
+          fi
+
+      - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and push frontend image
+        env:
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || secrets.VITE_BACKEND_URL || 'https://api.chapadevs.com/api' }}
+        run: |
+          cd frontend
+          IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-frontend/chapadevs-frontend:${{ github.sha }}
+          docker build --build-arg VITE_BACKEND_URL="$VITE_BACKEND_URL" -t $IMAGE .
+          docker push $IMAGE
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/chapadevs-frontend/chapadevs-frontend:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --project ${{ env.PROJECT_ID }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 256Mi \
+            --min-instances 0 \
+            --max-instances 10 \
+            --concurrency 80
