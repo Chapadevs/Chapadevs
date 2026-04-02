@@ -1,9 +1,7 @@
 ---
 description: AI preview build structure — components, components/ui, pages; multi-file preferred; Sandpack entry index.js → App.js
-globs: backend/services/vertexAI/**/*.js, frontend/**/AIPreviewTab/**/*.jsx, frontend/**/AIPreviewCard/**/*.jsx
 alwaysApply: false
 ---
-
 # AI Preview Build Structure
 
 - **Generated previews** must follow the build structure: `./components`, `./components/ui`, `./pages`.
