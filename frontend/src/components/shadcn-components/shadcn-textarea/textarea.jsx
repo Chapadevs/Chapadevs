@@ -7,6 +7,7 @@ const DEFAULT_MAX_HEIGHT = "200px"
 
 const Textarea = React.forwardRef(({ 
   label, 
+  labelClassName,
   error, 
   required, 
   className, 
@@ -60,7 +61,10 @@ const Textarea = React.forwardRef(({
       {label && (
         <label 
           htmlFor={id} 
-          className="font-heading text-[10px] text-ink-muted uppercase tracking-[0.1em] font-bold px-1"
+          className={cn(
+            "font-heading text-[10px] text-ink-muted uppercase tracking-[0.1em] font-bold px-1",
+            labelClassName
+          )}
         >
           {label}{required && ' *'}
         </label>

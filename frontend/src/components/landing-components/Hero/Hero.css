@@ -1,54 +1,76 @@
-/* Hero — layout, structure & animations only */
+/* Hero — section rhythm & entrance only (visuals use Tailwind + design tokens) */
 .hero-section {
-  min-height: 90vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2.5rem 0;
+  display: block;
+  min-height: auto;
+  padding-top: 2.5rem;
+  padding-bottom: 3.5rem;
   position: relative;
   overflow: hidden;
+  /* Shows through wherever the video mask reaches full transparency */
+  background: linear-gradient(180deg, #ecfdf5 0%, #f7fef9 42%, #ffffff 88%, #ffffff 100%);
+}
+
+/* Video fades to fully transparent at bottom (alpha → 0 in mask) */
+.hero-video-mask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 28%,
+    rgba(0, 0, 0, 0.55) 52%,
+    rgba(0, 0, 0, 0.12) 78%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 28%,
+    rgba(0, 0, 0, 0.55) 52%,
+    rgba(0, 0, 0, 0.12) 78%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+
+/* Light mint at top only; transparent by ~65% so it doesn’t block the video fade-out */
+.hero-video-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(236, 253, 245, 0.14) 0%,
+    rgba(236, 253, 245, 0.06) 38%,
+    transparent 65%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-video-bg {
+    display: none;
+  }
+}
+
+.hero-loop-video {
+  will-change: opacity;
 }
 
 .hero-content {
-  max-width: 800px;
-  margin: 0 auto;
   animation: fadeInUp 0.8s ease-out;
 }
 
 .title {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
 }
 
 .title--hero {
-  margin-bottom: 1.5rem;
-}
-
-.highlight {
-  position: relative;
-  display: inline-block;
-  animation: highlightGlow 3s ease-in-out infinite;
-}
-
-.highlight:nth-child(1) { animation-delay: 0s; }
-.highlight:nth-child(2) { animation-delay: 0.5s; }
-.highlight:nth-child(3) { animation-delay: 1s; }
-.highlight:nth-child(4) { animation-delay: 1.5s; }
-.highlight:nth-child(5) { animation-delay: 2s; }
-
-.text--lead {
-  margin-bottom: 3rem;
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.hero-buttons {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 @keyframes fadeInUp {
@@ -62,44 +84,16 @@
   }
 }
 
-@keyframes highlightGlow {
-  0%, 100% {
-    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-  }
-  50% {
-    text-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
-  }
-}
-
 @media (min-width: 768px) {
   .hero-section {
-    min-height: 75vh;
-    padding: 3rem 0;
-  }
-
-  .hero-buttons {
-    flex-direction: row;
-    width: auto;
+    padding-top: 3.5rem;
+    padding-bottom: 4.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .hero-section {
-    min-height: 85vh;
-    padding: 4rem 0;
-  }
-}
-
-@media (min-width: 1440px) {
-  .hero-section {
-    padding: 5rem 0;
-  }
-}
-
-@media (max-width: 767px) {
-  .hero-buttons {
-    flex-direction: column;
-    width: 100%;
-    gap: 1.5rem;
+    padding-top: 4.5rem;
+    padding-bottom: 6rem;
   }
 }
