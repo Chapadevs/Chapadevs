@@ -9,6 +9,7 @@ import {
   buildWebsitePrompt,
   buildCombinedPrompt,
   buildProjectRequirementsPrompt,
+  buildWebsiteIdeasPrompt,
 } from "./promptBuilders.js";
 import { buildWorkspaceProposalPrompt } from "./workspacePromptBuilder.js";
 import { resolveTemplateType } from "./templateStructureHelper.js";
@@ -17,6 +18,7 @@ import {
   generateMockAnalysis,
   generateMockCombined,
   generateMockProjectRequirements,
+  generateMockWebsiteIdeas,
   generateMockWorkspaceProposal,
 } from "./mockGenerators.js";
 import { extractPageAndComponentPaths } from "../../utils/previewCodeStructure.js";
@@ -333,6 +335,58 @@ class VertexAIService {
     } catch (error) {
       console.error("Project Requirements Error:", error.message);
       return generateMockProjectRequirements(prompt, this.cache);
+    }
+  }
+
+  /**
+   * WEBSITE IDEAS: multiple directions from one plain-language prompt (pre-project discovery).
+   * @returns {{ ideas: Array, fromCache?: boolean, usage?: object | null }}
+   */
+  async generateWebsiteIdeas(prompt, modelId = "gemini-2.5-pro") {
+    if (!this.initialized || !this.vertex) {
+      console.warn("⚠️ Vertex AI not initialized, using mock website ideas");
+      const mock = generateMockWebsiteIdeas(prompt);
+      return { result: mock, fromCache: false, usage: null };
+    }
+
+    const cacheKey = `website_ideas_${modelId}_${hashString(prompt)}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
+      console.log("[Website Ideas] Cache hit");
+      return { result: cached, fromCache: true, usage: null };
+    }
+
+    const model = await this.getModel(modelId);
+    if (!model) {
+      const mock = generateMockWebsiteIdeas(prompt);
+      return { result: mock, fromCache: false, usage: null };
+    }
+
+    const ideasPrompt = buildWebsiteIdeasPrompt(prompt);
+    try {
+      const response = await model.generateContent(ideasPrompt);
+      const text = extractText(response);
+      const usage = extractUsage(response);
+
+      let clean = text.trim();
+      clean = clean.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "");
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) clean = match[0];
+      clean = clean.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
+      const parsed = JSON.parse(clean);
+      const ideas = Array.isArray(parsed.ideas) ? parsed.ideas : [];
+      const normalized = { ideas };
+      this.cache.set(cacheKey, normalized);
+      console.log("[Website Ideas] Generation complete:", {
+        tokenUsage: usage?.totalTokenCount,
+        count: ideas.length,
+      });
+      return { result: normalized, fromCache: false, usage };
+    } catch (error) {
+      console.error("Website Ideas Error:", error.message);
+      const mock = generateMockWebsiteIdeas(prompt);
+      return { result: mock, fromCache: false, usage: null };
     }
   }
 

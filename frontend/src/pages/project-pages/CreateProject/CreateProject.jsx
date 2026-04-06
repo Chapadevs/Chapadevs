@@ -1,8 +1,13 @@
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { projectAPI } from '../../../services/api'
 import { TECH_STACK_BY_CATEGORY } from '../../../utils/techStack'
 import { getDueDateFromStartAndWeeks } from '../../../utils/dateUtils'
+import { mapIdeaToCreateProjectDraft } from '../../../utils/mapIdeaToCreateProjectForm'
+import {
+  clearCreateProjectIdeaSession,
+  readCreateProjectIdeaSession,
+} from '../../../utils/ideaSession'
 import Header from '../../../components/layout-components/Header/Header'
 import { Button, SectionTitle, Alert, Input, Select, Textarea } from '../../../components/ui-components'
 import './CreateProject.css'
@@ -13,36 +18,15 @@ const toISODateOnly = (d) => {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
 }
 
-const mapProjectDataToForm = (projectData) => {
-  const toStr = (v) => (Array.isArray(v) ? v.join(', ') : (v ?? ''))
-  return {
-    title: projectData.title ?? '',
-    description: projectData.description ?? '',
-    projectType: projectData.projectType ?? '',
-    timeline: projectData.timeline ?? '',
-    startDate: toISODateOnly(projectData.startDate) || toISODateOnly(new Date()),
-    goals: toStr(projectData.goals),
-    features: toStr(projectData.features),
-    designStyles: toStr(projectData.designStyles),
-    technologies: Array.isArray(projectData.technologies) ? projectData.technologies : [],
-    hasBranding: projectData.hasBranding ?? '',
-    brandingDetails: projectData.brandingDetails ?? '',
-    contentStatus: projectData.contentStatus ?? '',
-    referenceWebsites: projectData.referenceWebsites ?? '',
-    specialRequirements: projectData.specialRequirements ?? '',
-    additionalComments: projectData.additionalComments ?? '',
-    dueDate: '',
-  }
-}
-
 const CreateProject = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const dueDateInputRef = useRef(null)
   const startDateInputRef = useRef(null)
+  const hydratedIdeaRef = useRef(false)
   const [loading, setLoading] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [aiPrompt, setAiPrompt] = useState('')
   const [error, setError] = useState(null)
+  const [ideaNotice, setIdeaNotice] = useState(null)
   const defaultStart = toISODateOnly(new Date())
   const [formData, setFormData] = useState({
     title: '',
@@ -79,23 +63,25 @@ const CreateProject = () => {
     setFormData((prev) => ({ ...prev, timeline: String(next) }))
   }
 
-  const handleGenerateWithAI = async (e) => {
-    e.preventDefault()
-    if (!aiPrompt.trim()) {
-      setError('Please describe your project to generate requirements')
-      return
-    }
-    setError(null)
-    setGenerating(true)
-    try {
-      const { projectData } = await projectAPI.generateProjectRequirements(aiPrompt.trim())
-      setFormData(mapProjectDataToForm(projectData))
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to generate project requirements')
-    } finally {
-      setGenerating(false)
-    }
-  }
+  useEffect(() => {
+    if (hydratedIdeaRef.current) return
+
+    const pendingIdea = location.state?.fromIdea || readCreateProjectIdeaSession()
+    if (!pendingIdea?.idea) return
+
+    const draft = mapIdeaToCreateProjectDraft(pendingIdea.idea, pendingIdea.sourcePrompt)
+    if (!draft) return
+
+    hydratedIdeaRef.current = true
+    setFormData((prev) => ({
+      ...prev,
+      ...draft,
+      startDate: prev.startDate || defaultStart,
+      timeline: prev.timeline || '',
+    }))
+    setIdeaNotice(`Loaded "${pendingIdea.idea.title || 'website idea'}" into the form.`)
+    clearCreateProjectIdeaSession()
+  }, [defaultStart, location.state])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -140,30 +126,25 @@ const CreateProject = () => {
         <h2>New Project</h2>
       </div>
 
+      {ideaNotice && (
+        <Alert variant="success" className="error-message mb-4">
+          {ideaNotice}
+        </Alert>
+      )}
       {error && <Alert variant="error" className="error-message">{error}</Alert>}
 
       <div className="form-section create-project-ai-block">
-        <SectionTitle className="mb-4">Generate with AI</SectionTitle>
-        <p className="form-hint mb-3">Describe your project in your own words and we&apos;ll fill the form for you.</p>
-        <div className="create-project-ai-input-row">
-          <Textarea
-            id="ai-prompt"
-            label="Project description"
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            rows={3}
-            placeholder="e.g., E-commerce store for handmade ceramics with inventory, user accounts, and Stripe payments"
-            wrapperClassName="form-group flex-1"
-            disabled={generating}
-          />
-          <Button
-            type="button"
-            variant="primary"
-            size="lg"
-            onClick={handleGenerateWithAI}
-            disabled={generating || !aiPrompt.trim()}
-          >
-            {generating ? 'Generating...' : 'Generate with AI'}
+        <SectionTitle className="mb-4">Start from website ideas</SectionTitle>
+        <p className="form-hint mb-3">
+          Step 2: explore a few AI directions first, pick one, and land here with the form pre-filled.
+          You can still edit every field below.
+        </p>
+        <div className="create-project-ai-input-row flex-wrap gap-3">
+          <Button type="button" variant="primary" size="lg" className="rounded-none font-button uppercase" to="/ideas">
+            Explore website ideas
+          </Button>
+          <Button type="button" variant="secondary" size="lg" className="rounded-none font-button uppercase" to="/my-ideas">
+            My saved ideas
           </Button>
         </div>
       </div>

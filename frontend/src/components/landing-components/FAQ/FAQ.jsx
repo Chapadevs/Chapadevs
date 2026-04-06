@@ -4,6 +4,18 @@ import './FAQ.css'
 const FAQ = () => {
   const [faqs, setFaqs] = useState([
     {
+      question: 'What happens after I describe my business on the ideas page?',
+      answer:
+        'We generate several website directions for you—summary, suggested pages, features, and a preview direction (look & layout). You pick the one that fits. If you sign in as a client, your sets are saved under My ideas.',
+      isOpen: false,
+    },
+    {
+      question: 'Do you only provide AI previews, or do you build the real website?',
+      answer:
+        'The ideas step and previews help you decide faster. The actual product is professional development: we turn your chosen direction into a real project and our developers build and launch your site, not just a demo.',
+      isOpen: false,
+    },
+    {
       question: 'What technologies do you use for development?',
       answer: 'We use modern technologies including React for frontend, Java Spring Boot for backend, and deploy exclusively on Oracle infrastructure for reliable performance.',
       isOpen: false

@@ -1,6 +1,25 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+// Optional auth: attach req.user if Bearer token is valid; otherwise req.user is undefined
+export const optionalProtect = async (req, res, next) => {
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select("-password");
+      if (!req.user) req.user = undefined;
+    } catch (error) {
+      req.user = undefined;
+    }
+  }
+  next();
+};
+
 // Protect routes - verify JWT token
 export const protect = async (req, res, next) => {
   let token;

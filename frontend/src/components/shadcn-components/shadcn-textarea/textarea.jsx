@@ -12,6 +12,8 @@ const Textarea = React.forwardRef(({
   required, 
   className, 
   wrapperClassName, 
+  containerClassName,
+  childrenClassName,
   id, 
   children, 
   autoExpand = false,
@@ -74,7 +76,8 @@ const Textarea = React.forwardRef(({
       <div className={cn(
         "relative flex flex-col w-full transition-all duration-300",
         "rounded-none border border-input bg-surface shadow-sm focus-within:ring-1 focus-within:ring-primary/20 focus-within:border-primary",
-        error && "border-destructive"
+        error && "border-destructive",
+        containerClassName
       )}>
         {/* Preview Slot (e.g. image thumbnails) */}
         {previewSlot && (
@@ -98,7 +101,10 @@ const Textarea = React.forwardRef(({
         
         {/* Action Bar (The Children Slot) */}
         {children && (
-          <div className="flex items-center justify-end gap-2 px-3 py-2 bg-surface rounded-none border-t border-border/40">
+          <div className={cn(
+            "flex items-center justify-end gap-2 px-3 py-2 bg-surface rounded-none border-t border-border/40",
+            childrenClassName
+          )}>
             {children}
           </div>
         )}

@@ -2,7 +2,7 @@
 .hero-section {
   display: block;
   min-height: auto;
-  padding-top: 2.5rem;
+  padding-top: 1rem;
   padding-bottom: 3.5rem;
   position: relative;
   overflow: hidden;
@@ -73,6 +73,126 @@
   margin-bottom: 0;
 }
 
+.hero-title-wave {
+  --hero-title-wave-x: 4%;
+  --hero-title-wave-y: 8%;
+  --hero-title-wave-width: 76%;
+  --hero-title-wave-height: 96%;
+  --hero-title-wave-clear-end: 14%;
+  --hero-title-wave-soft-end: 30%;
+  --hero-title-wave-solid-start: 52%;
+  position: relative;
+}
+
+.hero-title-wave__visual {
+  display: grid;
+}
+
+.hero-title-wave__layer {
+  grid-area: 1 / 1;
+  display: block;
+}
+
+.hero-title-wave__layer--brand {
+  color: #059669;
+}
+
+.hero-title-wave__line {
+  position: relative;
+}
+
+.hero-title-wave__layer--brand .hero-title-wave__neon {
+  display: inline;
+  /* Stay in “normal” brand greens—no pale mint so the headline reads solid */
+  background-image: linear-gradient(
+    90deg,
+    #065f46 0%,
+    #047857 18%,
+    #059669 36%,
+    #10b981 52%,
+    #059669 64%,
+    #047857 78%,
+    #065f46 100%
+  );
+  background-size: 240% 100%;
+  background-position: 0% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation:
+    heroTitleNeonShift 12s ease-in-out infinite,
+    heroTitleNeonPulse 4.5s ease-in-out infinite;
+}
+
+.hero-title-wave__layer--brand .hero-title-wave__lead-rest {
+  color: #059669;
+}
+
+.hero-title-wave__layer--ink .hero-title-wave__neon {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-image: none;
+  text-shadow: none;
+  animation: none;
+}
+
+.hero-title-wave__layer--ink .hero-title-wave__lead-rest {
+  color: rgba(17, 24, 39, 0.92);
+}
+
+@keyframes heroTitleNeonShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes heroTitleNeonPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.35)) drop-shadow(0 0 12px rgba(4, 120, 87, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(5, 150, 105, 0.45)) drop-shadow(0 0 16px rgba(4, 120, 87, 0.26));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-title-wave__layer--brand .hero-title-wave__neon {
+    animation: none;
+    background-position: 45% 50%;
+    filter: drop-shadow(0 0 5px rgba(5, 150, 105, 0.32));
+  }
+}
+
+.hero-title-wave__layer--ink {
+  color: #111827;
+  -webkit-mask-image: radial-gradient(
+    ellipse var(--hero-title-wave-width) var(--hero-title-wave-height) at var(--hero-title-wave-x) var(--hero-title-wave-y),
+    transparent 0%,
+    transparent var(--hero-title-wave-clear-end),
+    rgba(0, 0, 0, 0.3) var(--hero-title-wave-soft-end),
+    #000 var(--hero-title-wave-solid-start),
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse var(--hero-title-wave-width) var(--hero-title-wave-height) at var(--hero-title-wave-x) var(--hero-title-wave-y),
+    transparent 0%,
+    transparent var(--hero-title-wave-clear-end),
+    rgba(0, 0, 0, 0.3) var(--hero-title-wave-soft-end),
+    #000 var(--hero-title-wave-solid-start),
+    #000 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -86,14 +206,34 @@
 
 @media (min-width: 768px) {
   .hero-section {
-    padding-top: 3.5rem;
+    padding-top: 1.5rem;
     padding-bottom: 4.5rem;
+  }
+
+  .hero-title-wave {
+    --hero-title-wave-x: 8%;
+    --hero-title-wave-y: 10%;
+    --hero-title-wave-width: 70%;
+    --hero-title-wave-height: 92%;
+    --hero-title-wave-clear-end: 16%;
+    --hero-title-wave-soft-end: 34%;
+    --hero-title-wave-solid-start: 55%;
   }
 }
 
 @media (min-width: 1024px) {
   .hero-section {
-    padding-top: 4.5rem;
+    padding-top: 2rem;
     padding-bottom: 6rem;
+  }
+
+  .hero-title-wave {
+    --hero-title-wave-x: 10%;
+    --hero-title-wave-y: 11%;
+    --hero-title-wave-width: 68%;
+    --hero-title-wave-height: 88%;
+    --hero-title-wave-clear-end: 17%;
+    --hero-title-wave-soft-end: 36%;
+    --hero-title-wave-solid-start: 58%;
   }
 }

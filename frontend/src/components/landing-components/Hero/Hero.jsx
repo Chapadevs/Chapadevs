@@ -1,20 +1,39 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Button, SecondaryButton, Textarea, Container } from '@/components/ui-components'
+import React, { useRef, useEffect } from 'react'
+import { Container } from '@/components/ui-components'
+import IdeaExplorePanel from '@/components/landing-components/IdeaExplore/IdeaExplorePanel'
 import heroBackMp4 from '../../../../Hero-Back.mp4'
 import './Hero.css'
 
 /** Seconds: fade out before loop end and fade in after restart so the seek is invisible */
 const LOOP_FADE_OUT_SEC = 1.2
 const LOOP_FADE_IN_SEC = 0.65
+const HERO_TITLE_LINES_REST = [
+  { key: 'mid', text: "That's exactly where we", className: 'hero-title-wave__line mt-1.5 block normal-case font-normal italic md:mt-2' },
+  { key: 'end', text: 'start.', className: 'hero-title-wave__line mt-1 block normal-case md:mt-1.5' },
+]
+
+const renderLeadTitleLine = () => (
+  <span className="hero-title-wave__line hero-title-wave__line--lead block normal-case">
+    <span className="hero-title-wave__neon font-heading text-[1.02em] font-bold uppercase tracking-[0.08em] md:text-[1.06em] lg:text-[1.05em] xl:text-[1.04em]">
+      Your idea
+    </span>
+    <span className="hero-title-wave__lead-rest"> is messy.</span>
+  </span>
+)
+
+const renderHeroTitleLines = () => (
+  <>
+    {renderLeadTitleLine()}
+    {HERO_TITLE_LINES_REST.map(({ key, text, className }) => (
+      <span key={key} className={className}>
+        {text}
+      </span>
+    ))}
+  </>
+)
 
 const Hero = () => {
   const videoRef = useRef(null)
-  const [generateFormData, setGenerateFormData] = useState({
-    prompt: '',
-  })
-  const handleChange = (field, value) => {
-    setGenerateFormData({ ...generateFormData, [field]: value })
-  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -83,63 +102,40 @@ const Hero = () => {
       </div>
 
       <Container className="hero-content relative z-10 !px-4 sm:!px-8 w-full max-w-content text-left">
-        <h1 className="title title--hero mb-10 max-w-3xl font-heading text-3xl font-bold leading-[1.15] tracking-wide text-ink md:mb-12 md:text-4xl lg:mb-14 lg:text-5xl xl:text-[3.25rem]">
-          <span className="block normal-case">Your idea is messy.</span>
-          <span className="mt-2 block font-body text-2xl font-normal italic text-primary md:mt-3 md:text-3xl lg:text-4xl">
-            That's exactly
-          </span>
-          <span className="mt-1 block normal-case md:mt-2">where we start.</span>
-        </h1>
-
-        <p className="mt-4 mb-10 max-w-2xl border-l-4 border-primary py-2 pl-7 pr-2 font-body text-base leading-[1.65] text-ink-secondary md:mt-6 md:mb-12 md:pl-9 md:py-3 md:text-lg md:leading-relaxed lg:mt-8 lg:pl-10">
-          Messy ideas and crossed wires waste time and money. Chapadevs is the translation layer between what
-          you mean and what gets built: describe your project in plain language, get a live preview your
-          developer can code from, and follow everything in one shared workspace.
-        </p>
-
-        <div className="mx-auto w-full max-w-3xl border-2 border-border bg-surface shadow-lg shadow-ink/5">
-          <div
-            className="flex items-center gap-2 border-b border-border bg-ink px-4 py-2.5"
-            aria-hidden
-          >
-            <span className="size-2 shrink-0 bg-white/35" />
-            <span className="size-2 shrink-0 bg-white/25" />
-            <span className="size-2 shrink-0 bg-white/20" />
-          </div>
-          <div className="bg-surface-gray p-4 md:p-6">
-            <Textarea
-              id="preview-prompt"
-              label="Project description"
-              labelClassName="text-xs tracking-[0.12em] md:text-[0.8125rem]"
-              value={generateFormData.prompt}
-              onChange={(e) => handleChange('prompt', e.target.value)}
-              placeholder="Describe the app, site, or workflow you want — we’ll turn it into a visual preview."
-              required
-              autoExpand
-              minRows={5}
-              maxHeight="200px"
-            >
-              <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                <span className="hidden text-[10px] font-medium uppercase tracking-wider text-ink-muted/60 sm:inline-block">
-                  {generateFormData.prompt?.length || 0} characters
-                </span>
-
-                <div className="flex items-center gap-1.5">
-                  <SecondaryButton
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-none font-normal lowercase text-ink-muted hover:text-ink"
-                    onClick={() => setGenerateFormData({ prompt: '' })}
+        <div className="flex flex-col gap-6 pt-2 md:gap-8 md:pt-3 lg:gap-10 lg:pt-4 xl:gap-12 xl:pt-5">
+          <div className="mx-auto w-full min-w-0 max-w-4xl">
+            <div className="relative overflow-hidden rounded-t-xl border-t border-border bg-white/70 p-px shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
+              <div
+                className="pointer-events-none absolute inset-0 bg-[conic-gradient(from_180deg_at_50%_50%,rgba(16,185,129,0.00)_0deg,rgba(16,185,129,0.72)_42deg,rgba(110,231,183,0.18)_95deg,rgba(16,185,129,0.00)_165deg,rgba(5,150,105,0.62)_248deg,rgba(16,185,129,0.00)_320deg,rgba(16,185,129,0.72)_360deg)] animate-[spin_10s_linear_infinite]"
+                aria-hidden
+              />
+              <div
+                className="pointer-events-none absolute -inset-10 opacity-55 blur-2xl bg-[conic-gradient(from_0deg_at_50%_50%,rgba(16,185,129,0.00)_0deg,rgba(52,211,153,0.42)_60deg,rgba(16,185,129,0.00)_150deg,rgba(5,150,105,0.36)_230deg,rgba(16,185,129,0.00)_320deg,rgba(52,211,153,0.42)_360deg)] animate-[spin_16s_linear_infinite_reverse]"
+                aria-hidden
+              />
+              <div className="relative bg-surface">
+                <div className="border-b border-border px-5 py-6 sm:px-7 sm:py-7 md:px-8 md:py-8">
+                  <h1
+                    className="title title--hero hero-title-wave w-fit max-w-full border-l-4 border-l-primary pl-4 text-left font-body text-3xl font-bold leading-[1.15] tracking-normal text-ink sm:pl-5 md:pl-6 md:text-4xl lg:text-5xl xl:text-[3.25rem]"
+                    aria-label="Your idea is messy. That's exactly where we start."
                   >
-                    cancel
-                  </SecondaryButton>
-                  <Button type="submit" size="sm" className="rounded-none shadow-sm" to="/login">
-                    Generate
-                  </Button>
+                    <span className="hero-title-wave__visual" aria-hidden="true">
+                      <span className="hero-title-wave__layer hero-title-wave__layer--brand">{renderHeroTitleLines()}</span>
+                      <span className="hero-title-wave__layer hero-title-wave__layer--ink">{renderHeroTitleLines()}</span>
+                    </span>
+                  </h1>
+                </div>
+                <div className="relative px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-4">
+                  <IdeaExplorePanel variant="embedded" />
                 </div>
               </div>
-            </Textarea>
+            </div>
+            <p className="mx-auto mt-8 px-4 py-3 text-center font-body text-base leading-[1.7] text-ink-secondary md:mt-10 md:px-6 md:py-4 md:text-lg md:leading-relaxed">
+              For people who <strong className="font-semibold text-ink">already run something</strong>—a site, bookings, a small team—but feel stuck improving it
+              (too big a rebuild, or too vague to start). Describe the struggle in plain language. You get a few{' '}
+              <strong className="font-semibold text-ink">bounded next steps</strong>, not a fantasy product or a generic first website pitch.
+              Pick one—we build it with you.
+            </p>
           </div>
         </div>
       </Container>

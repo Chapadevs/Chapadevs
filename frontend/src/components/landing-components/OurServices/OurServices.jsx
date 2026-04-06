@@ -8,24 +8,24 @@ const OurServices = () => {
 
   const benefits = [
     {
-      icon: 'fas fa-bolt',
-      title: 'Instant Analysis',
-      text: 'Get project overview, features, and tech stack recommendations in seconds.',
+      icon: 'fas fa-lightbulb',
+      title: 'Website ideas first',
+      text: 'Describe your business once and get several concrete site directions—pages, features, and visual direction—before you commit.',
     },
     {
-      icon: 'fas fa-chart-line',
-      title: 'Workspace & Budget',
-      text: 'AI-powered estimates for timeline phases and budget breakdown.',
+      icon: 'fas fa-bolt',
+      title: 'Structured project plan',
+      text: 'When you pick a direction, we pre-fill a real project scope your developers can execute—goals, features, and tech stack in our JS stack.',
     },
     {
       icon: 'fas fa-code',
-      title: 'Live React Preview',
-      text: 'See a working website preview. Copy or download the code.',
+      title: 'Live React preview',
+      text: 'Inside your project workspace, generate working previews. Our team turns the chosen direction into the final live site.',
     },
     {
       icon: 'fas fa-layer-group',
-      title: '5 Generations per Project',
-      text: 'Refine your idea with multiple AI generations per project.',
+      title: 'One shared workspace',
+      text: 'Approvals, assets, phases, and AI previews stay in one place so nothing gets lost in endless chat threads.',
     },
   ]
 
@@ -44,14 +44,14 @@ const OurServices = () => {
           <header className="services-feature-header">
             <div className="title-brand-split">
               <div className="title-line-1">
-                <span className="dark-text">AI</span>
+                <span className="dark-text">IDEAS</span>
               </div>
               <div className="title-line-2">
-                <span className="green-text">PROJECT PREVIEW</span>
+                <span className="green-text">THEN BUILD</span>
               </div>
             </div>
             <p className="services-feature-description">
-              Describe your project and get instant AI analysis—overview, features, tech stack, timeline, and a live website preview. Available in your project dashboard.
+              Start with AI website ideas tailored to your business. Choose a direction, open a project, and let Chapadevs developers ship your real site—with previews and workspace in one flow.
             </p>
           </header>
 
@@ -70,15 +70,20 @@ const OurServices = () => {
           </div>
 
           <div className="services-tags">
-            <Tag variant="primary" className="service-tag">Powered by Vertex AI</Tag>
-            <Tag variant="primary" className="service-tag">Live Preview</Tag>
-            <Tag variant="primary" className="service-tag">Tech Stack Recommendations</Tag>
+            <Tag variant="primary" className="service-tag">Vertex AI ideas</Tag>
+            <Tag variant="primary" className="service-tag">Live preview in project</Tag>
+            <Tag variant="primary" className="service-tag">Human-led build</Tag>
           </div>
 
-          <div className="services-cta">
-            <Button to={isAuthenticated ? '/projects/create' : '/register'} variant="secondary" size="hero" >
-              Get Started
+          <div className="services-cta flex flex-wrap items-center gap-3">
+            <Button to="/ideas" variant="secondary" size="hero">
+              Explore website ideas
             </Button>
+            {isAuthenticated ? (
+              <Button to="/projects/create" variant="ghost" size="hero">
+                Create project
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
