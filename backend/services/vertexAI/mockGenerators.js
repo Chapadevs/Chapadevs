@@ -975,6 +975,110 @@ export function generateMockProjectRequirements(prompt, cache) {
 }
 
 /**
+ * Mock: 3 website idea directions from plain-language prompt (ideas flow).
+ */
+export function generateMockWebsiteIdeas(prompt) {
+  console.log("🎭 Generating MOCK website ideas");
+
+  const lower = (prompt || "").toLowerCase();
+  const isEcommerce =
+    lower.includes("ecommerce") ||
+    lower.includes("store") ||
+    lower.includes("shop");
+  const isBooking =
+    lower.includes("book") ||
+    lower.includes("appointment") ||
+    lower.includes("schedule");
+
+  const base = {
+    previewDirection: {
+      visualStyle: "Clean, calm",
+      layoutVibe: "Fast to scan",
+      homepageConcept: "People quickly see the next step instead of guessing what to do.",
+    },
+    suggestedTechnologies: ["React", "TypeScript", "Tailwind CSS", "Node.js"],
+  };
+
+  const ideas = [
+    {
+      title: "Refresh and refocus what you already show online",
+      suggestedProjectType: isEcommerce
+        ? "Website Redesign/Refresh"
+        : "Maintenance/Updates to Existing Site",
+      suggestedPages: [
+        "Home (updated)",
+        "Offers",
+        "Contact",
+      ],
+      ...base,
+      summary: `Your site already works, but clearer messaging and cleaner mobile flow would make it easier for customers to act.`,
+      whoItFits:
+        "Pick this if the site (or main page) exists but feels outdated, vague, or hard to use on phones.",
+      keyFeatures: [
+        "Clearer sections and stronger calls to action",
+        "Mobile fixes on the pages people use most",
+      ],
+      previewDirection: {
+        visualStyle: "Familiar, cleaner",
+        layoutVibe: "Clear hero, clear action",
+        homepageConcept: "Visitors understand what you do and how to contact you right away.",
+      },
+    },
+    {
+      title: isBooking
+        ? "One dependable booking or request path (stop the inbox maze)"
+        : "One funnel for the requests that eat your week",
+      suggestedProjectType: isBooking ? "Web Application" : "Landing Page",
+      suggestedPages: isBooking
+        ? ["Home", "Book or request", "Contact"]
+        : ["Offer", "Request form", "Contact"],
+      ...base,
+      summary: `You need one reliable place for requests so jobs stop getting lost across messages, calls, and follow-ups.`,
+      whoItFits:
+        "Pick this if you’re losing leads in chat or re-typing the same questions.",
+      keyFeatures: [
+        "One focused form or booking handoff",
+        "Simple next-step message after submission",
+      ],
+      previewDirection: {
+        visualStyle: "Confident, minimal",
+        layoutVibe: "Pitch then action",
+        homepageConcept: "Customers send the right details without forcing your team into a big system.",
+      },
+    },
+    {
+      title: isEcommerce
+        ? "Narrow catalog upgrade: fewer SKUs done right first"
+        : "Next step after basics: one extra capability, bounded scope",
+      suggestedProjectType: isEcommerce ? "E-commerce Store" : "Website Redesign/Refresh",
+      suggestedPages: isEcommerce
+        ? ["Home", "Shop", "Contact"]
+        : ["Home", "Main offer", "Contact"],
+      ...base,
+      summary: `You want a careful next step that adds clarity or capability without turning the project into something huge.`,
+      whoItFits:
+        "Pick this if basics work sometimes but you’re hitting limits and want a careful step forward.",
+      keyFeatures: isEcommerce
+        ? [
+            "Small catalog presented clearly before scaling",
+            "Checkout scope matched to how you fulfill",
+          ]
+        : [
+            "Stronger main offer page with clearer details",
+            "One extra capability without changing everything",
+          ],
+      previewDirection: {
+        visualStyle: "Practical, polished",
+        layoutVibe: "Offer first, details second",
+        homepageConcept: "Customers see a more complete version of what you already do.",
+      },
+    },
+  ];
+
+  return { ideas };
+}
+
+/**
  * Mock for AI-powered Workspace proposal generation.
  * Returns phases with subSteps when Vertex AI is unavailable.
  * @param {Object} project - Project document

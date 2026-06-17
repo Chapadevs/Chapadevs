@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { LogOut, User, FolderKanban } from 'lucide-react'
+import { LogOut, User, FolderKanban, Lightbulb, Bookmark } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { userAPI } from '../../../services/api'
 import { NavDropdown, Badge } from '..'
+import { isClient } from '../../../utils/roles'
 
 const STATUS_OPTIONS = [
   { value: 'online', color: '#4caf50' },
@@ -52,6 +53,24 @@ const StatusDropdown = ({ trigger }) => {
           <p className="text-[9px] truncate text-gray-600 mt-0.5">{user.email}</p>
         </div>
 
+        {isClient(user) && (
+          <>
+            <Link
+              to="/ideas"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Lightbulb className="size-3 shrink-0" />
+              Website ideas
+            </Link>
+            <Link
+              to="/my-ideas"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] hover:bg-white/10 transition-colors"
+            >
+              <Bookmark className="size-3 shrink-0" />
+              My ideas
+            </Link>
+          </>
+        )}
         <Link to="/profile" className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] hover:bg-white/10 transition-colors">
           <User className="size-3 shrink-0" />
           Edit profile

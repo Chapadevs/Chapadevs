@@ -34,6 +34,7 @@ import assignmentRoutes from "./routes/assignmentRoutes.js";
 import aiPreviewRoutes from "./routes/aiPreviewRoutes.js";
 import inquiryRoutes from "./routes/inquiryRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import ideaRoutes from "./routes/ideaRoutes.js";
 
 const app = express();
 
@@ -105,6 +106,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/ai-previews", aiPreviewRoutes);
 app.use("/api/inquiry", inquiryRoutes);
+app.use("/api/ideas", ideaRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 // Error handling middleware (must be last)

@@ -20,6 +20,8 @@ import ProjectDetail from './pages/project-pages/ProjectDetail/ProjectDetail'
 import Team from './pages/resource-pages/Team/Team'
 import AvailableProjects from './pages/explore-pages/AvailableProjects/AvailableProjects'
 import Admin from './pages/admin-pages/Admin/Admin'
+import PublicIdeasPage from './pages/idea-pages/PublicIdeasPage'
+import MyIdeasPage from './pages/idea-pages/MyIdeasPage'
 import './styles.css'
 
 function App() {
@@ -31,6 +33,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/team" element={<Team />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/ideas" element={<PublicIdeasPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
@@ -66,6 +69,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProjectList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-ideas/:ideaSetId"
+            element={
+              <ProtectedRoute>
+                <MyIdeasPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-ideas"
+            element={
+              <ProtectedRoute>
+                <MyIdeasPage />
               </ProtectedRoute>
             }
           />

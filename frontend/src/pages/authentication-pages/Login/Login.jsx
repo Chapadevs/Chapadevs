@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { Button, Card, Alert, Input } from '../../../components/ui-components'
+import {
+  readCreateProjectIdeaSession,
+  readPublicIdeasSession,
+} from '../../../utils/ideaSession'
 import './Login.css'
 
 const Login = () => {
@@ -18,10 +22,16 @@ const Login = () => {
   const registeredEmail = location.state?.email
   const passwordReset = location.state?.passwordReset
 
+  const getPostLoginRoute = () => {
+    if (readCreateProjectIdeaSession()) return '/projects/create'
+    if (readPublicIdeasSession()) return '/ideas'
+    return '/'
+  }
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/')
+      navigate(getPostLoginRoute())
     }
   }, [user, navigate])
 
@@ -45,7 +55,7 @@ const Login = () => {
     const result = await login(formData.email, formData.password)
 
     if (result.success) {
-      navigate('/')
+      navigate(getPostLoginRoute())
     } else {
       setLocalError(result.error || 'Login failed')
     }

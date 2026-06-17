@@ -54,7 +54,8 @@ export const generateAIPreview = asyncHandler(async (req, res) => {
 
   if (projectId) {
     const project = await Project.findById(projectId);
-    if (!project || project.clientId.toString() !== req.user._id.toString()) {
+    const isAdmin = req.user.role === "admin";
+    if (!project || (!isAdmin && project.clientId.toString() !== req.user._id.toString())) {
       res.status(403);
       throw new Error("Not authorized to generate preview for this project");
     }
@@ -404,7 +405,8 @@ export const generateAIPreviewStream = asyncHandler(async (req, res) => {
 
   if (projectId) {
     const project = await Project.findById(projectId);
-    if (!project || project.clientId.toString() !== req.user._id.toString()) {
+    const isAdmin = req.user.role === "admin";
+    if (!project || (!isAdmin && project.clientId.toString() !== req.user._id.toString())) {
       res
         .status(403)
         .json({ error: "Not authorized to generate preview for this project" });

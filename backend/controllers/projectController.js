@@ -47,12 +47,28 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
+const HAS_BRANDING_VALUES = ["Yes", "No", "Partial"];
+
+/** Empty string from forms must not hit Mongoose enum on hasBranding. */
+function coerceHasBranding(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const v = typeof value === "string" ? value.trim() : String(value);
+  if (!v) return null;
+  return HAS_BRANDING_VALUES.includes(v) ? v : null;
+}
+
 // @desc    Create a new project
 // @route   POST /api/projects
 // @access  Private
 export const createProject = asyncHandler(async (req, res) => {
+  const body = { ...req.body };
+  const hb = coerceHasBranding(body.hasBranding);
+  if (hb === undefined) delete body.hasBranding;
+  else body.hasBranding = hb;
+
   const projectData = {
-    ...req.body,
+    ...body,
     clientId: req.user._id,
     status: "Holding",
     teamClosed: true,
@@ -158,7 +174,7 @@ function normalizeProjectRequirements(parsed) {
     features: toArr(parsed.features),
     designStyles: toArr(parsed.designStyles),
     technologies: flatTech.length ? flatTech : ["React", "Node.js", "MongoDB"],
-    hasBranding: ["Yes", "No", "Partial"].includes(parsed.hasBranding)
+    hasBranding: HAS_BRANDING_VALUES.includes(parsed.hasBranding)
       ? parsed.hasBranding
       : null,
     brandingDetails: parsed.brandingDetails || null,
@@ -2545,6 +2561,10 @@ export const updateProject = asyncHandler(async (req, res) => {
 
   Object.keys(req.body).forEach((key) => {
     if (req.body[key] !== undefined && key !== "_id" && key !== "clientId") {
+      if (key === "hasBranding") {
+        project[key] = coerceHasBranding(req.body[key]);
+        return;
+      }
       project[key] = req.body[key];
     }
   });

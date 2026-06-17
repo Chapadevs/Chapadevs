@@ -23,5 +23,6 @@ export {
 } from './aiPreviewApi'
 export { notificationAPI } from './notificationApi'
 export { chatAPI } from './chatApi'
+export { ideaAPI } from './ideaApi'
 
 export default api

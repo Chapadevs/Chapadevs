@@ -6,12 +6,11 @@ import { loadProjectsForRole } from '../../../utils/projectListLoader'
 import { formatDateOnly } from '../../../utils/dateUtils'
 import { Link } from 'react-router-dom'
 import Header from '../../../components/layout-components/Header/Header'
-import RoleGate from '../../../components/layout-components/RoleGate/RoleGate'
 import { Button, Badge, PageTitle, Card } from '../../../components/ui-components'
 import './ProjectList.css'
 
 const ProjectList = () => {
-  const { user } = useRole()
+  const { user, isClient } = useRole()
   const { notifications, loadNotifications } = useNotifications()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
@@ -72,9 +71,12 @@ const ProjectList = () => {
       <div className="project-list-header">
         <PageTitle>Projects</PageTitle>
         <div className="project-list-header-actions">
-          <RoleGate allow={['client', 'user']}>
-            <Button to="/projects/create" variant="ghost" size="md">New Project</Button>
-          </RoleGate>
+          {isClient ? (
+            <>
+              <Button to="/ideas" variant="primary" size="md">Explore Website Ideas</Button>
+              <Button to="/projects/create" variant="secondary" size="md">New Project</Button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -82,11 +84,16 @@ const ProjectList = () => {
         <div className="project-list-empty">
           <p>No projects found.</p>
           <div className="project-list-empty-actions">
-            <RoleGate allow={['client', 'user']}>
-              <Button to="/projects/create" variant="primary" size="md">
-                Create Your First Project
-              </Button>
-            </RoleGate>
+            {isClient ? (
+              <>
+                <Button to="/ideas" variant="primary" size="md">
+                  Explore Website Ideas
+                </Button>
+                <Button to="/projects/create" variant="secondary" size="md">
+                  Create Your First Project
+                </Button>
+              </>
+            ) : null}
             <Button to="/assignments" variant="secondary" size="md">
               Explore available projects
             </Button>

@@ -156,6 +156,51 @@ Rules:
 Generate the response now:`;
 }
 
+/**
+ * Multiple distinct website concepts for operators who already have a defined business
+ * and need incremental improvement—not greenfield launches or over-scoped products.
+ */
+export function buildWebsiteIdeasPrompt(prompt) {
+  return `You help people who already have something running: a site, shop, bookings, spreadsheet workflow, or a basic tool. They want a better next step, not a giant platform and not a generic first website.
+
+Avoid:
+- ideas that are too big: full ERP/CRM, complex dashboards, multi-role internal systems
+- ideas that are too generic: brochure-site advice that ignores the real bottleneck
+
+Give 3 distinct, personalized ideas. Keep each one bounded, practical, and easy for a client to understand.
+
+CLIENT INPUT: "${prompt}"
+
+Respond ONLY with valid JSON (no markdown, no code fences). Shape:
+{
+  "ideas": [
+    {
+      "title": "6-10 words. Clear improvement name. Plain language. No hype.",
+      "summary": "1 short sentence, max 160 characters. Say the problem and what this idea improves.",
+      "whoItFits": "1 short sentence starting with 'Pick this if...'.",
+      "suggestedPages": ["Exactly 3 short page or view names."],
+      "keyFeatures": ["Exactly 2 short bullets, each under 10 words."],
+      "previewDirection": {
+        "visualStyle": "2-4 simple words",
+        "layoutVibe": "Very short phrase",
+        "homepageConcept": "1 short sentence, max 120 characters, plain language for a client"
+      },
+      "suggestedProjectType": "EXACTLY one of: ${PROJECT_TYPE_ENUM.join(" | ")}",
+      "suggestedTechnologies": ["3-4 from: ${ALLOWED_TECHNOLOGIES.join(", ")} only"]
+    }
+  ]
+}
+
+Rules:
+- Exactly 3 ideas with different angles.
+- Personalize them to the client's domain, offer, pain, or tools.
+- Unless they clearly ask for heavy internal software, prefer simpler surfaces: better site, one solid form, one request flow, one light logged-in area, or one narrow tool.
+- Keep it client-friendly: no enterprise fluff, no jargon, no giant feature lists.
+- suggestedProjectType MUST match enum exactly. suggestedTechnologies ONLY: ${ALLOWED_TECHNOLOGIES.join(", ")}.
+
+Generate now:`;
+}
+
 export function buildWebsitePrompt(prompt, userInputs) {
   const projectType = userInputs.projectType || "Website";
   const lowerPrompt = prompt.toLowerCase();
